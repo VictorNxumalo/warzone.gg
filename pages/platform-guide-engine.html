@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Logic Engines - Platform Guide</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+  <script src="../js/config.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/main.js"></script>
+  <script>injectNav('platform-guide.html')</script>
+
+  <main class="max-w-5xl mx-auto px-5 py-8 fade-up">
+    <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest uppercase mb-4">
+      <a href="platform-guide.html" class="hover:text-[#e8c14a]">Platform Guide</a> / Engine Logic
+    </div>
+
+    <section class="wz-card accent-left p-7 mb-6">
+      <h1 class="font-head text-3xl font-black tracking-widest uppercase mb-3">How Logic Engines Power Competition</h1>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)]">
+        Engines convert raw match outcomes into consistent tournament state by resolving winners, scores, standings, and progression.
+      </p>
+    </section>
+
+    <section class="wz-card p-6 mb-6">
+      <h2 class="section-title mb-4">Engine Coverage</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a href="engine-cod.html" class="engine-tile engine-tile--cod rounded p-4 block wz-card-hover">
+          <div class="engine-tile-content">
+            <div class="engine-tile-kicker font-mono text-[10px] tracking-widest uppercase mb-2">COD Engine</div>
+            <div class="font-head text-sm font-bold uppercase mb-1">Call of Duty Engine</div>
+            <p class="font-body text-sm text-[var(--wz-text-secondary)]">Resolves map/mode outcomes and supports series-level decisions.</p>
+          </div>
+        </a>
+        <a href="engine-fifa.html" class="engine-tile engine-tile--fifa rounded p-4 block wz-card-hover">
+          <div class="engine-tile-content">
+            <div class="engine-tile-kicker font-mono text-[10px] tracking-widest uppercase mb-2">FIFA Engine</div>
+            <div class="font-head text-sm font-bold uppercase mb-1">FIFA Engine</div>
+            <p class="font-body text-sm text-[var(--wz-text-secondary)]">Aggregates goals, computes standings metrics, and handles match resolution.</p>
+          </div>
+        </a>
+        <a href="engine-fgc.html" class="engine-tile engine-tile--fgc rounded p-4 block wz-card-hover">
+          <div class="engine-tile-content">
+            <div class="engine-tile-kicker font-mono text-[10px] tracking-widest uppercase mb-2">FGC Engine</div>
+            <div class="font-head text-sm font-bold uppercase mb-1">FGC Engine</div>
+            <p class="font-body text-sm text-[var(--wz-text-secondary)]">Calculates set winners, bracket behavior, and grand-finals edge conditions.</p>
+          </div>
+        </a>
+        <a href="engine-racing.html" class="engine-tile engine-tile--racing rounded p-4 block wz-card-hover">
+          <div class="engine-tile-content">
+            <div class="engine-tile-kicker font-mono text-[10px] tracking-widest uppercase mb-2">Racing Engine</div>
+            <div class="font-head text-sm font-bold uppercase mb-1">Racing Engine</div>
+            <p class="font-body text-sm text-[var(--wz-text-secondary)]">Scores placements, handles race points, and updates leaderboard standings.</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="wz-card p-6">
+      <h2 class="section-title mb-4">Result Processing Pipeline</h2>
+      <div class="space-y-3">
+        <div class="border border-[var(--wz-border)] rounded p-4">
+          <div class="font-head text-sm font-bold uppercase">Step 1: Input validation</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mt-1">Controllers verify tournament, match, team linkage, and score payload completeness.</p>
+        </div>
+        <div class="border border-[var(--wz-border)] rounded p-4">
+          <div class="font-head text-sm font-bold uppercase">Step 2: Resolver execution</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mt-1">Game-specific engine functions compute winner state and scoring artifacts.</p>
+        </div>
+        <div class="border border-[var(--wz-border)] rounded p-4">
+          <div class="font-head text-sm font-bold uppercase">Step 3: Persistence and progression</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mt-1">Services persist outputs, refresh standings, and trigger bracket progression updates.</p>
+        </div>
+        <div class="border border-[var(--wz-border)] rounded p-4">
+          <div class="font-head text-sm font-bold uppercase">Step 4: View synchronization</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mt-1">Schedule, bracket, leaderboard, and tournament hub pages show the updated official state.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tournaments — EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+<script src="../js/config.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/main.js"></script>
+<script>injectNav('tournaments.html')</script>
+
+<main class="max-w-6xl mx-auto px-5 py-8 fade-up">
+  <div class="wz-mobile-header-row flex items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)]">
+    <h1 class="section-title text-2xl">All Tournaments</h1>
+    <div class="wz-mobile-filter-row flex gap-2 flex-wrap">
+      <select id="filter-game" onchange="applyFilters()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+        <option value="">All Games</option>
+      </select>
+      <select id="filter-status" onchange="applyFilters()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+        <option value="">All Status</option>
+        <option value="live">Live</option>
+        <option value="open">Open</option>
+        <option value="upcoming">Upcoming</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="wz-card p-4 mb-5 animated-gradient">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div>
+        <div class="font-head text-sm font-bold tracking-wide uppercase">Browse by game</div>
+        <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] mt-1">Same titles as registration &amp; bracket: COD Mobile, Warzone, MW, FIFA, NFS, Forza, MK, and Other. Chips mirror the dropdown—pick one to filter the grid.</div>
+      </div>
+      <div id="game-quick-filters" class="tournament-game-current-display">
+        <span class="tournament-game-current-chip">All Games</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="public-cta" class="hidden wz-card accent-left p-4 mb-5">
+    <div class="flex flex-col md:flex-row md:items-center gap-3 md:justify-between">
+      <div>
+        <div class="font-head text-sm font-bold tracking-wide uppercase">Compete in upcoming events</div>
+        <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] mt-1">Create an account to register your squad, track progress, and receive updates.</div>
+      </div>
+      <a href="register.html" class="btn-primary btn-sm w-fit">Create Account</a>
+    </div>
+  </div>
+
+  <div id="wz-host-tournaments" class="relative min-h-[16rem]">
+  <div id="tournaments-grid" class="grid grid-cols-1 md:grid-cols-3 gap-5 reveal-stagger">
+    <!-- Initial skeleton (replaced after API load) -->
+    <div class="wz-card wz-skel-card overflow-hidden"><div class="wz-skeleton h-20 w-full"></div><div class="p-4 space-y-2"><div class="wz-skeleton wz-skel-line" style="width:88%"></div><div class="wz-skeleton wz-skel-line-sm" style="width:100%"></div><div class="wz-skeleton wz-skel-line-sm" style="width:55%"></div></div><div class="px-4 py-3 border-t border-[var(--wz-border)]"><div class="wz-skeleton h-8 rounded-sm"></div></div></div>
+    <div class="wz-card wz-skel-card overflow-hidden"><div class="wz-skeleton h-20 w-full"></div><div class="p-4 space-y-2"><div class="wz-skeleton wz-skel-line" style="width:82%"></div><div class="wz-skeleton wz-skel-line-sm" style="width:100%"></div><div class="wz-skeleton wz-skel-line-sm" style="width:48%"></div></div><div class="px-4 py-3 border-t border-[var(--wz-border)]"><div class="wz-skeleton h-8 rounded-sm"></div></div></div>
+    <div class="wz-card wz-skel-card overflow-hidden"><div class="wz-skeleton h-20 w-full"></div><div class="p-4 space-y-2"><div class="wz-skeleton wz-skel-line" style="width:90%"></div><div class="wz-skeleton wz-skel-line-sm" style="width:100%"></div><div class="wz-skeleton wz-skel-line-sm" style="width:62%"></div></div><div class="px-4 py-3 border-t border-[var(--wz-border)]"><div class="wz-skeleton h-8 rounded-sm"></div></div></div>
+  </div>
+  </div>
+</main>
+
+<script>
+const bannerClass = { ranked:'banner-ranked', br:'banner-br', duos:'banner-duos', solo:'banner-solo' };
+
+// All tournaments loaded from API — kept in memory for filtering
+let _allTournaments = [];
+let _allMatches = [];
+let _viewerTeamId = null;
+/** True only when the signed-in user captains that team (used to show “Register team” CTA). */
+let _viewerIsCaptain = false;
+/** @type {Array} Approved registrations for the signed-in user’s team(s). */
+let _myParticipations = [];
+/** @type {Set<string>} Tournament IDs the user is approved for. */
+let _participatingTournamentIds = new Set();
+let _activeGameFilter = '';
+
+/**
+ * Full platform list — same order as register.html / bracket.html / leaderboard.html.
+ * Browse chips and the dropdown always show these buckets so empty games still appear.
+ */
+const PLATFORM_GAMES = [
+  'COD Mobile',
+  'COD Warzone',
+  'COD Modern Warfare',
+  'FIFA',
+  'Need for Speed',
+  'Forza',
+  'Mortal Kombat',
+  'Other'
+];
+
+/** Align with leaderboard / bracket — card badges and filters must use identical labels. */
+function inferTournamentGame(t) {
+  const text = `${t?.game || ''} ${t?.title || ''} ${t?.name || ''} ${t?.mode || ''} ${t?.type || ''}`.toLowerCase();
+  if (text.includes('cod mobile') || text.includes('codm')) return 'COD Mobile';
+  if (text.includes('warzone')) return 'COD Warzone';
+  if (text.includes('modern warfare') || text.includes('morden warfare')) return 'COD Modern Warfare';
+  if (text.includes('fifa')) return 'FIFA';
+  if (text.includes('need for speed') || text.includes('nfs')) return 'Need for Speed';
+  if (text.includes('forza')) return 'Forza';
+  if (text.includes('mortal kombat') || text.includes('mortal kombak') || text.includes('mortal') || text.includes('kombat') || text.includes('mk')) return 'Mortal Kombat';
+  if (text.includes('call of duty')) return 'COD Mobile';
+  return 'Other';
+}
+
+function gameBadgeClass(game) {
+  const map = {
+    'COD Mobile': 'bg-amber-900/30 text-amber-400 border-amber-700',
+    'COD Warzone': 'bg-amber-900/30 text-amber-400 border-amber-700',
+    'COD Modern Warfare': 'bg-amber-900/30 text-amber-400 border-amber-700',
+    'FIFA': 'bg-emerald-900/30 text-emerald-400 border-emerald-700',
+    'Mortal Kombat': 'bg-rose-900/30 text-rose-400 border-rose-700',
+    'Need for Speed': 'bg-sky-900/30 text-sky-400 border-sky-700',
+    'Forza': 'bg-violet-900/30 text-violet-400 border-violet-700',
+    'Other': 'wz-chip-game-other'
+  };
+  return map[game] || map.Other;
+}
+
+function gameCoverClass(game) {
+  const map = {
+    'COD Mobile': 'game-cover-codm',
+    'COD Warzone': 'game-cover-warzone',
+    'COD Modern Warfare': 'game-cover-mw',
+    'FIFA': 'game-cover-fifa',
+    'Mortal Kombat': 'game-cover-mk',
+    'Need for Speed': 'game-cover-nfs',
+    'Forza': 'game-cover-forza',
+    'Other': 'game-cover-other'
+  };
+  return map[game] || map.Other;
+}
+
+function gameToneClass(game) {
+  const map = {
+    'COD Mobile': 'wz-tournament-card--codm',
+    'COD Warzone': 'wz-tournament-card--warzone',
+    'COD Modern Warfare': 'wz-tournament-card--mw',
+    'FIFA': 'wz-tournament-card--fifa',
+    'Need for Speed': 'wz-tournament-card--nfs',
+    'Forza': 'wz-tournament-card--forza',
+    'Mortal Kombat': 'wz-tournament-card--mk',
+    'Other': 'wz-tournament-card--other'
+  };
+  return map[game] || map.Other;
+}
+
+function renderGameFilters() {
+  const gameSelect = document.getElementById('filter-game');
+  const quickFilters = document.getElementById('game-quick-filters');
+  const games = PLATFORM_GAMES;
+  const valid = new Set(['', ...games]);
+  if (!valid.has(_activeGameFilter)) _activeGameFilter = '';
+
+  gameSelect.innerHTML = '<option value="">All Games</option>' +
+    games.map((game) => `<option value="${String(game).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">${game}</option>`).join('');
+  gameSelect.value = _activeGameFilter;
+
+  const label = _activeGameFilter || 'All Games';
+  quickFilters.innerHTML = `<span class="tournament-game-current-chip">${label}</span>`;
+}
+
+function setGameFilter(game) {
+  _activeGameFilter = game;
+  document.getElementById('filter-game').value = game;
+  applyFilters();
+}
+
+/** Deep-link ?game=…&status=… — accepts PLATFORM_GAMES; legacy “Call of Duty” clears game filter. */
+function readFiltersFromQuery() {
+  const p = new URLSearchParams(window.location.search);
+  let g = p.get('game');
+  if (g != null && g !== '') {
+    g = decodeURIComponent(String(g)).trim();
+    if (g === 'Call of Duty') {
+      _activeGameFilter = '';
+    } else if (PLATFORM_GAMES.includes(g)) {
+      _activeGameFilter = g;
+    }
+  }
+  const st = p.get('status');
+  const stEl = document.getElementById('filter-status');
+  if (st && stEl && ['live', 'open', 'upcoming', 'completed'].includes(st)) stEl.value = st;
+}
+
+// ── Load tournaments from API ─────────────────────────────
+async function loadTournaments() {
+  await wzWithLoading('wz-host-tournaments', async () => {
+    try {
+      const [tournaments, matches] = await Promise.all([
+        getTournaments(),
+        getMatches()
+      ]);
+      _allTournaments = tournaments;
+      _allMatches = matches || [];
+      await resolveViewerTeam();
+      _myParticipations = [];
+      _participatingTournamentIds = new Set();
+      if (getCurrentUser()) {
+        try {
+          _myParticipations = await getMyTournamentParticipations();
+          (_myParticipations || []).forEach((p) => {
+            if (p.tournament_id) _participatingTournamentIds.add(String(p.tournament_id));
+          });
+        } catch (_) {}
+      }
+      readFiltersFromQuery();
+      renderGameFilters();
+      applyFiltersCore();
+
+    } catch (err) {
+      document.getElementById('tournaments-grid').innerHTML =
+        `<div class="col-span-3 text-center py-16 font-mono text-[10px] text-red-400 tracking-wider">${err.message}</div>`;
+    }
+  }, { label: 'Loading tournaments', minMs: 260 });
+}
+
+async function resolveViewerTeam() {
+  _viewerTeamId = null;
+  _viewerIsCaptain = false;
+  const user = getCurrentUser();
+  if (!user) return;
+  try {
+    const mine = await getMyTeam();
+    _viewerTeamId =
+      mine?.team?.id ||
+      mine?.captain_team_id ||
+      null;
+    _viewerIsCaptain = mine?.is_captain === true;
+    if (_viewerTeamId) return;
+  } catch (_) {}
+  try {
+    const profile = await getMyPlayerProfile();
+    _viewerTeamId = profile?.team?.id || profile?.captain_team_id || null;
+    const cid = profile?.team?.captain_id;
+    if (cid != null && user?.id != null) {
+      _viewerIsCaptain = String(cid) === String(user.id);
+    }
+  } catch (_) {}
+}
+
+// ── Filter + render ───────────────────────────────────────
+function applyFiltersCore() {
+  const game   = document.getElementById('filter-game').value;
+  const status = document.getElementById('filter-status').value;
+  _activeGameFilter = game;
+  renderGameFilters();
+
+  const filtered = _allTournaments.filter(t =>
+    (!game   || inferTournamentGame(t) === game) &&
+    (!status || t.status === status)
+  );
+
+  const grid = document.getElementById('tournaments-grid');
+  if (!filtered.length) {
+    grid.className = 'grid grid-cols-1 md:grid-cols-3 gap-5';
+    grid.innerHTML = '<div class="col-span-3 text-center py-16 font-mono text-[var(--wz-muted)] text-sm tracking-wider">NO TOURNAMENTS MATCH FILTERS</div>';
+    return;
+  }
+
+  grid.className = 'grid grid-cols-1 md:grid-cols-3 gap-5 reveal-stagger';
+  grid.innerHTML = filtered.map(t => {
+    const matches = _allMatches.filter(
+      (m) => String(m.tournament_id ?? m.tournament?.id ?? '') === String(t.id)
+    );
+    const gameLabel = inferTournamentGame(t);
+    const isParticipant = _participatingTournamentIds.has(String(t.id));
+    const browseHref = isParticipant ? `tournament-hub.html?id=${t.id}` : `tournaments.html?id=${t.id}`;
+    const statusLabel = t.status === 'live' ? 'Live' : t.status === 'open' ? 'Register' : t.status === 'completed' ? 'Results' : 'View';
+    const defaultCtaClass = `btn-${t.status === 'live' ? 'danger' : t.status === 'open' ? 'primary' : 'ghost'} btn-sm inline-flex items-center justify-center`;
+    const user = getCurrentUser();
+    const role = user?.role || '';
+    const slotsFull =
+      t.max_slots != null &&
+      t.registered_count != null &&
+      Number(t.registered_count) >= Number(t.max_slots);
+    const canCaptainRegister =
+      user &&
+      role !== 'admin' &&
+      _viewerIsCaptain &&
+      _viewerTeamId &&
+      t.status === 'open' &&
+      !isParticipant &&
+      !slotsFull;
+    const isAdmin = role === 'admin';
+    const modeEsc = String(t.mode || '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+    let footerCta;
+    if (isParticipant) {
+      footerCta = `<a href="tournament-hub.html?id=${t.id}" class="btn-ghost btn-sm border border-emerald-600/50 text-emerald-300 hover:bg-emerald-900/25 whitespace-nowrap">Teams & fixtures</a>`;
+    } else if (canCaptainRegister) {
+      footerCta = `<button type="button" data-action="wz-register-tournament" data-tournament-id="${t.id}" data-tournament-mode="${modeEsc}" class="btn-primary btn-sm whitespace-nowrap">Register team</button>`;
+    } else if (isAdmin && t.status === 'open') {
+      footerCta = `<button type="button" data-action="wz-admin-no-register" class="${defaultCtaClass} whitespace-nowrap">Register</button>`;
+    } else {
+      let ctaHref = browseHref;
+      // Guests clicking “Register” on open events used to link here (?id=) and felt like a refresh — send them to auth + registration instead.
+      if (t.status === 'open' && !user) {
+        ctaHref = `register.html?tournament=${encodeURIComponent(String(t.id))}`;
+      }
+      footerCta = `<a href="${ctaHref}" class="${defaultCtaClass} no-underline">${statusLabel}</a>`;
+    }
+    return `
+    <div class="wz-card wz-tournament-card ${gameToneClass(gameLabel)} wz-card-hover overflow-hidden ${isParticipant ? 'ring-1 ring-emerald-500/35' : ''}" data-tournament-id="${t.id}">
+      <div class="h-28 sm:h-32 game-cover ${gameCoverClass(gameLabel)} flex items-center px-4 gap-2 ${bannerClass[t.type] || 'banner-ranked'}">
+        <div class="z-10">${statusBadge(t.status)}</div>
+        <span class="font-mono text-[10px] tracking-widest px-2 py-1 rounded-sm border ${gameBadgeClass(gameLabel)} z-10">${gameLabel}</span>
+        ${isParticipant ? '<span class="font-mono text-[9px] text-emerald-300 border border-emerald-600/50 px-2 py-0.5 rounded-sm z-10 ml-auto">Your squad</span>' : ''}
+      </div>
+      <div class="p-4">
+        <div class="font-head text-sm font-bold tracking-wide uppercase mb-1"><a href="${browseHref}" class="text-[var(--wz-text)] hover:text-[#e8c14a] transition-colors">${t.name}</a></div>
+        <div class="flex gap-3 font-mono text-[10px] text-[var(--wz-muted)] mb-3 flex-wrap">
+          <span>🗓 ${t.start_date}</span><span>⚔ ${t.format || '—'}</span><span>🎮 ${t.mode || 'Mode TBA'}</span>
+        </div>
+        ${slotsBar(t.registered_count, t.max_slots)}
+      </div>
+      <div class="flex items-center justify-between px-4 py-3 bg-[var(--wz-surface2)] border-t border-[var(--wz-border)]">
+        <div>
+          <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase">Prize Pool</div>
+          <div class="font-head text-lg font-bold text-[#e8c14a]">${centsToRand(t.prize_total)}</div>
+        </div>
+        ${footerCta}
+      </div>
+      <details class="px-4 py-3 border-t border-[var(--wz-border)]" ${isParticipant ? 'open' : ''}>
+        <summary class="font-mono text-[10px] tracking-wider text-[var(--wz-text-secondary)] cursor-pointer hover:text-[#e8c14a]">
+          Quick preview · matches (${matches.length})
+        </summary>
+        <div class="mt-3 flex flex-col gap-2">
+          ${renderTournamentMatchesDropdown(matches)}
+        </div>
+      </details>
+    </div>`;
+  }).join('');
+
+  const tid = new URLSearchParams(window.location.search).get('id');
+  if (tid && /^[a-zA-Z0-9-]+$/.test(tid)) {
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-tournament-id="${tid}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-2', 'ring-[#e8c14a]/60');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-[#e8c14a]/60'), 2400);
+      }
+    });
+  }
+}
+
+async function applyFilters() {
+  await wzWithLoading('wz-host-tournaments', async () => {
+    applyFiltersCore();
+  }, { minMs: 180, label: 'Updating' });
+}
+
+function renderTournamentMatchesDropdown(matches) {
+  if (!matches.length) {
+    return '<div class="font-mono text-[10px] text-[var(--wz-muted)]">No matches created yet.</div>';
+  }
+  const sorted = [...matches].sort((a, b) => (a.scheduled_at || '').localeCompare(b.scheduled_at || ''));
+  return sorted.map(m => {
+    const teamA = m.team_a?.name || 'TBD';
+    const teamB = m.team_b?.name || 'TBD';
+    const isMineUpcoming = (m.status === 'scheduled' || m.status === 'upcoming') && _viewerTeamId && (m.team_a_id === _viewerTeamId || m.team_b_id === _viewerTeamId);
+    return `
+      <div class="border border-[var(--wz-border)] rounded px-3 py-2">
+        <div class="flex items-center justify-between gap-2">
+          <div class="font-head text-sm font-bold">${teamA} <span class="font-mono text-[10px] text-[var(--wz-muted)] mx-1">vs</span> ${teamB}</div>
+          ${statusBadge(m.status)}
+        </div>
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] mt-1">
+          ${(m.round || '').replace(/_/g, ' ').toUpperCase()} · ${m.scheduled_at ? new Date(m.scheduled_at).toLocaleString('en-ZA') : 'Time TBA'}
+        </div>
+        ${isMineUpcoming ? '<div class="font-mono text-[10px] text-[#e8c14a] mt-1">Your team has an upcoming match.</div>' : ''}
+        <div class="mt-2">
+          ${m.status === 'completed'
+            ? `<button type="button" onclick='showCompletedResult(${JSON.stringify(m.team_a?.name || 'TBD')},${JSON.stringify(m.team_b?.name || 'TBD')},${JSON.stringify(String(m.score_a ?? '—'))},${JSON.stringify(String(m.score_b ?? '—'))})' class="btn-ghost btn-sm">View Result</button>`
+            : (m.status === 'scheduled' || m.status === 'upcoming')
+            ? '<button onclick="showToast(\'Match notifier set ✓\', \'info\')" class="btn-ghost btn-sm">Set Notifier</button>'
+            : '<button onclick="showToast(\'Watch now coming soon\', \'info\')" class="btn-danger btn-sm">Watch Now</button>'}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showCompletedResult(teamA, teamB, scoreA, scoreB) {
+  const existing = document.getElementById('completed-result-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'completed-result-modal';
+  modal.className = 'modal-overlay fixed inset-0 z-50 flex items-center justify-center px-4';
+  modal.innerHTML = `
+    <div class="wz-card border-t-2 border-t-[#e8c14a] p-6 max-w-sm w-full text-center" onclick="event.stopPropagation()">
+      <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-3">Match Result</div>
+      <div class="font-head text-lg font-bold">${teamA}</div>
+      <div class="font-head text-3xl font-black text-[#e8c14a] my-1">${scoreA} - ${scoreB}</div>
+      <div class="font-head text-lg font-bold">${teamB}</div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  const close = () => { modal.remove(); document.removeEventListener('keydown', onKey); };
+  function onKey(e) { if (e.key === 'Escape') close(); }
+  modal.addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+  setTimeout(close, 4000);
+}
+
+// ── Captain: register existing team for open tournament (delegated — survives grid re-render) ──
+(function bindTournamentRegisterClick() {
+  const host = document.getElementById('wz-host-tournaments');
+  if (!host || host.dataset.wzRegisterBound) return;
+  host.dataset.wzRegisterBound = '1';
+  host.addEventListener('click', (ev) => {
+    const adminBtn = ev.target.closest('[data-action="wz-admin-no-register"]');
+    if (adminBtn) {
+      ev.preventDefault();
+      showToast(
+        'You are signed in as an admin. Admin accounts cannot register or compete in tournaments—use Admin to manage events and matches.',
+        'info'
+      );
+    }
+  });
+  host.addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('[data-action="wz-register-tournament"]');
+    if (!btn) return;
+    ev.preventDefault();
+    const tid = btn.getAttribute('data-tournament-id');
+    const mode = btn.getAttribute('data-tournament-mode') || '';
+    if (!tid) return;
+
+    let savedRosterId;
+    try {
+      const rows = await getTeamSavedRosters();
+      if (rows.length > 0) {
+        savedRosterId = await new Promise((resolve) => {
+          const overlay = document.createElement('div');
+          overlay.className =
+            'modal-overlay fixed inset-0 z-[60] flex items-center justify-center px-4 bg-[color-mix(in_srgb,var(--wz-page)_88%,transparent)]';
+          const opts = rows
+            .map(
+              (r) =>
+                `<option value="${String(r.id).replace(/"/g, '&quot;')}">${String(r.name || 'Lineup')
+                  .replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/"/g, '&quot;')}</option>`
+            )
+            .join('');
+          overlay.innerHTML = `
+            <div class="wz-card border-t-2 border-t-[#e8c14a] p-6 max-w-md w-full" role="dialog">
+              <div class="font-head text-lg font-bold mb-2">Tournament lineup</div>
+              <p class="font-mono text-[10px] text-[var(--wz-text-secondary)] mb-3">Your squad has saved presets — pick which order applies to this event.</p>
+              <select id="wz-tourney-roster-pick" class="wz-input mb-4">${opts}</select>
+              <div class="flex gap-2">
+                <button type="button" class="btn-primary flex-1" id="wz-tourney-roster-ok">Register</button>
+                <button type="button" class="btn-ghost" id="wz-tourney-roster-cancel">Cancel</button>
+              </div>
+            </div>`;
+          document.body.appendChild(overlay);
+          const close = (v) => {
+            overlay.remove();
+            resolve(v);
+          };
+          overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) close(undefined);
+          });
+          overlay.querySelector('#wz-tourney-roster-cancel').addEventListener('click', () => close(undefined));
+          overlay.querySelector('#wz-tourney-roster-ok').addEventListener('click', () => {
+            const v = overlay.querySelector('#wz-tourney-roster-pick').value;
+            if (!v) {
+              showToast('Select a lineup', 'error');
+              return;
+            }
+            close(v);
+          });
+        });
+        if (!savedRosterId) return;
+      }
+    } catch (e) {
+      showToast(e.message || 'Could not load saved lineups', 'error');
+      return;
+    }
+
+    try {
+      const out = await registerExistingTeamForTournament({
+        tournament_id: tid,
+        game_mode: mode || undefined,
+        ...(savedRosterId ? { saved_roster_id: savedRosterId } : {}),
+      });
+      const msg =
+        out.alreadySubmitted === true
+          ? 'Your team is already registered for this tournament.'
+          : 'Registration submitted. Awaiting admin approval.';
+      showToast(msg, out.alreadySubmitted ? 'info' : 'success');
+      await loadTournaments();
+    } catch (e) {
+      showToast(e.message || 'Registration failed', 'error');
+    }
+  });
+})();
+
+// ── Init ──────────────────────────────────────────────────
+if (!getCurrentUser()) {
+  document.getElementById('public-cta')?.classList.remove('hidden');
+}
+loadTournaments();
+</script>
+</body>
+</html>

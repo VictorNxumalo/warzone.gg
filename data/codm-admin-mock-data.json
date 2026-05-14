@@ -1,0 +1,183 @@
+{
+  "_readme": "Mock CODM data for WARZONE.GG admin. 1) Create each tournament via Admin → Create using admin_form. 2) Approve registered teams (or use existing team UUIDs). 3) Create matches via Admin → Matches: select Game COD Mobile, your tournament, paste team UUIDs from Teams/Participants. Replace PLACEHOLDER_* below with real UUIDs from your database.",
+  "fictional_teams_for_testing": [
+    { "name": "Jozi Elites", "tag": "JZE", "region": "GP" },
+    { "name": "Cape Town Phantoms", "tag": "CTP", "region": "WC" },
+    { "name": "Durban Pulse", "tag": "DRP", "region": "KZN" },
+    { "name": "Pretoria Vanguard", "tag": "PTV", "region": "GP" },
+    { "name": "PE Storm", "tag": "PES", "region": "EC" },
+    { "name": "Bloem Titans", "tag": "BLT", "region": "FS" },
+    { "name": "Nelspruit Fury", "tag": "NSF", "region": "MP" },
+    { "name": "Kimberley Edge", "tag": "KBE", "region": "NC" }
+  ],
+  "tournaments": [
+    {
+      "id": "tournament_1_codm_winter_clash",
+      "title": "COD Mobile — Winter Clash 2026 (main mock)",
+      "admin_form": {
+        "name": "CODM Winter Clash 2026 — South Africa",
+        "tag": "CWC1",
+        "game_title_dropdown": "COD Mobile",
+        "division_queue_label": "Ranked 5v5 · Hardpoint / S&D rotation",
+        "mode_field_value": "COD Mobile · Ranked 5v5 · Hardpoint / S&D rotation",
+        "type": "ranked",
+        "format": "Group stage (BO3) → Quarter finals (BO3) → Semi finals (BO5) → Grand final (BO5)",
+        "start_date": "2026-06-20",
+        "reg_deadline": "2026-06-14",
+        "max_slots": 16,
+        "prize_total": 48000,
+        "entry_fee": 150,
+        "prize_1st": 20000,
+        "prize_2nd": 12000,
+        "prize_3rd": 10000,
+        "prize_mvp": 6000,
+        "description": "Call of Duty Mobile ranked cup. Maps and modes rotate per round. Check-in 30 minutes before first match. Rules: standard ranked loadouts; no VPN; forfeit if not ready within 15 minutes."
+      },
+      "matches_to_create_after_teams_exist": [
+        {
+          "label": "Group A — Match 1",
+          "round": "group_stage",
+          "map_name": "Standoff",
+          "game_mode": "Hardpoint",
+          "scheduled_at": "2026-06-20T16:00:00",
+          "status": "upcoming",
+          "team_a_placeholder": "PLACEHOLDER_JOZI_ELITES_UUID",
+          "team_b_placeholder": "PLACEHOLDER_CAPE_TOWN_PHANTOMS_UUID"
+        },
+        {
+          "label": "Group A — Match 2",
+          "round": "group_stage",
+          "map_name": "Raid",
+          "game_mode": "Search & Destroy",
+          "scheduled_at": "2026-06-20T17:30:00",
+          "status": "upcoming",
+          "team_a_placeholder": "PLACEHOLDER_DURBAN_PULSE_UUID",
+          "team_b_placeholder": "PLACEHOLDER_PRETORIA_VANGUARD_UUID"
+        },
+        {
+          "label": "Group B — Match 1",
+          "round": "group_stage",
+          "map_name": "Firing Range",
+          "game_mode": "Hardpoint",
+          "scheduled_at": "2026-06-21T16:00:00",
+          "status": "upcoming",
+          "team_a_placeholder": "PLACEHOLDER_PE_STORM_UUID",
+          "team_b_placeholder": "PLACEHOLDER_BLOEM_TITANS_UUID"
+        },
+        {
+          "label": "Quarter final 1",
+          "round": "quarter_final",
+          "map_name": "Crash",
+          "game_mode": "Hardpoint",
+          "scheduled_at": "2026-06-27T18:00:00",
+          "status": "upcoming",
+          "team_a_placeholder": "PLACEHOLDER_WINNER_GA1_UUID",
+          "team_b_placeholder": "PLACEHOLDER_WINNER_GA2_UUID"
+        },
+        {
+          "label": "Semi final 1",
+          "round": "semi_final",
+          "map_name": "Summit",
+          "game_mode": "Search & Destroy",
+          "scheduled_at": "2026-06-28T18:00:00",
+          "status": "upcoming",
+          "team_a_placeholder": "PLACEHOLDER_QF1_WINNER_UUID",
+          "team_b_placeholder": "PLACEHOLDER_QF2_WINNER_UUID"
+        },
+        {
+          "label": "Grand final",
+          "round": "grand_final",
+          "map_name": "Standoff",
+          "game_mode": "Mixed (HP / S&D)",
+          "scheduled_at": "2026-06-29T19:00:00",
+          "status": "upcoming",
+          "team_a_placeholder": "PLACEHOLDER_SF1_WINNER_UUID",
+          "team_b_placeholder": "PLACEHOLDER_SF2_WINNER_UUID"
+        }
+      ],
+      "example_completed_result": {
+        "note": "Optional: after a match is played, set status completed with scores in admin update flow.",
+        "round": "group_stage",
+        "map_name": "Standoff",
+        "game_mode": "Hardpoint",
+        "score_a": 250,
+        "score_b": 180,
+        "status": "completed"
+      }
+    },
+    {
+      "id": "tournament_2_codm_solo_showdown",
+      "title": "COD Mobile — Solo Showdown (smaller mock)",
+      "admin_form": {
+        "name": "CODM Solo Showdown — Spring Skirmish",
+        "tag": "CSS1",
+        "game_title_dropdown": "COD Mobile",
+        "division_queue_label": "1v1 Duel · Gunfight rules",
+        "mode_field_value": "COD Mobile · 1v1 Duel · Gunfight rules",
+        "type": "solo",
+        "format": "Double elimination · BO5 per series",
+        "start_date": "2026-07-05",
+        "reg_deadline": "2026-07-01",
+        "max_slots": 8,
+        "prize_total": 12000,
+        "entry_fee": 50,
+        "prize_1st": 6000,
+        "prize_2nd": 3500,
+        "prize_3rd": 1500,
+        "prize_mvp": 1000,
+        "description": "1v1 exhibition bracket. Maps: Shipment, Saloon, King. First to 6 round wins. Same loadout rules as ranked duel playlist."
+      },
+      "matches_to_create_after_teams_exist": [
+        {
+          "label": "Round 1 — Duel 1",
+          "round": "group_stage",
+          "map_name": "Shipment",
+          "game_mode": "1v1 Duel",
+          "scheduled_at": "2026-07-05T15:00:00",
+          "status": "upcoming",
+          "team_a_placeholder": "PLACEHOLDER_SOLO_PLAYER_A_TEAM_UUID",
+          "team_b_placeholder": "PLACEHOLDER_SOLO_PLAYER_B_TEAM_UUID",
+          "note": "If your platform registers 1v1 as single-player teams, use those team IDs."
+        }
+      ]
+    }
+  ],
+  "admin_ui_field_map": {
+    "create_tournament": {
+      "Tournament Name": "admin_form.name",
+      "Short Tag": "admin_form.tag",
+      "Game Title": "admin_form.game_title_dropdown",
+      "Division / Queue Label": "division_queue_label (combined into mode with game in app)",
+      "Tournament Structure": "admin_form.type",
+      "Format": "admin_form.format",
+      "Max Teams": "admin_form.max_slots",
+      "Start Date": "admin_form.start_date",
+      "Registration Deadline": "admin_form.reg_deadline",
+      "Prize Pool (ZAR)": "admin_form.prize_total",
+      "Entry Fee (ZAR)": "admin_form.entry_fee",
+      "Prize Breakdown 1st/2nd/3rd/MVP": "prize_1st through prize_mvp",
+      "Description": "admin_form.description"
+    },
+    "create_match": {
+      "Game": "COD Mobile",
+      "Tournament": "Select the tournament you just created",
+      "Round": "group_stage | quarter_final | semi_final | grand_final",
+      "Scheduled Time": "matches_to_create.scheduled_at (local datetime picker)",
+      "Team A ID / Team B ID": "UUID from Teams list or API",
+      "Arena / Track / Stage": "map_name (CODM map name)",
+      "Ruleset / Match Mode": "game_mode"
+    }
+  },
+  "codm_map_suggestions": [
+    "Standoff",
+    "Raid",
+    "Firing Range",
+    "Crash",
+    "Summit",
+    "Shipment",
+    "Saloon",
+    "King",
+    "Crossfire",
+    "Takeoff"
+  ]
+}

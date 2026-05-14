@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leaderboard — EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+<script src="../js/config.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/main.js"></script>
+<script>injectNav('leaderboard.html')</script>
+
+<main class="max-w-6xl mx-auto px-5 py-8 fade-up">
+
+  <div class="wz-mobile-header-row flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)] gap-3">
+    <h1 class="section-title text-2xl">Season Leaderboard</h1>
+    <div class="wz-mobile-filter-row flex gap-2">
+      <select id="game-select" onchange="loadTournamentOptions()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+        <option value="">All Games</option>
+      </select>
+      <select id="tournament-select" onchange="loadLeaderboard()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+        <option value="">All Tournaments</option>
+      </select>
+      <select id="status-select" onchange="loadTournamentOptions()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+        <option value="">All Statuses</option>
+        <option value="live">Live</option>
+        <option value="open">Open</option>
+        <option value="upcoming">Upcoming</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="public-cta" class="hidden wz-card accent-left p-4 mb-6">
+    <div class="flex flex-col md:flex-row md:items-center gap-3 md:justify-between">
+      <div>
+        <div class="font-head text-sm font-bold tracking-wide uppercase">Join the competition</div>
+        <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] mt-1">Create an account to register your team and climb the rankings.</div>
+      </div>
+      <a href="register.html" class="btn-primary btn-sm w-fit">Create Account</a>
+    </div>
+  </div>
+
+  <div id="wz-host-leaderboard" class="relative min-h-[24rem]">
+  <div id="leaderboard-visual" class="wz-card game-cover game-cover-other h-28 mb-6 flex items-end p-4">
+    <div class="z-10">
+      <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] tracking-widest uppercase">Leaderboard Context</div>
+      <div class="font-head text-xl font-black tracking-widest uppercase">All Games · All Tournaments</div>
+    </div>
+  </div>
+
+  <!-- Stat Blocks -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8" id="lb-stats">
+    <div class="stat-block"><div class="font-head text-3xl font-black text-[#e8c14a]" id="stat-teams">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-wider mt-1">Teams</div></div>
+    <div class="stat-block"><div class="font-head text-3xl font-black text-[#e8c14a]" id="stat-events">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-wider mt-1">Events</div></div>
+    <div class="stat-block"><div class="font-head text-3xl font-black text-red-400" id="stat-matches">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-wider mt-1">Matches</div></div>    <div class="stat-block"><div class="font-head text-3xl font-black text-[#e8c14a]" id="stat-prize">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-wider mt-1">Distributed</div></div>
+  </div>
+
+  <!-- Top 3 Podium -->
+  <div class="grid grid-cols-3 gap-4 mb-8" id="podium">
+    <div class="col-span-3 py-8 px-4 space-y-3">
+    <div class="wz-skeleton h-28 w-full rounded-sm"></div>
+    <div class="grid grid-cols-3 gap-3">
+      <div class="wz-skeleton h-24 rounded-sm"></div>
+      <div class="wz-skeleton h-32 rounded-sm"></div>
+      <div class="wz-skeleton h-20 rounded-sm"></div>
+    </div>
+    <div class="wz-card overflow-hidden"><div class="wz-skeleton h-40 w-full"></div></div>
+  </div>
+  </div>
+
+  <!-- Table -->
+  <div class="wz-card overflow-hidden">
+    <table class="wz-table" id="lb-table">
+      <thead>
+        <tr>
+          <th style="width:50px">Rank</th>
+          <th>Team</th>
+          <th>W</th><th>L</th>
+          <th onclick="sortBy('points')" class="cursor-pointer hover:text-[#e8c14a]">Points ↕</th>
+          <th onclick="sortBy('earnings')" class="cursor-pointer hover:text-[#e8c14a]">Earnings ↕</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="lb-body" class="reveal-stagger">
+        <tr><td colspan="7" class="py-3 px-4"><div class="wz-skeleton h-12 w-full rounded-sm"></div></td></tr>
+        <tr><td colspan="7" class="py-3 px-4"><div class="wz-skeleton h-12 w-full rounded-sm"></div></td></tr>
+        <tr><td colspan="7" class="py-3 px-4"><div class="wz-skeleton h-12 w-full rounded-sm"></div></td></tr>
+        <tr><td colspan="7" class="py-3 px-4"><div class="wz-skeleton h-12 w-full rounded-sm"></div></td></tr>
+        <tr><td colspan="7" class="py-3 px-4"><div class="wz-skeleton h-12 w-full rounded-sm"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  </div>
+
+</main>
+
+<script>
+const avColors = ['av-red','av-amber','av-blue','av-green','av-orange'];
+let _teams = [];
+let _tournaments = [];
+let sortField = 'points';
+let sortDir = -1;
+/** When non-null, empty table shows this reason instead of generic “no teams”. */
+let _leaderboardEmptyReason = null;
+/** After first successful options build, URL query no longer overwrites user choices. */
+let _lbUrlApplied = false;
+
+/** Same as pages/bracket.html + register.html — full platform game list for the dropdown. */
+const PLATFORM_GAMES = [
+  'COD Mobile',
+  'COD Warzone',
+  'COD Modern Warfare',
+  'FIFA',
+  'Need for Speed',
+  'Forza',
+  'Mortal Kombat',
+  'Other'
+];
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Aligns with pages/bracket.html + register.html — same labels as PLATFORM_GAMES. */
+function inferTournamentGame(t) {
+  const text = `${t?.game || ''} ${t?.title || ''} ${t?.name || ''} ${t?.mode || ''} ${t?.type || ''}`.toLowerCase();
+  if (text.includes('cod mobile') || text.includes('codm')) return 'COD Mobile';
+  if (text.includes('warzone')) return 'COD Warzone';
+  if (text.includes('modern warfare') || text.includes('morden warfare')) return 'COD Modern Warfare';
+  if (text.includes('fifa')) return 'FIFA';
+  if (text.includes('need for speed') || text.includes('nfs')) return 'Need for Speed';
+  if (text.includes('forza')) return 'Forza';
+  if (text.includes('mortal kombat') || text.includes('mortal kombak') || text.includes('mk')) return 'Mortal Kombat';
+  if (text.includes('call of duty')) return 'COD Mobile';
+  return 'Other';
+}
+
+function populateGameSelect() {
+  const sel = document.getElementById('game-select');
+  const prev = sel.value;
+  sel.innerHTML =
+    '<option value="">All Games</option>' +
+    PLATFORM_GAMES.map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+  if (prev && PLATFORM_GAMES.includes(prev)) sel.value = prev;
+}
+
+function sortBy(field) {
+  if (sortField === field) sortDir *= -1;
+  else { sortField = field; sortDir = -1; }
+  renderLeaderboard();
+}
+
+function teamProfileHref(teamId) {
+  return `team-profile.html?id=${encodeURIComponent(String(teamId))}`;
+}
+
+/** Combine per-tournament standings when viewing “All Tournaments” scoped to one game. */
+function mergeLeaderboardTeams(boardArrays) {
+  const flat = boardArrays.flat();
+  const map = new Map();
+  for (const t of flat) {
+    if (!t || t.id == null) continue;
+    const id = String(t.id);
+    if (!map.has(id)) {
+      map.set(id, {
+        ...t,
+        wins: 0,
+        losses: 0,
+        points: 0,
+        earnings: 0
+      });
+    }
+    const agg = map.get(id);
+    agg.wins += Number(t.wins) || 0;
+    agg.losses += Number(t.losses) || 0;
+    agg.points += Number(t.points) || 0;
+    agg.earnings += Number(t.earnings) || 0;
+  }
+  const merged = Array.from(map.values()).sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  });
+  return merged.map((team, index) => ({ ...team, rank: index + 1 }));
+}
+
+/** Instant banner + title when game/status dropdown changes (before network completes). */
+function syncLeaderboardGameBanner() {
+  const selectedGame = document.getElementById('game-select')?.value || '';
+  const visual = document.getElementById('leaderboard-visual');
+  const coverGame = selectedGame || 'Other';
+  const gameLabel = selectedGame ? escapeHtml(selectedGame) : 'All Games';
+  visual.className = `wz-card game-cover ${gameCoverClass(coverGame)} h-28 mb-6 flex items-end p-4`;
+  visual.innerHTML = `
+    <div class="z-10">
+      <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] tracking-widest uppercase">Leaderboard Context</div>
+      <div class="font-head text-xl font-black tracking-widest uppercase">${gameLabel} · Standings updating…</div>
+    </div>
+  `;
+  const h1 = document.querySelector('.section-title.text-2xl');
+  if (h1) {
+    h1.textContent = selectedGame ? `${selectedGame} Leaderboard` : 'Season Leaderboard';
+  }
+}
+
+function renderLeaderboard() {
+  if (!_teams.length) {
+    const podiumMsg = _leaderboardEmptyReason
+      ? escapeHtml(_leaderboardEmptyReason)
+      : 'NO TEAMS ON THIS LEADERBOARD YET';
+    const rowMsg = _leaderboardEmptyReason
+      ? escapeHtml(_leaderboardEmptyReason)
+      : 'No teams found';
+    document.getElementById('podium').innerHTML =
+      `<div class="col-span-3 text-center py-8 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">${podiumMsg}</div>`;
+    const emptyBody = document.getElementById('lb-body');
+    emptyBody.classList.remove('reveal-stagger');
+    emptyBody.innerHTML =
+      `<tr><td colspan="7" class="text-center py-8 font-mono text-[10px] text-[var(--wz-muted)]">${rowMsg}</td></tr>`;
+    return;
+  }
+  const teams = [..._teams].sort((a, b) => {
+    const av = Number(a[sortField]);
+    const bv = Number(b[sortField]);
+    const na = Number.isFinite(av) ? av : 0;
+    const nb = Number.isFinite(bv) ? bv : 0;
+    return (na - nb) * sortDir;
+  });
+
+  // Podium (top 3)
+  const podium = document.getElementById('podium');
+  const medals = ['🥇','🥈','🥉'];
+  const podiumOrder = [teams[1], teams[0], teams[2]];
+  const podiumHeights = ['h-24','h-32','h-20'];
+  const podiumRanks = [2,1,3];
+  podium.innerHTML = podiumOrder.map((t, i) => {
+    if (!t) return '<div></div>';
+    const tag = escapeHtml(t.tag || '—');
+    const name = escapeHtml(t.name || 'Team');
+    const href = teamProfileHref(t.id);
+    return `
+    <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="location.href='${href}'">
+      <div class="w-14 h-14 rounded flex items-center justify-center font-head text-lg font-black ${avColors[(podiumRanks[i]-1) % avColors.length]}">${tag}</div>
+      <div class="font-head text-sm font-bold tracking-wide text-center">${name}</div>
+      <div class="font-mono text-[10px] text-[var(--wz-muted)]">${(t.points || 0).toLocaleString()} pts</div>
+      <div class="${podiumHeights[i]} w-full bg-[var(--wz-surface)] border border-[var(--wz-border)] ${i===1?'border-t-2 border-t-[#e8c14a]':''} rounded-t flex items-center justify-center">
+        <span class="text-2xl">${medals[podiumRanks[i]-1]}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Table
+  const tbody = document.getElementById('lb-body');
+  tbody.classList.add('reveal-stagger');
+  const rows = teams.map((t, i) => {
+    const tag = escapeHtml(t.tag || '—');
+    const name = escapeHtml(t.name || 'Team');
+    const region = escapeHtml(t.region || '—');
+    const href = teamProfileHref(t.id);
+    return `
+      <tr onclick="location.href='${href}'" class="hover:bg-[var(--wz-surface2)] cursor-pointer">
+        <td>${rankBadge(i+1)}</td>
+        <td>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-sm flex items-center justify-center font-head text-xs font-bold flex-shrink-0 ${avColors[i%avColors.length]}">${tag}</div>
+            <div>
+              <div class="font-head text-sm font-bold tracking-wide">${name}</div>
+              <div class="font-mono text-[10px] text-[var(--wz-muted)]">${region}</div>
+            </div>
+          </div>
+        </td>
+        <td class="font-mono text-xs text-green-400">${t.wins || 0}</td>
+        <td class="font-mono text-xs text-[var(--wz-text-secondary)]">${t.losses || 0}</td>
+        <td><span class="font-head text-base font-bold text-[#e8c14a]">${(t.points || 0).toLocaleString()}</span></td>
+        <td class="font-mono text-xs text-green-400">${centsToRand(t.earnings || 0)}</td>
+        <td><a href="${href}" class="btn-ghost btn-sm">Profile →</a></td>
+      </tr>`;
+  }).join('');
+  tbody.innerHTML = rows;
+}
+
+function getSelectedTournament() {
+  const tournamentId = document.getElementById('tournament-select')?.value || '';
+  return _tournaments.find((t) => String(t.id) === String(tournamentId)) || null;
+}
+
+function gameCoverClass(game) {
+  const map = {
+    'COD Mobile': 'game-cover-codm',
+    'COD Warzone': 'game-cover-warzone',
+    'COD Modern Warfare': 'game-cover-mw',
+    'FIFA': 'game-cover-fifa',
+    'Mortal Kombat': 'game-cover-mk',
+    'Need for Speed': 'game-cover-nfs',
+    'Forza': 'game-cover-forza',
+    'Other': 'game-cover-other'
+  };
+  return map[game] || map.Other;
+}
+
+function renderLeaderboardVisual() {
+  const visual = document.getElementById('leaderboard-visual');
+  const activeTournament = getSelectedTournament();
+  const selectedGame = document.getElementById('game-select')?.value || '';
+  const game = activeTournament ? inferTournamentGame(activeTournament) : (selectedGame || 'All Games');
+  const context = activeTournament
+    ? escapeHtml(activeTournament.name || '')
+    : selectedGame
+      ? 'All tournaments for this game'
+      : 'All Tournaments';
+  const gameLabel = escapeHtml(game);
+  const coverKey = game === 'All Games' ? 'Other' : game;
+  visual.className = `wz-card game-cover ${gameCoverClass(coverKey)} h-28 mb-6 flex items-end p-4`;
+  visual.innerHTML = `
+    <div class="z-10">
+      <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] tracking-widest uppercase">Leaderboard Context</div>
+      <div class="font-head text-xl font-black tracking-widest uppercase">${gameLabel} · ${context}</div>
+    </div>
+  `;
+}
+
+function applyLeaderboardStatusFromUrlOnce() {
+  if (_lbUrlApplied) return;
+  const p = new URLSearchParams(window.location.search);
+  const st = p.get('status');
+  if (st && ['live', 'open', 'upcoming', 'completed'].includes(st)) {
+    document.getElementById('status-select').value = st;
+  }
+}
+
+/** Old deep-links used bucket name "Call of Duty"; filters now use COD Mobile (same as bracket/register). */
+function mapLegacyGameQueryParam(raw) {
+  if (raw == null || raw === '') return raw;
+  const v = decodeURIComponent(String(raw)).trim();
+  if (v === 'Call of Duty') return 'COD Mobile';
+  return v;
+}
+
+function applyLeaderboardGameFromUrlOnce() {
+  if (_lbUrlApplied) return;
+  const p = new URLSearchParams(window.location.search);
+  const game = mapLegacyGameQueryParam(p.get('game'));
+  const gs = document.getElementById('game-select');
+  if (game && [...gs.options].some((o) => o.value === game)) gs.value = game;
+}
+
+function applyLeaderboardTournamentFromUrlOnce() {
+  if (_lbUrlApplied) return;
+  const p = new URLSearchParams(window.location.search);
+  const tid = p.get('tournament') || p.get('id');
+  const ts = document.getElementById('tournament-select');
+  if (tid != null && tid !== '' && [...ts.options].some((o) => String(o.value) === String(tid))) {
+    ts.value = String(tid);
+  }
+  _lbUrlApplied = true;
+}
+
+async function loadTournamentOptions() {
+  syncLeaderboardGameBanner();
+  await wzWithLoading(
+    'wz-host-leaderboard',
+    async () => {
+      try {
+        applyLeaderboardStatusFromUrlOnce();
+        const status = document.getElementById('status-select')?.value || '';
+        _tournaments = await getTournaments(status ? { status } : {});
+        populateGameSelect();
+        applyLeaderboardGameFromUrlOnce();
+
+        const game = document.getElementById('game-select')?.value || '';
+        const filteredByGame = game
+          ? _tournaments.filter((t) => inferTournamentGame(t) === game)
+          : _tournaments;
+
+        const select = document.getElementById('tournament-select');
+        const current = select.value;
+        select.innerHTML =
+          '<option value="">All Tournaments</option>' +
+          filteredByGame
+            .map(
+              (t) =>
+                `<option value="${String(t.id).replace(/"/g, '&quot;')}">${escapeHtml(t.name || '')}</option>`
+            )
+            .join('');
+        const inList = (id) => filteredByGame.some((t) => String(t.id) === String(id));
+        if (current !== '' && inList(current)) {
+          select.value = String(current);
+        } else {
+          select.value = '';
+        }
+
+        applyLeaderboardTournamentFromUrlOnce();
+
+        renderLeaderboardVisual();
+        await loadLeaderboardData();
+      } catch (err) {
+        const msg = escapeHtml(err.message || 'Failed to load tournaments');
+        document.getElementById('podium').innerHTML =
+          `<div class="col-span-3 text-center py-8 font-mono text-[10px] text-red-400">${msg}</div>`;
+        document.getElementById('lb-body').innerHTML =
+          `<tr><td colspan="7" class="text-center py-8 font-mono text-[10px] text-red-400">${msg}</td></tr>`;
+        ['stat-teams', 'stat-events', 'stat-matches', 'stat-prize'].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = '—';
+        });
+      }
+    },
+    { label: 'Loading leaderboard', minMs: 260 }
+  );
+}
+
+async function loadLeaderboardData() {
+  try {
+    _leaderboardEmptyReason = null;
+    const selectedGame = document.getElementById('game-select')?.value || '';
+    const selectedTournament = document.getElementById('tournament-select')?.value || '';
+    const tid = selectedTournament ? String(selectedTournament) : '';
+
+    const filteredByGame = selectedGame
+      ? _tournaments.filter((t) => inferTournamentGame(t) === selectedGame)
+      : [];
+
+    // One tournament selected — API scope is exact
+    if (tid) {
+      _teams = await getLeaderboard({ tournament_id: tid });
+    } else if (selectedGame && filteredByGame.length === 0) {
+      _leaderboardEmptyReason =
+        'No tournaments for this game with the current filters. Try another status or All Games.';
+      _teams = [];
+    } else if (selectedGame && filteredByGame.length > 0) {
+      const boards = await Promise.all(
+        filteredByGame.map((t) => getLeaderboard({ tournament_id: t.id }))
+      );
+      _teams = mergeLeaderboardTeams(boards);
+    } else {
+      _teams = await getLeaderboard({});
+    }
+
+    const activeTournament = getSelectedTournament();
+    renderLeaderboardVisual();
+    const pageTitle = document.querySelector('.section-title.text-2xl');
+    if (pageTitle) {
+      pageTitle.textContent = activeTournament
+        ? `${activeTournament.name} Leaderboard`
+        : selectedGame
+          ? `${selectedGame} Leaderboard`
+          : 'Season Leaderboard';
+    }
+
+    // Update stat blocks
+    document.getElementById('stat-teams').textContent = _teams.length;
+
+    // Prize context (selected tournament pool or global distributed)
+    if (activeTournament) {
+      document.getElementById('stat-prize').textContent = centsToRand(activeTournament.prize_total || 0);
+    } else {
+      const totalEarnings = _teams.reduce((sum, t) => sum + (t.earnings || 0), 0);
+      document.getElementById('stat-prize').textContent = centsToRand(totalEarnings);
+    }
+
+    // Matches count (selected tournament or global)
+    try {
+      if (tid) {
+        const matches = await getMatches({ tournament_id: tid });
+        document.getElementById('stat-matches').textContent = Array.isArray(matches) ? matches.length : 0;
+      } else if (selectedGame && filteredByGame.length > 0) {
+        const lists = await Promise.all(
+          filteredByGame.map((t) => getMatches({ tournament_id: t.id }))
+        );
+        const n = lists.reduce((sum, m) => sum + (Array.isArray(m) ? m.length : 0), 0);
+        document.getElementById('stat-matches').textContent = n;
+      } else if (selectedGame && filteredByGame.length === 0) {
+        document.getElementById('stat-matches').textContent = '0';
+      } else {
+        const matches = await getMatches({});
+        document.getElementById('stat-matches').textContent = Array.isArray(matches) ? matches.length : 0;
+      }
+    } catch (_) {
+      document.getElementById('stat-matches').textContent = '—';
+    }
+
+    const visibleTournaments = selectedGame ? filteredByGame : _tournaments;
+    document.getElementById('stat-events').textContent = activeTournament ? 1 : visibleTournaments.length;
+
+    renderLeaderboard();
+  } catch (err) {
+    const msg = escapeHtml(err.message || 'Failed to load leaderboard');
+    document.getElementById('podium').innerHTML =
+      `<div class="col-span-3 text-center py-8 font-mono text-[10px] text-red-400">${msg}</div>`;
+    document.getElementById('lb-body').innerHTML =
+      `<tr><td colspan="7" class="text-center py-4 font-mono text-[10px] text-red-400">${msg}</td></tr>`;
+  }
+}
+
+async function loadLeaderboard() {
+  await wzWithLoading('wz-host-leaderboard', loadLeaderboardData, {
+    label: 'Updating standings',
+    minMs: 200,
+  });
+}
+
+if (!getCurrentUser()) {
+  document.getElementById('public-cta')?.classList.remove('hidden');
+}
+loadTournamentOptions();
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Find a squad — EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+<script src="../js/config.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/main.js"></script>
+<script>injectNav('find-squad.html')</script>
+
+<main class="max-w-4xl mx-auto px-5 py-8 fade-up">
+  <div class="flex items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)]">
+    <h1 class="section-title text-2xl">Find a squad</h1>
+    <span class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">OPEN ROSTERS ONLY</span>
+  </div>
+
+  <div class="wz-card p-5 mb-6">
+    <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-4 leading-relaxed">
+      Teams with fewer than <strong class="text-[var(--wz-text)]">6</strong> players can appear here. Full squads are never listed.
+      You must be <strong class="text-[var(--wz-text)]">activated</strong>, <strong class="text-[var(--wz-text)]">teamless</strong>, and past your
+      <strong class="text-[var(--wz-text)]">transfer cooldown</strong> to send a join request. Captains accept or decline on My Team.
+    </p>
+    <div class="flex flex-wrap gap-3 items-end">
+      <div class="flex-1 min-w-[200px]">
+        <label class="wz-label">Search name or tag</label>
+        <input type="text" id="fs-q" class="wz-input" placeholder="e.g. Ultra or TTU"/>
+      </div>
+      <button type="button" class="btn-primary" id="fs-search">Search</button>
+    </div>
+  </div>
+
+  <div id="fs-root" class="space-y-3">
+    <div class="font-mono text-[10px] text-[var(--wz-muted)] text-center py-8">Sign in and load open squads…</div>
+  </div>
+</main>
+
+<script>
+function _fsEsc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+
+async function loadFindSquad() {
+  const root = document.getElementById('fs-root');
+  const user = getCurrentUser();
+  if (!user) {
+    root.innerHTML = `
+      <div class="wz-card p-8 text-center">
+        <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-4">Sign in to browse squads and send join requests.</p>
+        <button type="button" class="btn-primary" onclick="openModal('login-modal')">Login</button>
+      </div>`;
+    return;
+  }
+  if (user.role === 'admin') {
+    root.innerHTML = `<div class="wz-card p-6 text-center font-mono text-[11px] text-[var(--wz-muted)]">Admin accounts cannot use recruitment.</div>`;
+    return;
+  }
+
+  const q = document.getElementById('fs-q')?.value?.trim() || '';
+
+  root.innerHTML = `<div class="text-center py-12 font-mono text-[10px] text-[var(--wz-muted)] animate-pulse">LOADING…</div>`;
+
+  try {
+    const rows = await getTeamsRecruiting({ q, limit: 50 });
+    if (!rows.length) {
+      root.innerHTML = `<div class="wz-card p-8 text-center font-mono text-[11px] text-[var(--wz-muted)]">No open squads match that search.</div>`;
+      return;
+    }
+
+    let mine = null;
+    try {
+      mine = await getMyTeam();
+    } catch (_) {}
+
+    const onTeam = !!(mine && mine.team && mine.team.id);
+    if (onTeam) {
+      root.innerHTML = `
+        <div class="wz-card p-6 mb-4 border border-amber-700/50">
+          <div class="font-mono text-[10px] text-amber-400 uppercase mb-1">● Already on a squad</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)]">Leave your current team (when rules allow) before requesting to join another.</p>
+        </div>`;
+      root.innerHTML += rows.map(renderTeamRowDisabled).join('');
+      return;
+    }
+
+    root.innerHTML = rows.map((t) => renderTeamRow(t)).join('');
+
+    root.querySelectorAll('[data-fs-req]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-fs-req');
+        try {
+          await createTeamJoinRequest(id);
+          showToast('Join request sent', 'success');
+          await loadFindSquad();
+        } catch (e) {
+          showToast(e.message, 'error');
+        }
+      });
+    });
+  } catch (e) {
+    root.innerHTML = `<div class="wz-card p-6 text-center font-mono text-[11px] text-red-400">${_fsEsc(e.message)}</div>`;
+  }
+}
+
+function renderTeamRow(t) {
+  const open = t.roster_open_slots ?? Math.max(0, 6 - (t.roster_count || 0));
+  return `
+    <div class="wz-card p-4 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div class="font-head text-lg font-bold">${_fsEsc(t.name)} <span class="font-mono text-sm text-[var(--wz-muted)]">(#${_fsEsc(t.tag)})</span></div>
+        <div class="font-mono text-[10px] text-[var(--wz-muted)]">${_fsEsc(t.region || '—')} · ${open} slot(s) open</div>
+      </div>
+      <button type="button" class="btn-primary btn-sm" data-fs-req="${t.id}">Request to join</button>
+    </div>`;
+}
+
+function renderTeamRowDisabled(t) {
+  return `
+    <div class="wz-card p-4 opacity-60 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div class="font-head text-lg font-bold">${_fsEsc(t.name)} <span class="font-mono text-sm text-[var(--wz-muted)]">(#${_fsEsc(t.tag)})</span></div>
+        <div class="font-mono text-[10px] text-[var(--wz-muted)]">${_fsEsc(t.region || '—')}</div>
+      </div>
+    </div>`;
+}
+
+document.getElementById('fs-search').addEventListener('click', loadFindSquad);
+document.getElementById('fs-q').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') loadFindSquad();
+});
+
+loadFindSquad();
+</script>
+</body>
+</html>

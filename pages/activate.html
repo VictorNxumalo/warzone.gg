@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Activate Player Account — EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+<script src="../js/config.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/main.js"></script>
+<script>injectNav('activate.html')</script>
+
+<main class="max-w-3xl mx-auto px-5 py-8 fade-up">
+  <div class="flex items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)]">
+    <h1 class="section-title text-2xl">Activate Player Account</h1>
+  </div>
+
+  <div class="wz-card border-t-2 border-t-[#e8c14a] p-8 max-w-xl mx-auto">
+    <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-4">● PLAYER ONBOARDING</div>
+    <h2 class="font-head text-2xl font-black tracking-widest uppercase mb-2">Claim Your Roster Slot</h2>
+    <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6">
+      Enter the email your captain used on the roster. If it matches our records, you can choose a username and password next.
+    </p>
+
+    <!-- Step 1: email only -->
+    <div id="act-step-email" class="flex flex-col gap-4">
+      <div>
+        <label class="wz-label">Player Email</label>
+        <input type="email" id="act-email" class="wz-input" placeholder="player@email.com" autocomplete="email"
+          onkeydown="if(event.key==='Enter'){ event.preventDefault(); checkEmailNow(); }"/>
+      </div>
+      <button type="button" id="act-check-btn" onclick="checkEmailNow()" class="btn-primary w-full py-2.5">Find my roster →</button>
+    </div>
+
+    <!-- Step 2: shown after email matches -->
+    <div id="act-step-credentials" class="hidden flex flex-col gap-4 mt-2">
+      <div class="wz-card p-4 bg-[var(--wz-surface2)] border border-[var(--wz-border)] mb-1">
+        <div class="font-mono text-[10px] text-green-400 tracking-widest uppercase mb-2">● Match found</div>
+        <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-3">
+          Roster IGN: <strong class="text-[var(--wz-text)]" id="act-found-ign">—</strong>
+        </p>
+        <div id="act-match-details" class="space-y-2 font-body text-sm text-[var(--wz-text-secondary)] border-t border-[var(--wz-border)] pt-3">
+        </div>
+        <button type="button" onclick="resetActivationFlow()" class="font-mono text-[10px] text-[var(--wz-muted)] hover:text-[#e8c14a] mt-3 underline underline-offset-2">
+          Use a different email
+        </button>
+      </div>
+      <div>
+        <label class="wz-label">Username</label>
+        <input type="text" id="act-username" class="wz-input" placeholder="Choose a username" autocomplete="username"/>
+      </div>
+      <div>
+        <label class="wz-label">Password</label>
+        <input type="password" id="act-password" class="wz-input" placeholder="At least 6 characters" autocomplete="new-password"
+          onkeydown="if(event.key==='Enter'){ event.preventDefault(); activateNow(); }"/>
+      </div>
+      <button type="button" id="act-btn" onclick="activateNow()" class="btn-primary w-full py-2.5">Activate & Sign In →</button>
+    </div>
+  </div>
+</main>
+
+<script>
+function escapeHtml(s) {
+  if (s == null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatRegistrationStatus(status) {
+  if (!status) return '—';
+  const s = String(status).toLowerCase();
+  if (s === 'pending') return 'Pending — awaiting admin approval';
+  if (s === 'approved') return 'Approved';
+  if (s === 'rejected') return 'Not approved';
+  return status;
+}
+
+function statusAccentClass(status) {
+  if (!status) return 'text-[var(--wz-text-secondary)]';
+  const s = String(status).toLowerCase();
+  if (s === 'pending') return 'text-amber-400';
+  if (s === 'approved') return 'text-green-400';
+  if (s === 'rejected') return 'text-red-400';
+  return 'text-[var(--wz-text)]';
+}
+
+function renderMatchDetails(data) {
+  const box = document.getElementById('act-match-details');
+  const team = data.team;
+  const reg = data.registration;
+  const teamStr = team
+    ? `${escapeHtml(team.name)}<span class="font-mono text-[var(--wz-muted)]"> (#${escapeHtml(team.tag || '—')})</span>`
+    : '<span class="text-[var(--wz-muted)]">Not linked to a team record</span>';
+  const tourney = reg?.tournament?.name
+    ? `${escapeHtml(reg.tournament.name)}${reg.tournament.tag ? ` <span class="font-mono text-[10px] text-[var(--wz-muted)]">[${escapeHtml(reg.tournament.tag)}]</span>` : ''}`
+    : '<span class="text-[var(--wz-muted)]">—</span>';
+  const st = reg?.status;
+  const stLabel = escapeHtml(formatRegistrationStatus(st));
+  const stClass = statusAccentClass(st);
+
+  box.innerHTML = `
+    <div><span class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider block mb-0.5">Team</span><span class="text-[var(--wz-text)]">${teamStr}</span></div>
+    <div><span class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider block mb-0.5">Tournament applied for</span><span>${tourney}</span></div>
+    <div><span class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider block mb-0.5">Registration status</span><span class="font-head text-sm font-bold ${stClass}">${stLabel}</span></div>
+  `;
+}
+
+async function checkEmailNow() {
+  const email = document.getElementById('act-email').value.trim().toLowerCase();
+  const btn = document.getElementById('act-check-btn');
+
+  if (!email) {
+    showToast('Enter the email your captain used on the roster.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  try {
+    const data = await checkPlayerActivationEmail(email);
+    document.getElementById('act-found-ign').textContent = data.ign || '—';
+    renderMatchDetails(data);
+    document.getElementById('act-step-email').classList.add('hidden');
+    document.getElementById('act-step-credentials').classList.remove('hidden');
+    showToast('Email found — set your username and password.', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Find my roster →';
+  }
+}
+
+function resetActivationFlow() {
+  document.getElementById('act-step-credentials').classList.add('hidden');
+  document.getElementById('act-step-email').classList.remove('hidden');
+  document.getElementById('act-username').value = '';
+  document.getElementById('act-password').value = '';
+  const details = document.getElementById('act-match-details');
+  if (details) details.innerHTML = '';
+}
+
+async function activateNow() {
+  const email = document.getElementById('act-email').value.trim().toLowerCase();
+  const username = document.getElementById('act-username').value.trim();
+  const password = document.getElementById('act-password').value;
+  const btn = document.getElementById('act-btn');
+
+  if (!email || !username || !password) {
+    showToast('Enter username and password to finish activation.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Activating…';
+  try {
+    const user = await activatePlayerAccount(email, username, password);
+    setCurrentUser(user);
+    showToast('Account activated successfully ✓', 'success');
+    window.location.href = 'player-profile.html';
+  } catch (err) {
+    showToast(err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Activate & Sign In →';
+  }
+}
+</script>
+</body>
+</html>

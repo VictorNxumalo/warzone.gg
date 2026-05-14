@@ -1,0 +1,106 @@
+{
+  "_title": "RacingTournamentEngine mock walkthrough (Forza / F1 style)",
+  "prerequisites": [
+    "Run warzongg-api/sql/racing_tournament_engine.sql in Supabase.",
+    "Admin JWT available for POST/PATCH calls.",
+    "Tournament has approved team registrations.",
+    "Replace PLACEHOLDER_* values with real UUIDs."
+  ],
+  "create_tournament": {
+    "method": "POST",
+    "url": "{{API_URL}}/api/tournaments",
+    "body": {
+      "name": "Forza Championship 2026 — Mock",
+      "tag": "FZ26",
+      "mode": "Forza Motorsport · Championship",
+      "type": "solo",
+      "format": "Points championship over multiple races",
+      "start_date": "2026-09-01",
+      "reg_deadline": "2026-08-25",
+      "max_slots": 20,
+      "prize_total": 30000
+    }
+  },
+  "set_racing_config": {
+    "method": "PATCH",
+    "url": "{{API_URL}}/api/tournaments/TOURNAMENT_ID",
+    "body": {
+      "racing_config": {
+        "points_by_position": {
+          "1": 25,
+          "2": 18,
+          "3": 15,
+          "4": 12,
+          "5": 10,
+          "6": 8,
+          "7": 6,
+          "8": 4,
+          "9": 2,
+          "10": 1
+        },
+        "fastest_lap_bonus": 1
+      }
+    }
+  },
+  "create_race_match_scheduled": {
+    "method": "POST",
+    "url": "{{API_URL}}/api/matches",
+    "body": {
+      "tournament_id": "TOURNAMENT_ID",
+      "team_a_id": "PLACEHOLDER_DRIVER_A_TEAM_UUID",
+      "team_b_id": "PLACEHOLDER_DRIVER_B_TEAM_UUID",
+      "round": "group_stage",
+      "map_name": "Monza Circuit",
+      "game_mode": "Main Race",
+      "status": "scheduled",
+      "scheduled_at": "2026-09-10T18:00:00.000Z"
+    }
+  },
+  "submit_completed_race_results": {
+    "method": "PATCH",
+    "url": "{{API_URL}}/api/matches/RACE_MATCH_ID",
+    "body": {
+      "status": "completed",
+      "stats": {
+        "racing": {
+          "results": [
+            { "participant_id": "PLACEHOLDER_DRIVER_A_TEAM_UUID", "position": 1, "fastest_lap": true },
+            { "participant_id": "PLACEHOLDER_DRIVER_B_TEAM_UUID", "position": 2 },
+            { "participant_id": "PLACEHOLDER_DRIVER_C_TEAM_UUID", "position": 3 },
+            { "participant_id": "PLACEHOLDER_DRIVER_D_TEAM_UUID", "position": 4 }
+          ]
+        }
+      }
+    },
+    "expect": "Engine computes points per position and writes normalized rows with points into stats.racing.results."
+  },
+  "negative_tests": [
+    {
+      "name": "duplicate positions",
+      "body_fragment": {
+        "stats": {
+          "racing": {
+            "results": [
+              { "participant_id": "A", "position": 1 },
+              { "participant_id": "B", "position": 1 }
+            ]
+          }
+        }
+      },
+      "expect": "400 incomplete: duplicate finishing position"
+    },
+    {
+      "name": "missing results",
+      "body_fragment": { "stats": { "racing": { "results": [] } } },
+      "expect": "400 incomplete: racing results require non-empty array"
+    }
+  ],
+  "verify": {
+    "leaderboard": "GET {{API_URL}}/api/leaderboard?tournament_id=TOURNAMENT_ID",
+    "matches": "GET {{API_URL}}/api/matches?tournament_id=TOURNAMENT_ID",
+    "notes": [
+      "Racing standings sort by points, then wins, then best_finish.",
+      "points on leaderboard come from stats.racing.results points."
+    ]
+  }
+}

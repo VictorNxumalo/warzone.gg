@@ -1,0 +1,2815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin — EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+<script src="../js/config.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/main.js"></script>
+<script>injectNav('admin.html')</script>
+
+<!-- ── AUTH GATE ──────────────────────────────────────────── -->
+<div id="auth-gate" class="max-w-md mx-auto px-5 py-20">
+  <div class="wz-card border-t-2 border-t-red-600 p-8">
+    <div class="font-mono text-[10px] text-red-400 tracking-widest uppercase mb-4">🔒 ADMIN ACCESS REQUIRED</div>
+    <h2 class="font-head text-2xl font-black tracking-widest uppercase mb-5">Admin Login</h2>
+    <div class="flex flex-col gap-4 mb-5">
+      <div><label class="wz-label">Email</label><input type="email" id="admin-email" class="wz-input" placeholder="admin@evovle.gg"/></div>
+      <div><label class="wz-label">Password</label><input type="password" id="admin-pass" class="wz-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()"/></div>
+    </div>
+    <button onclick="adminLogin()" class="btn-danger w-full py-2.5">Enter Admin Panel</button>
+    <div id="login-error" class="hidden mt-3 font-mono text-[11px] text-red-400 text-center"></div>
+  </div>
+</div>
+
+<!-- ── ADMIN PANEL ────────────────────────────────────────── -->
+<div id="admin-panel" class="hidden max-w-6xl mx-auto px-5 py-8 fade-up">
+
+  <!-- Header -->
+<div class="flex items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)]">
+    <h1 class="section-title text-2xl">Admin Dashboard</h1>
+    <div class="flex items-center gap-2">
+      <span id="admin-username-badge" class="font-mono text-[11px] text-[#e8c14a] tracking-wider"></span>
+      <span class="font-mono text-[10px] bg-red-900/30 text-red-400 border border-red-700 px-3 py-1.5 rounded-sm tracking-widest">ADMIN ACCESS</span>
+    </div>
+  </div>
+
+  <!-- Layout: full-width control center + workspace (no cramped sidebar) -->
+  <div class="flex flex-col gap-5 w-full">
+
+    <!-- Primary navigation hub (logo transition: global #wz-route-loader from injectNav) -->
+    <div id="admin-main-menu" class="wz-card overflow-hidden admin-main-menu">
+      <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <img src="../assets/Evovle%20Logo.png" alt="" class="w-10 h-10 rounded object-contain shrink-0 border border-[var(--wz-border)] bg-[var(--wz-surface2)]"/>
+          <div class="min-w-0">
+            <div class="font-head text-xs font-bold tracking-widest uppercase text-[var(--wz-text)]">Control center</div>
+            <div id="admin-menu-breadcrumb" class="font-mono text-[10px] text-[var(--wz-muted)] mt-0.5 truncate max-w-[min(100%,520px)]">Choose a section below — transitions use the platform logo</div>
+          </div>
+        </div>
+        <button type="button" id="admin-menu-expand-toggle" class="btn-ghost btn-sm" onclick="toggleAdminMainMenuExpand()" aria-expanded="true">Collapse menu</button>
+      </div>
+      <div id="admin-main-menu-body" class="p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <button type="button" class="admin-hub-tile" data-admin-nav data-tab="overview" onclick="adminNavigateWithLoader('overview')">
+            <span class="admin-hub-tile-title">Overview</span>
+            <span class="admin-hub-tile-desc">Dashboard stats, registrations, tournaments &amp; matches at a glance</span>
+          </button>
+          <button type="button" class="admin-hub-tile" data-admin-nav data-tab="teams" onclick="adminNavigateWithLoader('teams')">
+            <span class="admin-hub-tile-title">Teams</span>
+            <span class="admin-hub-tile-desc">Review registrations, approve or reject squads</span>
+          </button>
+          <button type="button" class="admin-hub-tile" data-admin-nav data-tab="announce" onclick="adminNavigateWithLoader('announce')">
+            <span class="admin-hub-tile-title">Announcements</span>
+            <span class="admin-hub-tile-desc">Publish live banners and platform notices</span>
+          </button>
+          <button type="button" class="admin-hub-tile" data-admin-nav data-tab="participants" onclick="adminNavigateWithLoader('participants')">
+            <span class="admin-hub-tile-title">Participants</span>
+            <span class="admin-hub-tile-desc">Roster view by tournament</span>
+          </button>
+        </div>
+
+        <details class="admin-menu-details mt-4" id="admin-menu-details-matches">
+          <summary class="admin-menu-details-summary font-head text-sm font-bold tracking-wide uppercase text-[var(--wz-text)] cursor-pointer select-none">
+            Matches — create &amp; update
+          </summary>
+          <p class="font-mono text-[9px] text-[var(--wz-muted)] mt-2 mb-3 max-w-3xl">Schedule fixtures and edit live results. Opens the same tools as before, with a quick logo transition.</p>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <button type="button" class="btn-primary flex-1 justify-center min-h-[2.75rem]" data-admin-nav data-tab="matches" data-sub="create" onclick="adminNavigateWithLoader('matches','create')">Create match</button>
+            <button type="button" class="btn-ghost flex-1 justify-center min-h-[2.75rem] border border-[var(--wz-border-input)]" data-admin-nav data-tab="matches" data-sub="update" onclick="adminNavigateWithLoader('matches','update')">Update match &amp; stats</button>
+          </div>
+        </details>
+
+        <details class="admin-menu-details mt-3" id="admin-menu-details-tournaments">
+          <summary class="admin-menu-details-summary font-head text-sm font-bold tracking-wide uppercase text-[var(--wz-text)] cursor-pointer select-none">
+            Tournaments
+          </summary>
+          <p class="font-mono text-[9px] text-[var(--wz-muted)] mt-2 mb-3 max-w-3xl">Manage existing events or spin up a new competition.</p>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <button type="button" class="btn-primary flex-1 justify-center min-h-[2.75rem]" data-admin-nav data-tab="tournaments" data-sub="list" onclick="adminNavigateWithLoader('tournaments','list')">All tournaments</button>
+            <button type="button" class="btn-ghost flex-1 justify-center min-h-[2.75rem] border border-[var(--wz-border-input)]" data-admin-nav data-tab="tournaments" data-sub="create" onclick="adminNavigateWithLoader('tournaments','create')">Create tournament</button>
+          </div>
+        </details>
+
+        <div class="mt-4 pt-4 border-t border-[var(--wz-border)]">
+          <button type="button" class="admin-hub-tile admin-hub-tile--wide w-full text-left" data-admin-nav data-tab="live" onclick="adminNavigateWithLoader('live')">
+            <span class="admin-hub-tile-title">Live snapshot</span>
+            <span class="admin-hub-tile-desc">Public site pulse — what players see right now</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-workspace" class="min-w-0">
+
+      <!-- Game banners (same artwork as public site) -->
+      <div id="admin-game-strip-wrap" class="wz-card overflow-hidden mb-5 admin-games-strip hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+          <div class="min-w-0">
+            <span class="font-head text-[10px] font-bold tracking-widest uppercase text-[var(--wz-text-secondary)]">Games — quick visual reference</span>
+            <p class="font-mono text-[9px] text-[var(--wz-muted)] mt-0.5 max-w-xl leading-snug"><strong class="text-[var(--wz-text-secondary)]">Teams / Overview / Tournaments:</strong> filters registrations &amp; tables by game. <strong class="text-[var(--wz-text-secondary)]">Matches → Create:</strong> also opens the create form for that title &amp; default mode.</p>
+          </div>
+          <span id="admin-game-filter-label" class="font-mono text-[10px] text-[#e8c14a] tracking-wider max-w-[min(100%,280px)] truncate shrink-0" title=""></span>
+        </div>
+        <div id="admin-game-strip-buttons" class="p-3 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+          <button type="button" class="admin-game-strip-btn admin-game-strip-active rounded-sm flex items-center justify-center p-2 bg-[var(--wz-surface2)] border border-[var(--wz-border-input)]" data-admin-game="" onclick="setAdminGameStripFilter('')" aria-pressed="true" title="Show all games in tables — does not change the match form">
+            <span class="font-head text-[10px] tracking-widest uppercase text-[#e8c14a]">All games</span>
+          </button>
+          <button type="button" class="admin-game-strip-btn game-cover game-cover-codm h-16 rounded-sm flex items-end p-2" data-admin-game="COD Mobile" onclick="adminGameStripPick('COD Mobile')" aria-pressed="false" title="Filter by COD Mobile · on Create Match tab, also opens create form">
+            <span class="font-head text-[10px] tracking-wider uppercase z-10 text-[var(--wz-text)] drop-shadow-md pointer-events-none">COD Mobile</span>
+          </button>
+          <button type="button" class="admin-game-strip-btn game-cover game-cover-warzone h-16 rounded-sm flex items-end p-2" data-admin-game="COD Warzone" onclick="adminGameStripPick('COD Warzone')" aria-pressed="false" title="Filter by COD Warzone · on Create Match tab, also opens create form">
+            <span class="font-head text-[10px] tracking-wider uppercase z-10 text-[var(--wz-text)] drop-shadow-md pointer-events-none">COD Warzone</span>
+          </button>
+          <button type="button" class="admin-game-strip-btn game-cover game-cover-mw h-16 rounded-sm flex items-end p-2" data-admin-game="COD Modern Warfare" onclick="adminGameStripPick('COD Modern Warfare')" aria-pressed="false" title="Filter by COD MW · on Create Match tab, also opens create form">
+            <span class="font-head text-[10px] tracking-wider uppercase z-10 text-[var(--wz-text)] drop-shadow-md pointer-events-none">COD MW</span>
+          </button>
+          <button type="button" class="admin-game-strip-btn game-cover game-cover-fifa h-16 rounded-sm flex items-end p-2" data-admin-game="FIFA" onclick="adminGameStripPick('FIFA')" aria-pressed="false" title="Filter by FIFA · on Create Match tab, also opens create form">
+            <span class="font-head text-[10px] tracking-wider uppercase z-10 text-[var(--wz-text)] drop-shadow-md pointer-events-none">FIFA</span>
+          </button>
+          <button type="button" class="admin-game-strip-btn game-cover game-cover-nfs h-16 rounded-sm flex items-end p-2" data-admin-game="Need for Speed" onclick="adminGameStripPick('Need for Speed')" aria-pressed="false" title="Filter by NFS · on Create Match tab, also opens create form">
+            <span class="font-head text-[10px] tracking-wider uppercase z-10 text-[var(--wz-text)] drop-shadow-md pointer-events-none">NFS</span>
+          </button>
+          <button type="button" class="admin-game-strip-btn game-cover game-cover-forza h-16 rounded-sm flex items-end p-2" data-admin-game="Forza" onclick="adminGameStripPick('Forza')" aria-pressed="false" title="Filter by Forza · on Create Match tab, also opens create form">
+            <span class="font-head text-[10px] tracking-wider uppercase z-10 text-[var(--wz-text)] drop-shadow-md pointer-events-none">Forza</span>
+          </button>
+          <button type="button" class="admin-game-strip-btn game-cover game-cover-mk h-16 rounded-sm flex items-end p-2" data-admin-game="Mortal Kombat" onclick="adminGameStripPick('Mortal Kombat')" aria-pressed="false" title="Filter by Mortal Kombat · on Create Match tab, also opens create form">
+            <span class="font-head text-[10px] tracking-wider uppercase z-10 text-[var(--wz-text)] drop-shadow-md pointer-events-none">Mortal Kombat</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- OVERVIEW TAB -->
+      <div id="pane-overview">
+        <div id="overview-pending-card" class="wz-card overflow-hidden mb-5 border-l-4 border-l-amber-500">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="font-head text-xs font-bold tracking-widest uppercase text-amber-400">Pending registrations</div>
+              <p class="font-mono text-[9px] text-[var(--wz-muted)] mt-0.5 max-w-2xl">Approve or reject teams entering tournaments — same actions as the Teams tab, prioritized here when you open admin.</p>
+            </div>
+            <button type="button" class="btn-ghost btn-sm shrink-0" onclick="adminNavigateWithLoader('teams')">All teams &amp; filters</button>
+          </div>
+          <div id="overview-pending-queue">
+            <div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">Loading…</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+          <div class="stat-block"><div class="font-head text-3xl font-black text-[#e8c14a]" id="stat-tournaments">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-wider mt-1">Active</div></div>
+          <div class="stat-block cursor-pointer hover:border-amber-600 transition-colors" onclick="adminNavigateWithLoader('teams')"><div class="font-head text-3xl font-black text-amber-400" id="stat-pending">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-wider mt-1">Pending</div></div>
+          <div class="stat-block"><div class="font-head text-3xl font-black text-green-400" id="stat-total-teams">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-wider mt-1">Teams</div></div>
+          <div class="stat-block"><div class="font-head text-3xl font-black text-blue-400" id="stat-matches">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-wider mt-1">Matches</div></div>
+        </div>
+
+        <div class="wz-card overflow-hidden mb-4">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase text-[var(--wz-text-secondary)]">Recent activity</div>
+          <div id="activity-feed"><div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">Loading…</div></div>
+        </div>
+
+        <div class="wz-card overflow-hidden">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase">Tournament Status</div>
+          <div class="overflow-x-auto">
+            <table class="wz-table">
+              <thead><tr><th class="w-16"></th><th>Name</th><th>Status</th><th>Teams</th><th>Prize</th><th></th></tr></thead>
+              <tbody id="overview-tournaments"><tr><td colspan="6" class="text-center py-4 font-mono text-[10px] text-[var(--wz-muted)]">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="wz-card overflow-hidden mt-5">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase">Matches Status</div>
+          <div class="overflow-x-auto">
+            <table class="wz-table">
+              <thead><tr><th>Match Name</th><th>Status</th><th>Relevant Information</th></tr></thead>
+              <tbody id="overview-matches-status"><tr><td colspan="3" class="text-center py-4 font-mono text-[10px] text-[var(--wz-muted)]">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TEAMS TAB -->
+      <div id="pane-teams" class="hidden">
+        <div class="flex items-center justify-between mb-4">
+          <div class="font-mono text-[11px] text-amber-400 tracking-wider" id="teams-count"></div>
+          <div class="flex gap-2">
+            <select id="teams-filter" onchange="renderTeams()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+              <option value="">All Registrations</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <input type="text" id="teams-search" oninput="renderTeams()" class="wz-input" placeholder="Search…" style="width:140px;padding:5px 10px;font-size:12px"/>
+          </div>
+        </div>
+        <div class="wz-card overflow-hidden">
+          <div id="teams-list"><div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">Loading…</div></div>
+        </div>
+      </div>
+
+      <!-- MATCHES TAB -->
+      <div id="pane-matches" class="hidden">
+        <div class="flex gap-2 mb-4">
+          <button id="match-subtab-create-btn" onclick="setMatchSubTab('create')" class="btn-primary btn-sm">Create Match For Tournament</button>
+          <button id="match-subtab-update-btn" onclick="setMatchSubTab('update')" class="btn-ghost btn-sm">Update Stats Match For Tournament</button>
+        </div>
+
+        <div id="match-subtab-create">
+        <div class="wz-card overflow-hidden mb-5">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase text-[#e8c14a]">Create / Manage Match</div>
+          <div class="p-5 grid grid-cols-2 gap-4">
+            <div>
+              <label class="wz-label">Game</label>
+              <select id="match-game" class="wz-input" onchange="populateMatchTournamentDropdown(); syncMatchGamePreview(); syncMatchModeDropdownForCreate();">
+                <option value="">— Select Game —</option>
+                <option value="COD Mobile">COD Mobile</option>
+                <option value="COD Warzone">COD Warzone</option>
+                <option value="COD Modern Warfare">COD Modern Warfare</option>
+                <option value="FIFA">FIFA</option>
+                <option value="Need for Speed">Need for Speed</option>
+                <option value="Forza">Forza</option>
+                <option value="Mortal Kombat">Mortal Kombat</option>
+              </select>
+            </div>
+            <div>
+              <label class="wz-label">Tournament</label>
+              <select id="match-tourney-id" class="wz-input" onchange="populateMatchTeamDropdowns(); syncMatchGamePreview();">
+                <option value="">— Select Game First —</option>
+              </select>
+            </div>
+            <div class="col-span-2 admin-game-preview">
+              <label class="wz-label">Selected game</label>
+              <div id="match-game-preview" class="game-cover game-cover-other h-24 rounded-sm border border-[var(--wz-border)] flex items-end p-3">
+                <span class="font-head text-sm tracking-widest uppercase z-10 text-[var(--wz-text)] drop-shadow-lg">Select a game above</span>
+              </div>
+            </div>
+            <div>
+              <label class="wz-label">Round</label>
+              <select id="match-round" class="wz-input">
+                <option value="group_stage">Group Stage</option>
+                <option value="quarter_final">Quarter Final</option>
+                <option value="semi_final">Semi Final</option>
+                <option value="grand_final">Grand Final</option>
+              </select>
+            </div>
+            <div>
+              <label class="wz-label">Bracket lane</label>
+              <select id="match-bracket-type" class="wz-input">
+                <option value="single">Single Elim / Main</option>
+                <option value="upper">Upper Bracket</option>
+                <option value="lower">Lower Bracket</option>
+                <option value="grand_finals">Grand Finals</option>
+                <option value="round_robin">Round Robin</option>
+              </select>
+            </div>
+            <div>
+              <label class="wz-label">Round number</label>
+              <input type="number" id="match-round-number" class="wz-input" min="1" max="64" placeholder="e.g. 1"/>
+            </div>
+            <div>
+              <label class="wz-label">Match order in round</label>
+              <input type="number" id="match-order" class="wz-input" min="1" max="1024" placeholder="e.g. 1"/>
+            </div>
+            <div>
+              <label class="wz-label">Scheduled Time</label>
+              <input type="datetime-local" id="match-scheduled-at" class="wz-input"/>
+            </div>
+            <div>
+              <label class="wz-label">Team A</label>
+              <select id="match-a-id" class="wz-input">
+                <option value="">— Select tournament first —</option>
+              </select>
+              <p class="font-mono text-[9px] text-[var(--wz-muted)] mt-1">Approved registrations for the selected tournament only.</p>
+            </div>
+            <div>
+              <label class="wz-label">Team B</label>
+              <select id="match-b-id" class="wz-input">
+                <option value="">— Select tournament first —</option>
+              </select>
+            </div>
+            <div><label class="wz-label">Score A</label><input type="number" id="score-a" class="wz-input" placeholder="0" min="0" max="5"/></div>
+            <div><label class="wz-label">Score B</label><input type="number" id="score-b" class="wz-input" placeholder="0" min="0" max="5"/></div>
+            <div><label class="wz-label">Arena / Track / Stage</label><input type="text" id="match-map" class="wz-input" placeholder="e.g. Tokyo Express, NetherRealm Arena"/></div>
+            <div class="col-span-2">
+              <label class="wz-label">Ruleset / Match Mode</label>
+              <p class="font-mono text-[9px] text-[var(--wz-muted)] mb-1">Options depend on the game selected above. Pick “Other (custom)” if you need a one-off label.</p>
+              <select id="match-mode" class="wz-input" onchange="toggleMatchModeCustom('match-mode','match-mode-custom')">
+                <option value="">— Select a game first —</option>
+              </select>
+              <input type="text" id="match-mode-custom" class="wz-input mt-2 hidden" placeholder="Custom ruleset / mode" autocomplete="off"/>
+            </div>
+            <div>
+              <label class="wz-label">Advance winner to (next_match_id)</label>
+              <input type="text" id="match-next-id" class="wz-input font-mono text-xs" placeholder="UUID of target match"/>
+            </div>
+            <div>
+              <label class="wz-label">Advance slot</label>
+              <select id="match-next-slot" class="wz-input">
+                <option value="">No auto-advance</option>
+                <option value="team_a">team_a</option>
+                <option value="team_b">team_b</option>
+              </select>
+            </div>
+          </div>
+          <div class="px-5 pb-5">
+            <button onclick="handleSubmitMatch()" class="btn-primary">Save Match</button>
+          </div>
+        </div>
+        </div>
+
+        <div id="match-subtab-update" class="hidden">
+          <div class="wz-card overflow-hidden mb-5">
+            <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase text-[#e8c14a]">Update Match (scheduled · live · completed)</div>
+            <p class="px-5 pt-4 font-mono text-[10px] text-[var(--wz-muted)] leading-relaxed">
+              Pick any match to edit the same fields as when it was created. Changing <strong class="text-[var(--wz-text)]">completed</strong> results updates winners and team points when the winner changes; tournament leaderboards recompute from match rows on the next view.
+            </p>
+            <div class="p-5 grid grid-cols-2 gap-4">
+              <div class="col-span-2">
+                <label class="wz-label">Select match</label>
+                <select id="live-match-id" class="wz-input" onchange="fillLiveMatchFromSelection()"></select>
+              </div>
+              <div>
+                <label class="wz-label">Round</label>
+                <select id="live-round" class="wz-input">
+                  <option value="group_stage">Group Stage</option>
+                  <option value="quarter_final">Quarter Final</option>
+                  <option value="semi_final">Semi Final</option>
+                  <option value="grand_final">Grand Final</option>
+                </select>
+              </div>
+              <div>
+                <label class="wz-label">Bracket lane</label>
+                <select id="live-bracket-type" class="wz-input">
+                  <option value="single">Single Elim / Main</option>
+                  <option value="upper">Upper Bracket</option>
+                  <option value="lower">Lower Bracket</option>
+                  <option value="grand_finals">Grand Finals</option>
+                  <option value="round_robin">Round Robin</option>
+                </select>
+              </div>
+              <div>
+                <label class="wz-label">Status</label>
+                <select id="live-status" class="wz-input">
+                  <option value="scheduled">Scheduled</option>
+                  <option value="live">Live</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+              <div>
+                <label class="wz-label">Round number</label>
+                <input type="number" id="live-round-number" class="wz-input" min="1" max="64"/>
+              </div>
+              <div>
+                <label class="wz-label">Match order in round</label>
+                <input type="number" id="live-match-order" class="wz-input" min="1" max="1024"/>
+              </div>
+              <div><label class="wz-label">Score A</label><input type="number" id="live-score-a" class="wz-input" min="0" max="999"/></div>
+              <div><label class="wz-label">Score B</label><input type="number" id="live-score-b" class="wz-input" min="0" max="999"/></div>
+              <div><label class="wz-label">Scheduled time</label><input type="datetime-local" id="live-scheduled-at" class="wz-input"/></div>
+              <div><label class="wz-label">Arena / Map</label><input type="text" id="live-map-name" class="wz-input" placeholder="e.g. Shipment, Tokyo"/></div>
+              <div class="col-span-2">
+                <label class="wz-label">Ruleset / Match mode</label>
+                <p class="font-mono text-[9px] text-[var(--wz-muted)] mb-1">List is based on the selected match’s tournament game. Use “Other (custom)” for legacy or special labels.</p>
+                <select id="live-game-mode" class="wz-input" onchange="toggleMatchModeCustom('live-game-mode','live-game-mode-custom')">
+                  <option value="">— Select a match first —</option>
+                </select>
+                <input type="text" id="live-game-mode-custom" class="wz-input mt-2 hidden" placeholder="Custom ruleset / mode" autocomplete="off"/>
+              </div>
+              <div>
+                <label class="wz-label">Next match id</label>
+                <input type="text" id="live-next-match-id" class="wz-input font-mono text-xs" placeholder="UUID of target match"/>
+              </div>
+              <div>
+                <label class="wz-label">Next match slot</label>
+                <select id="live-next-slot" class="wz-input">
+                  <option value="">No auto-advance</option>
+                  <option value="team_a">team_a</option>
+                  <option value="team_b">team_b</option>
+                </select>
+              </div>
+              <div class="col-span-2">
+                <label class="wz-label">COD engine stats (optional JSON)</label>
+                <textarea id="live-stats-json" class="wz-input font-mono text-xs min-h-[7rem]" placeholder='e.g. S&amp;D: { "rounds_a": 6, "rounds_b": 4 } — merges with existing; leave blank to keep stored stats.'></textarea>
+              </div>
+              <div>
+                <label class="wz-label">Dispute action</label>
+                <select id="live-dispute-action" class="wz-input">
+                  <option value="">No dispute change</option>
+                  <option value="open">Open dispute</option>
+                  <option value="resolve">Resolve dispute</option>
+                  <option value="reject">Reject dispute</option>
+                  <option value="clear">Clear dispute fields</option>
+                </select>
+              </div>
+              <div>
+                <label class="wz-label">Disputed by team id</label>
+                <input type="text" id="live-disputed-by-team-id" class="wz-input font-mono text-xs" placeholder="UUID (optional)"/>
+              </div>
+              <div class="col-span-2">
+                <label class="wz-label">Dispute notes</label>
+                <textarea id="live-dispute-notes" class="wz-input font-mono text-xs min-h-[4.5rem]" placeholder="Moderator notes / rationale"></textarea>
+              </div>
+              <div>
+                <label class="wz-label">Dispute proof URL</label>
+                <input type="text" id="live-dispute-proof-url" class="wz-input" placeholder="https://..."/>
+              </div>
+              <div>
+                <label class="wz-label">Resolved winner team id</label>
+                <input type="text" id="live-dispute-winner-id" class="wz-input font-mono text-xs" placeholder="UUID (for resolve)"/>
+              </div>
+            </div>
+            <div class="px-5 pb-5 flex flex-wrap gap-3 items-center">
+              <button type="button" onclick="handleUpdateLiveMatch()" class="btn-primary">Save match update</button>
+              <span class="font-mono text-[9px] text-[var(--wz-muted)]">Completed requires both scores <em>or</em> valid stats so the engine can pick a winner.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="wz-card overflow-hidden">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3">
+            <div class="font-head text-xs font-bold tracking-widest uppercase">Upcoming &amp; live matches</div>
+            <p class="font-mono text-[9px] text-[var(--wz-muted)] mt-1 max-w-3xl">Scheduled and on-air fixtures — open a row in <strong class="text-[var(--wz-text-secondary)]">Update match &amp; stats</strong> to edit scores or status.</p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="wz-table">
+              <thead><tr><th>Status</th><th>When</th><th>Tournament</th><th>Matchup</th><th class="w-36"></th></tr></thead>
+              <tbody id="match-ops-snapshot"><tr><td colspan="5" class="text-center py-4 font-mono text-[10px] text-[var(--wz-muted)]">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+<!-- TOURNAMENTS TAB -->
+      <div id="pane-tournaments" class="hidden">
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <button type="button" id="tournament-inline-tab-list" onclick="adminTab('tournaments','list')" class="btn-primary btn-sm">All tournaments</button>
+          <button type="button" id="tournament-inline-tab-create" onclick="adminTab('tournaments','create')" class="btn-ghost btn-sm">Create tournament</button>
+        </div>
+
+        <div id="tournament-subtab-list">
+        <div class="wz-card overflow-hidden">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase text-[#e8c14a]">All Tournaments</div>
+          <div class="overflow-x-auto">
+            <table class="wz-table">
+              <thead>
+                <tr>
+                  <th class="w-14"></th>
+                  <th>Name</th>
+                  <th>Game</th>
+                  <th>Type</th>
+                  <th>Start Date</th>
+                  <th>Teams</th>
+                  <th>Prize Pool</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tournaments-manage-body">
+                <tr><td colspan="8" class="text-center py-6 font-mono text-[10px] text-[var(--wz-muted)]">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        </div>
+
+        <div id="tournament-subtab-create" class="hidden">
+        <div class="wz-card overflow-hidden">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase text-[#e8c14a]">Create New Tournament</div>
+          <div class="p-5 grid grid-cols-2 gap-4">
+            <div class="col-span-2"><label class="wz-label">Tournament Name</label><input type="text" id="new-name" class="wz-input" placeholder="e.g. Operation Warfront Season 2"/></div>
+            <div><label class="wz-label">Short Tag (max 4)</label><input type="text" id="new-tag" class="wz-input" placeholder="OWF2" maxlength="4"/></div>
+            <div>
+              <label class="wz-label">Game Title</label>
+              <select id="new-game-title" class="wz-input" onchange="syncCreateGamePreview()">
+                <option value="">— Select Game —</option>
+                <option value="COD Mobile">COD Mobile</option>
+                <option value="COD Warzone">COD Warzone</option>
+                <option value="COD Modern Warfare">COD Modern Warfare</option>
+                <option value="FIFA">FIFA</option>
+                <option value="Need for Speed">Need for Speed</option>
+                <option value="Forza">Forza</option>
+                <option value="Mortal Kombat">Mortal Kombat</option>
+              </select>
+            </div>
+            <div><label class="wz-label">Division / Queue Label (Optional)</label><input type="text" id="new-mode-label" class="wz-input" placeholder="e.g. Open, Elite, Casual Queue"/></div>
+            <div class="col-span-2 admin-game-preview">
+              <label class="wz-label">Game artwork preview</label>
+              <div id="create-game-preview" class="game-cover game-cover-other h-24 rounded-sm border border-[var(--wz-border)] flex items-end p-3">
+                <span class="font-head text-sm tracking-widest uppercase z-10 text-[var(--wz-text)] drop-shadow-lg">Choose a game title</span>
+              </div>
+            </div>
+            <div>
+              <label class="wz-label">Entry Structure</label>
+              <select id="new-type" class="wz-input">
+                <option value="ranked">Team Arena</option>
+              </select>
+            </div>
+            <div>
+              <label class="wz-label">Competition Format</label>
+              <select id="new-format" class="wz-input">
+                <option value="Single Elimination">Single Elimination</option>
+                <option value="Double Elimination">Double Elimination</option>
+                <option value="Round Robin">Round Robin</option>
+                <option value="Group Stage + Finals">Group Stage + Finals</option>
+              </select>
+            </div>
+            <div class="col-span-2">
+              <label class="wz-label">Game Rule Profile</label>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <label class="wz-input flex items-center justify-between gap-3 cursor-pointer">
+                  <span class="font-mono text-[10px] tracking-wide uppercase">Enhanced Bracket UI</span>
+                  <input id="new-flag-enhanced-ui" type="checkbox" checked />
+                </label>
+                <label class="wz-input flex items-center justify-between gap-3 cursor-pointer">
+                  <span class="font-mono text-[10px] tracking-wide uppercase">Allow Draws (FIFA)</span>
+                  <input id="new-flag-allow-draw" type="checkbox" checked />
+                </label>
+                <label class="wz-input flex items-center justify-between gap-3 cursor-pointer">
+                  <span class="font-mono text-[10px] tracking-wide uppercase">GF Reset (FGC)</span>
+                  <input id="new-flag-gf-reset" type="checkbox" />
+                </label>
+              </div>
+              <p class="font-mono text-[9px] text-[var(--wz-muted)] mt-1">Profile is generated automatically from selected game and toggles.</p>
+            </div>
+            <div><label class="wz-label">Max Teams</label><select id="new-slots" class="wz-input"><option value="8">8 Teams</option><option value="16" selected>16 Teams</option><option value="32">32 Teams</option></select></div>
+            <div><label class="wz-label">Start Date</label><input type="date" id="new-date" class="wz-input"/></div>
+            <div><label class="wz-label">Registration Deadline</label><input type="date" id="new-deadline" class="wz-input"/></div>
+            <div><label class="wz-label">Prize Pool (ZAR)</label><input type="number" id="new-prize" class="wz-input" placeholder="e.g. 50000"/></div>
+            <div><label class="wz-label">Entry Fee (ZAR)</label><input type="number" id="new-fee" class="wz-input" placeholder="e.g. 150"/></div>
+            <div class="col-span-2"><label class="wz-label">Description</label><textarea id="new-desc" class="wz-input" rows="3" placeholder="Tournament description…"></textarea></div>
+            <div class="col-span-2">
+              <label class="wz-label mb-2">Prize Breakdown (ZAR)</label>
+              <div class="grid grid-cols-4 gap-2">
+                <div><label class="wz-label text-[9px]">1st</label><input type="number" id="prize-1" class="wz-input" placeholder="0"/></div>
+                <div><label class="wz-label text-[9px]">2nd</label><input type="number" id="prize-2" class="wz-input" placeholder="0"/></div>
+                <div><label class="wz-label text-[9px]">3rd</label><input type="number" id="prize-3" class="wz-input" placeholder="0"/></div>
+                <div><label class="wz-label text-[9px]">MVP</label><input type="number" id="prize-mvp" class="wz-input" placeholder="0"/></div>
+              </div>
+            </div>
+          </div>
+          <div class="px-5 pb-5 flex gap-3">
+            <button onclick="handleCreateTournament()" class="btn-primary">Create Tournament</button>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <!-- ANNOUNCE TAB -->
+      <div id="pane-announce" class="hidden">
+        <div class="wz-card overflow-hidden mb-5">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase text-[#e8c14a]">Send Announcement</div>
+          <div class="p-5 flex flex-col gap-4">
+            <div>
+              <label class="wz-label">Announcement Type</label>
+              <select id="ann-type" class="wz-input">
+                <option value="info">Info</option>
+                <option value="live">Live / Urgent</option>
+                <option value="update">Rule Update</option>
+                <option value="warning">Warning</option>
+              </select>
+            </div>
+            <div><label class="wz-label">Title</label><input type="text" id="ann-title" class="wz-input" placeholder="Announcement title"/></div>
+            <div><label class="wz-label">Message</label><textarea id="ann-body" class="wz-input" rows="5" placeholder="Write your announcement…"></textarea></div>
+            <button onclick="handlePublishAnnouncement()" class="btn-primary self-start">Publish Announcement</button>
+          </div>
+        </div>
+
+        <div class="wz-card overflow-hidden">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase">Published Announcements</div>
+          <div id="published-ann"><div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">Loading…</div></div>
+        </div>
+        </div>
+
+      <!-- PARTICIPANTS TAB -->
+      <div id="pane-participants" class="hidden">
+        <div id="participants-game-visual" class="hidden mb-4 wz-card overflow-hidden">
+          <div class="flex items-stretch gap-0 min-h-[72px]">
+            <div id="participants-game-cover" class="w-36 flex-shrink-0 game-cover game-cover-other min-h-[72px]"></div>
+            <div class="flex-1 px-4 py-3 flex flex-col justify-center border-l border-[var(--wz-border)] bg-[color-mix(in_srgb,var(--wz-page)_50%,transparent)]">
+              <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-wider">Tournament / game</div>
+              <div id="participants-game-label" class="font-head text-sm font-bold tracking-wide text-[var(--wz-text)] mt-0.5"></div>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <select id="participants-tourney" onchange="renderParticipants()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+            <option value="">— Select Tournament —</option>
+          </select>
+          <div class="flex gap-2">
+            <button onclick="participantsView('teams')" id="pview-teams" class="btn-primary btn-sm">Teams</button>
+            <button onclick="participantsView('players')" id="pview-players" class="btn-ghost btn-sm">Players</button>
+          </div>
+          <div class="font-mono text-[11px] text-[var(--wz-muted)] tracking-wider" id="participants-count"></div>
+        </div>
+        <div id="participants-teams-view" class="wz-card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="wz-table">
+              <thead><tr><th>#</th><th>Team</th><th>Tag</th><th>Region</th><th>Game Mode</th><th>Device</th><th>Status</th></tr></thead>
+              <tbody id="participants-teams-body">
+                <tr><td colspan="7" class="text-center py-6 font-mono text-[10px] text-[var(--wz-muted)]">Select a tournament above</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="participants-players-view" class="hidden wz-card overflow-hidden mt-4">
+          <div class="overflow-x-auto">
+            <table class="wz-table">
+              <thead><tr><th>#</th><th>IGN</th><th>Player ID</th><th>Role</th><th>Device</th><th>Team</th></tr></thead>
+              <tbody id="participants-players-body">
+                <tr><td colspan="6" class="text-center py-6 font-mono text-[10px] text-[var(--wz-muted)]">Select a tournament above</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIVE SITE TAB — public-facing snapshot without leaving admin -->
+      <div id="pane-live" class="hidden">
+        <div class="wz-card overflow-hidden mb-5 border-l-2 border-l-[#e8c14a]">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div class="font-head text-xs font-bold tracking-widest uppercase text-[#e8c14a]">Live site</div>
+              <p class="font-mono text-[10px] text-[var(--wz-muted)] mt-0.5 max-w-xl">What players see right now — pulse, banner copy, and deep links. Opens in a new tab.</p>
+            </div>
+            <button type="button" onclick="renderLiveSitePanel(true)" class="btn-ghost btn-sm font-mono text-[10px]">Refresh</button>
+          </div>
+          <div class="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-2" id="live-pulse-stats">
+              <div class="stat-block"><div class="font-head text-2xl font-black text-[#e8c14a]" id="live-st-pulse-open">—</div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider mt-1">Open / live events</div></div>
+              <div class="stat-block"><div class="font-head text-2xl font-black text-red-400" id="live-st-pulse-live-matches">—</div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider mt-1">Matches live now</div></div>
+              <div class="stat-block"><div class="font-head text-2xl font-black text-amber-400" id="live-st-pulse-pending">—</div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider mt-1">Pending approvals</div></div>
+              <div class="stat-block"><div class="font-head text-2xl font-black text-blue-400" id="live-st-pulse-scheduled">—</div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider mt-1">Scheduled matches</div></div>
+            </div>
+            <div class="rounded-sm border border-[var(--wz-border)] bg-[var(--wz-surface2)] p-3 flex flex-col justify-center">
+              <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider mb-1">Public origin</div>
+              <div class="font-mono text-[11px] text-[var(--wz-text-secondary)] break-all" id="live-site-origin">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+          <div class="wz-card p-4">
+            <div class="font-head text-[10px] tracking-widest uppercase text-[#e8c14a] mb-3">Homepage banner (preview)</div>
+            <p class="font-mono text-[9px] text-[var(--wz-muted)] mb-2">Latest <span class="text-red-400">live</span>-type announcement · same source as the red strip on index.</p>
+            <div id="live-banner-preview" class="rounded-sm border border-red-800/60 bg-red-950/40 px-3 py-2 min-h-[3rem] flex items-center">
+              <span class="font-mono text-[10px] text-[var(--wz-muted)]">Loading…</span>
+            </div>
+          </div>
+          <div class="wz-card p-4">
+            <div class="font-head text-[10px] tracking-widest uppercase text-[#e8c14a] mb-3">Quick links</div>
+            <div class="flex flex-wrap gap-2" id="live-quick-links"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+          <div class="wz-card overflow-hidden">
+            <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-2.5 font-head text-[10px] font-bold tracking-widest uppercase text-red-400">On air now</div>
+            <div id="live-site-live-matches" class="p-3 space-y-2 max-h-56 overflow-y-auto font-mono text-[11px]"></div>
+          </div>
+          <div class="wz-card overflow-hidden">
+            <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-2.5 font-head text-[10px] font-bold tracking-widest uppercase">Next on schedule</div>
+            <div id="live-site-upcoming" class="p-3 space-y-2 max-h-56 overflow-y-auto font-mono text-[11px]"></div>
+          </div>
+        </div>
+
+        <div class="wz-card overflow-hidden mb-5">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-2.5 font-head text-[10px] font-bold tracking-widest uppercase">Recent announcements</div>
+          <div id="live-site-announcements" class="divide-y divide-[var(--wz-border)]"></div>
+        </div>
+
+        <div class="wz-card p-4 border border-dashed border-[var(--wz-border-input)]">
+          <div class="font-head text-[10px] tracking-widest uppercase text-[var(--wz-text-secondary)] mb-2">Ops checklist</div>
+          <ul class="font-mono text-[10px] text-[var(--wz-text-secondary)] space-y-1.5 list-disc list-inside">
+            <li>Publish a <strong class="text-[var(--wz-text)]">live</strong> announcement to drive traffic to bracket / schedule.</li>
+            <li>Set match status to <strong class="text-[var(--wz-text)]">live</strong> when the stream goes up — viewers see it in bracket &amp; schedule.</li>
+            <li>After finals, mark matches <strong class="text-[var(--wz-text)]">completed</strong> and tournament <strong class="text-[var(--wz-text)]">completed</strong> on All tournaments.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Payment Confirmation Modal -->
+<div id="approve-modal" class="modal-overlay hidden fixed inset-0 z-50 items-center justify-center">  <div class="bg-[var(--wz-surface)] border border-[var(--wz-border-input)] border-t-2 border-t-green-600 rounded p-7 w-[420px] max-w-[95vw]">
+    <div class="font-mono text-[10px] text-green-400 tracking-widest uppercase mb-4">● APPROVE REGISTRATION</div>
+    <h3 class="font-head text-xl font-black tracking-widest uppercase text-[var(--wz-text)] mb-1" id="approve-team-name"></h3>
+    <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-5">Confirm that entry fee payment has been received before approving.</p>
+    <div class="mb-5">
+      <label class="wz-label">Payment Note (optional)</label>
+      <input type="text" id="approve-notes" class="wz-input" placeholder="e.g. EFT received R150 — 30 Apr"/>
+    </div>
+    <div class="flex gap-3">
+      <button onclick="confirmApprove()" class="btn-primary flex-1">Confirm &amp; Approve</button>
+      <button onclick="closeModal('approve-modal')" class="btn-ghost">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Registration detail (click a row on Teams tab) -->
+<div id="registration-detail-modal" class="modal-overlay hidden fixed inset-0 z-50 items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="reg-detail-title">
+  <div class="bg-[var(--wz-surface)] border border-[var(--wz-border-input)] rounded-sm w-full max-w-2xl max-h-[min(90vh,900px)] flex flex-col shadow-xl" onclick="event.stopPropagation()">
+    <div class="px-4 sm:px-5 py-3 sm:py-4 border-b border-[var(--wz-border)] flex justify-between items-start gap-3 flex-shrink-0">
+      <div class="min-w-0 flex-1">
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest uppercase">Tournament registration</div>
+        <div class="flex flex-wrap items-center gap-2 mt-1">
+          <h3 id="reg-detail-title" class="font-head text-lg sm:text-xl font-black tracking-widest uppercase text-[var(--wz-text)] truncate">—</h3>
+          <span id="reg-detail-status" class="flex-shrink-0"></span>
+        </div>
+        <p id="reg-detail-sub" class="font-mono text-[11px] text-[var(--wz-text-secondary)] mt-1.5">—</p>
+      </div>
+      <button type="button" onclick="closeModal('registration-detail-modal')" class="btn-ghost btn-sm flex-shrink-0" aria-label="Close dialog">✕</button>
+    </div>
+    <div id="reg-detail-body" class="px-4 sm:px-5 py-4 overflow-y-auto flex-1 min-h-0 text-[var(--wz-text-secondary)]"></div>
+    <div id="reg-detail-actions" class="px-4 sm:px-5 py-3 sm:py-4 border-t border-[var(--wz-border)] flex gap-2 flex-wrap justify-end flex-shrink-0"></div>
+  </div>
+</div>
+
+<script>
+// ── Cached data ───────────────────────────────────────────
+let _registrations = [];
+let _allTeams      = [];
+let _matches       = [];
+let _tourneys      = [];
+let _matchSubTab   = 'create';
+let _tournamentSubTab = 'list';
+let _matchUpdatesPollTimer = null;
+let _matchUpdatesSince = null;
+/** @type {string|null} When set, tournament tables only show this game (matches inferTournamentGame). */
+let _adminGameStripFilter = null;
+/** Registration id when the detail modal is open (Approve/Reject from modal). */
+let _registrationDetailOpenId = null;
+
+function adminHtmlEscape(str) {
+  if (str == null || str === '') return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function inferTournamentGame(t) {
+  const text = `${t?.game || ''} ${t?.title || ''} ${t?.name || ''} ${t?.mode || ''} ${t?.type || ''}`.toLowerCase();
+  if (text.includes('cod mobile') || text.includes('codm')) return 'COD Mobile';
+  if (text.includes('warzone')) return 'COD Warzone';
+  if (text.includes('modern warfare') || text.includes('morden warfare')) return 'COD Modern Warfare';
+  if (text.includes('fifa')) return 'FIFA';
+  if (text.includes('need for speed') || text.includes('nfs')) return 'Need for Speed';
+  if (text.includes('forza')) return 'Forza';
+  if (text.includes('mortal kombat') || text.includes('mortal kombak') || text.includes('mk')) return 'Mortal Kombat';
+  return 'Other';
+}
+
+function gameCoverClass(game) {
+  const map = {
+    'COD Mobile': 'game-cover-codm',
+    'COD Warzone': 'game-cover-warzone',
+    'COD Modern Warfare': 'game-cover-mw',
+    'FIFA': 'game-cover-fifa',
+    'Need for Speed': 'game-cover-nfs',
+    'Forza': 'game-cover-forza',
+    'Mortal Kombat': 'game-cover-mk',
+    'Other': 'game-cover-other'
+  };
+  return map[game] || map.Other;
+}
+
+/** COD multiplayer modes (core MP — CODM + MW). */
+const COD_MULTIPLAYER_MODES = [
+  'Frontline',
+  'Team Death Match',
+  'Search & Destroy',
+  'Domination',
+  'Hardpoint',
+  'Kill Confirmed'
+];
+
+/** BR / large-map modes (COD Mobile BR + Warzone). */
+const COD_BR_MODES = [
+  'Battle Royale (Squad)',
+  'Battle Royale (Trio)',
+  'Battle Royale (Duo)',
+  'Battle Royale (Solo)',
+  'Resurgence',
+  'Plunder',
+  'Lockdown',
+  'Ranked Play'
+];
+
+function getMatchModesForGame(game) {
+  const g = String(game || '').trim();
+  const byGame = {
+    /** CODM: full MP list plus BR (same BR family as Warzone). */
+    'COD Mobile': [...COD_MULTIPLAYER_MODES, ...COD_BR_MODES],
+    'COD Modern Warfare': COD_MULTIPLAYER_MODES,
+    'COD Warzone': COD_BR_MODES,
+    'FIFA': [
+      'Kick Off',
+      'Division Rivals',
+      'FUT Champions',
+      'Online Seasons',
+      'Pro Clubs',
+      'Volta Football',
+      'Squad Battles (Friendly)',
+      'Online Friendly'
+    ],
+    'Need for Speed': [
+      'Sprint',
+      'Circuit',
+      'Drag',
+      'Drift Trial',
+      'Speedtrap',
+      'Off-road / Rally',
+      'Team Escape'
+    ],
+    'Forza': [
+      'Circuit Race',
+      'Sprint',
+      'Street Scene',
+      'Drag Strip',
+      'Rivals',
+      'Horizon Open',
+      'Team Adventure'
+    ],
+    'Mortal Kombat': [
+      'First to 2',
+      'First to 3',
+      'First to 5',
+      'Best of 3',
+      'Best of 5',
+      'Grand Finals — bracket reset',
+      'Casual sets'
+    ],
+    Other: ['Standard', 'Ranked', 'Friendly', 'Playoffs format', 'Custom tournament rules']
+  };
+  return byGame[g] || byGame.Other;
+}
+
+function toggleMatchModeCustom(selectId, customId) {
+  const sel = document.getElementById(selectId);
+  const custom = document.getElementById(customId);
+  if (!sel || !custom) return;
+  const show = sel.value === '__custom__';
+  custom.classList.toggle('hidden', !show);
+  if (!show) custom.value = '';
+}
+
+function getMatchModeValue(selectId, customId) {
+  const sel = document.getElementById(selectId);
+  const custom = document.getElementById(customId);
+  if (!sel) return '';
+  if (sel.value === '__custom__') return (custom && custom.value ? String(custom.value) : '').trim();
+  return String(sel.value || '').trim();
+}
+
+function buildMatchModeSelectOptions(gameLabel) {
+  const modes = getMatchModesForGame(gameLabel);
+  return (
+    '<option value="">— Select mode —</option>' +
+    modes.map((m) => `<option value="${_matchOptEsc(m)}">${_matchOptEsc(m)}</option>`).join('') +
+    '<option value="__custom__">Other (custom)…</option>'
+  );
+}
+
+function syncMatchModeDropdownForCreate() {
+  const game = document.getElementById('match-game')?.value || '';
+  const sel = document.getElementById('match-mode');
+  const custom = document.getElementById('match-mode-custom');
+  if (!sel) return;
+
+  let preserved = '';
+  if (sel.value === '__custom__' && custom && custom.value.trim()) preserved = custom.value.trim();
+  else if (sel.value && sel.value !== '__custom__') preserved = sel.value;
+
+  if (!game) {
+    sel.innerHTML = '<option value="">— Select a game first —</option>';
+    if (custom) {
+      custom.value = '';
+      custom.classList.add('hidden');
+    }
+    return;
+  }
+
+  const modes = getMatchModesForGame(game);
+  sel.innerHTML = buildMatchModeSelectOptions(game);
+
+  if (preserved && modes.includes(preserved)) {
+    sel.value = preserved;
+    if (custom) {
+      custom.value = '';
+      custom.classList.add('hidden');
+    }
+  } else if (preserved) {
+    sel.value = '__custom__';
+    if (custom) {
+      custom.value = preserved;
+      custom.classList.remove('hidden');
+    }
+  } else {
+    sel.value = '';
+    if (custom) {
+      custom.value = '';
+      custom.classList.add('hidden');
+    }
+  }
+}
+
+function populateLiveGameModeSelect(m) {
+  const sel = document.getElementById('live-game-mode');
+  const custom = document.getElementById('live-game-mode-custom');
+  if (!sel) return;
+
+  const game = inferTournamentGame(m.tournament || {});
+  const current = String(m.game_mode || '').trim();
+  const modes = getMatchModesForGame(game);
+
+  sel.innerHTML = buildMatchModeSelectOptions(game);
+
+  if (current && modes.includes(current)) {
+    sel.value = current;
+    if (custom) {
+      custom.value = '';
+      custom.classList.add('hidden');
+    }
+  } else if (current) {
+    sel.value = '__custom__';
+    if (custom) {
+      custom.value = current;
+      custom.classList.remove('hidden');
+    }
+  } else {
+    sel.value = '';
+    if (custom) {
+      custom.value = '';
+      custom.classList.add('hidden');
+    }
+  }
+}
+
+function syncMatchGamePreview() {
+  const sel = document.getElementById('match-game');
+  const el = document.getElementById('match-game-preview');
+  if (!el) return;
+  const game = sel?.value || '';
+  const cover = gameCoverClass(game || 'Other');
+  el.className = `game-cover ${cover} h-24 rounded-sm border border-[var(--wz-border)] flex items-end p-3`;
+  el.innerHTML = `<span class="font-head text-sm tracking-widest uppercase z-10 text-[var(--wz-text)] drop-shadow-lg">${game ? game : 'Select a game above'}</span>`;
+}
+
+function syncCreateGamePreview() {
+  const sel = document.getElementById('new-game-title');
+  const el = document.getElementById('create-game-preview');
+  if (!el) return;
+  const game = sel?.value || '';
+  syncCreateMaxSlots(game);
+  syncCreateStructureOptions(game);
+  syncCreateRuleToggleAvailability(game);
+  const cover = gameCoverClass(game || 'Other');
+  el.className = `game-cover ${cover} h-24 rounded-sm border border-[var(--wz-border)] flex items-end p-3`;
+  el.innerHTML = `<span class="font-head text-sm tracking-widest uppercase z-10 text-[var(--wz-text)] drop-shadow-lg">${game ? game : 'Choose a game title'}</span>`;
+}
+
+function getDefaultEngineForGame(game) {
+  const g = String(game || '').toLowerCase();
+  if (g.includes('fifa')) return 'fifa';
+  if (g.includes('mortal kombat') || g.includes('tekken') || g.includes('street fighter')) return 'fgc';
+  if (g.includes('forza') || g.includes('need for speed') || g.includes('gran turismo') || g.includes('f1')) return 'racing';
+  return 'cod';
+}
+
+function getStructureOptionsForGame(game) {
+  const g = String(game || '').toLowerCase();
+  if (g.includes('fifa') || g.includes('forza') || g.includes('need for speed') || g.includes('gran turismo') || g.includes('f1') || g.includes('mortal kombat')) {
+    return [{ value: 'solo', label: 'Solo' }];
+  }
+  if (g.includes('warzone')) {
+    return [
+      { value: 'br', label: 'Battle Royale' },
+      { value: 'duos', label: 'Duo' },
+      { value: 'solo', label: 'Solo' },
+      { value: 'ranked', label: 'Team Arena' },
+    ];
+  }
+  return [
+    { value: 'ranked', label: 'Team Arena' },
+    { value: 'duos', label: 'Duo' },
+    { value: 'solo', label: 'Solo' },
+    { value: 'br', label: 'Battle Royale' },
+  ];
+}
+
+function syncCreateStructureOptions(game) {
+  const sel = document.getElementById('new-type');
+  if (!sel) return;
+  const prev = String(sel.value || '');
+  const opts = getStructureOptionsForGame(game);
+  sel.innerHTML = opts.map((o) => `<option value="${o.value}">${o.label}</option>`).join('');
+  const next = opts.some((o) => o.value === prev) ? prev : opts[0].value;
+  sel.value = next;
+}
+
+function syncCreateRuleToggleAvailability(game) {
+  const engine = getDefaultEngineForGame(game);
+  const allowDraw = document.getElementById('new-flag-allow-draw');
+  const gfReset = document.getElementById('new-flag-gf-reset');
+  if (allowDraw) {
+    allowDraw.disabled = engine !== 'fifa';
+    if (engine !== 'fifa') allowDraw.checked = false;
+  }
+  if (gfReset) {
+    gfReset.disabled = engine !== 'fgc';
+    if (engine !== 'fgc') gfReset.checked = false;
+  }
+}
+
+function buildCreateGameRuleProfile(gameTitle) {
+  const engine = getDefaultEngineForGame(gameTitle);
+  const enhancedUi = !!document.getElementById('new-flag-enhanced-ui')?.checked;
+  const allowDraw = !!document.getElementById('new-flag-allow-draw')?.checked;
+  const gfReset = !!document.getElementById('new-flag-gf-reset')?.checked;
+
+  const profile = {
+    engine,
+    feature_flags: {
+      new_bracket_ui: enhancedUi,
+    },
+  };
+
+  if (engine === 'fifa') profile.allow_draw = allowDraw;
+  if (engine === 'fgc') profile.grand_finals_reset = gfReset;
+  if (engine === 'cod') profile.best_of = 1;
+  if (engine === 'racing') profile.points_system = 'default';
+  return profile;
+}
+
+function isRacingGameTitle(game) {
+  const g = String(game || '').toLowerCase();
+  return g.includes('forza') || g.includes('need for speed') || g.includes('gran turismo') || g.includes('f1');
+}
+
+function isUuidLike(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
+function matchInteractionKeydown(ev, matchId) {
+  if (ev.key !== 'Enter' && ev.key !== ' ') return;
+  ev.preventDefault();
+  openMatchDetails(matchId);
+}
+
+function syncCreateMaxSlots(game) {
+  const slotSel = document.getElementById('new-slots');
+  if (!slotSel) return;
+
+  const racing = isRacingGameTitle(game);
+  const prev = String(slotSel.value || '');
+
+  const options = racing
+    ? [
+      { value: '8', label: '8 Teams' },
+      { value: '16', label: '16 Teams' },
+      { value: '20', label: '20 Teams' },
+    ]
+    : [
+      { value: '8', label: '8 Teams' },
+      { value: '16', label: '16 Teams' },
+      { value: '32', label: '32 Teams' },
+    ];
+
+  slotSel.innerHTML = options.map((o) => `<option value="${o.value}">${o.label}</option>`).join('');
+
+  const preferred = racing ? '20' : '16';
+  const keepPrev = options.some((o) => o.value === prev) ? prev : preferred;
+  slotSel.value = keepPrev;
+}
+
+function filterTourneysForStrip(list) {
+  if (!_adminGameStripFilter) return list || [];
+  return (list || []).filter(t => inferTournamentGame(t) === _adminGameStripFilter);
+}
+
+/** Same game bucket as the admin game strip (matches `filterTourneysForStrip` / `inferTournamentGame`). */
+function inferRegistrationGame(r) {
+  const tid = r.tournament_id || r.tournament?.id;
+  if (tid && _tourneys?.length) {
+    const full = _tourneys.find(t => String(t.id) === String(tid));
+    if (full) return inferTournamentGame(full);
+  }
+  return inferTournamentGame(r.tournament || {});
+}
+
+function updateAdminGameStripActiveStyles() {
+  const hint = document.getElementById('admin-game-filter-label');
+  if (hint) {
+    hint.textContent = _adminGameStripFilter ? `Filtered: ${_adminGameStripFilter}` : '';
+    hint.title = _adminGameStripFilter
+      ? `Tournament tables and Teams registrations list are limited to ${_adminGameStripFilter}`
+      : '';
+  }
+  document.querySelectorAll('.admin-game-strip-btn').forEach(btn => {
+    const key = btn.getAttribute('data-admin-game');
+    const isAll = key === '';
+    const active = _adminGameStripFilter === null ? isAll : (key === _adminGameStripFilter);
+    btn.classList.toggle('admin-game-strip-active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+}
+
+function setAdminGameStripFilter(game) {
+  _adminGameStripFilter = (game === '' || game == null) ? null : game;
+  updateAdminGameStripActiveStyles();
+  renderOverviewTournamentsTable();
+  renderTournamentsManageBody();
+  renderTeams();
+}
+
+/**
+ * Game strip tiles: apply filter everywhere. Full "quick pick" (loader + jump to create form) only on Matches → Create.
+ */
+function adminGameStripPick(game) {
+  const g = String(game || '').trim();
+  if (!g) return;
+
+  const matchesPane = document.getElementById('pane-matches');
+  const onMatches = !!(matchesPane && !matchesPane.classList.contains('hidden'));
+  if (onMatches && _matchSubTab === 'create') {
+    adminQuickGamePick(g);
+    return;
+  }
+
+  setAdminGameStripFilter(g);
+
+  const teamsPane = document.getElementById('pane-teams');
+  if (teamsPane && !teamsPane.classList.contains('hidden')) {
+    requestAnimationFrame(() => {
+      document.getElementById('teams-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return;
+  }
+
+  if (onMatches && _matchSubTab === 'update') {
+    requestAnimationFrame(() => {
+      document.getElementById('match-subtab-update')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }
+}
+
+/**
+ * Quick strip (Matches → Create only): set filter, open create form, fill Game + default mode, scroll into view.
+ */
+function adminQuickGamePick(game) {
+  const g = String(game || '').trim();
+  if (!g) return;
+
+  const ms = wzRouteLoaderDurationMs();
+  wzShowRouteLoader();
+  window.setTimeout(() => {
+    setAdminGameStripFilter(g);
+
+    const mg = document.getElementById('match-game');
+    if (mg) mg.value = g;
+
+    const modeSel = document.getElementById('match-mode');
+    const modeCustom = document.getElementById('match-mode-custom');
+    if (modeSel) modeSel.value = '';
+    if (modeCustom) {
+      modeCustom.value = '';
+      modeCustom.classList.add('hidden');
+    }
+
+    adminTab('matches', 'create');
+
+    populateMatchTournamentDropdown();
+    syncMatchGamePreview();
+    syncMatchModeDropdownForCreate();
+
+    const modes = getMatchModesForGame(g);
+    if (modeSel && modes.length) {
+      modeSel.value = modes[0];
+      if (modeCustom) {
+        modeCustom.value = '';
+        modeCustom.classList.add('hidden');
+      }
+      toggleMatchModeCustom('match-mode', 'match-mode-custom');
+    }
+
+    collapseAdminMainMenuAfterNav();
+    wzHideRouteLoader();
+
+    const prefersReduced = (() => {
+      try {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      } catch {
+        return false;
+      }
+    })();
+    requestAnimationFrame(() => {
+      const anchor = document.getElementById('match-subtab-create') || document.getElementById('pane-matches');
+      anchor?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
+      document.getElementById('match-game')?.focus?.({ preventScroll: true });
+    });
+  }, ms);
+}
+
+function mergeMatchUpdatesIntoCache(updatedRows) {
+  if (!Array.isArray(updatedRows) || !updatedRows.length) return false;
+  const byId = new Map((_matches || []).map((m) => [String(m.id), m]));
+  let changed = false;
+  updatedRows.forEach((row) => {
+    if (!row?.id) return;
+    byId.set(String(row.id), row);
+    changed = true;
+  });
+  if (!changed) return false;
+  _matches = Array.from(byId.values());
+  return true;
+}
+
+async function pollMatchUpdates() {
+  const overviewVisible = !document.getElementById('pane-overview')?.classList.contains('hidden');
+  const matchesVisible = !document.getElementById('pane-matches')?.classList.contains('hidden');
+  const liveVisible = !document.getElementById('pane-live')?.classList.contains('hidden');
+  if (!overviewVisible && !matchesVisible && !liveVisible) {
+    return;
+  }
+
+  if (!_matchUpdatesSince) {
+    _matchUpdatesSince = new Date(Date.now() - 5000).toISOString();
+  }
+  try {
+    const out = await getMatchUpdates({ since: _matchUpdatesSince, limit: 300 });
+    const rows = Array.isArray(out?.data) ? out.data : [];
+    const meta = out?.meta || {};
+    const merged = mergeMatchUpdatesIntoCache(rows);
+
+    _matchUpdatesSince = meta.server_time || meta.last_event_at || new Date().toISOString();
+
+    if (merged) {
+      renderOverviewMatchesStatus();
+      const matchesPaneVisible = !document.getElementById('pane-matches')?.classList.contains('hidden');
+      if (matchesPaneVisible) {
+        renderMatchHistory(true);
+      }
+    }
+  } catch (_) {
+    // silent retry on next interval
+  }
+}
+
+function ensureMatchUpdatesPolling() {
+  if (_matchUpdatesPollTimer) return;
+  _matchUpdatesPollTimer = setInterval(pollMatchUpdates, 4000);
+}
+
+function renderOverviewTournamentsTable() {
+  const tbody = document.getElementById('overview-tournaments');
+  if (!tbody) return;
+  if (!_tourneys || !_tourneys.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 font-mono text-[10px] text-[var(--wz-muted)]">No tournaments yet</td></tr>';
+    return;
+  }
+  const list = filterTourneysForStrip(_tourneys);
+  if (!list.length) {
+    const g = _adminGameStripFilter || 'this game';
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 font-mono text-[10px] text-[var(--wz-muted)]">No tournaments for <span class="text-[#e8c14a]">${g}</span></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(t => {
+    const g = inferTournamentGame(t);
+    const gc = gameCoverClass(g);
+    return `
+        <tr>
+          <td class="p-2 align-middle w-16"><div class="h-10 w-14 rounded-sm game-cover ${gc}" title="${g}"></div></td>
+          <td class="font-head text-sm font-bold">${t.name}</td>
+          <td>${statusBadge(t.status)}</td>
+          <td class="font-mono text-xs">${t.registered_count}/${t.max_slots}</td>
+          <td class="font-head text-sm text-[#e8c14a] font-bold">${centsToRand(t.prize_total)}</td>
+          <td>
+            <select onchange="changeTournamentStatus('${t.id}', this.value)" class="wz-input" style="padding:4px 8px;font-size:11px;width:auto">
+              ${['upcoming','open','live','completed'].map(s => `<option value="${s}" ${t.status===s?'selected':''}>${s.toUpperCase()}</option>`).join('')}
+            </select>
+          </td>
+        </tr>`;
+  }).join('');
+}
+
+function renderTournamentsManageBody() {
+  const tbody = document.getElementById('tournaments-manage-body');
+  if (!tbody) return;
+  if (!_tourneys || !_tourneys.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 font-mono text-[10px] text-[var(--wz-muted)]">No tournaments yet</td></tr>';
+    return;
+  }
+  const list = filterTourneysForStrip(_tourneys);
+  if (!list.length) {
+    const g = _adminGameStripFilter || 'this game';
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 font-mono text-[10px] text-[var(--wz-muted)]">No tournaments for <span class="text-[#e8c14a]">${g}</span></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(t => {
+    const g = inferTournamentGame(t);
+    const gc = gameCoverClass(g);
+    const ruleProfile = t.game_rule_profile && typeof t.game_rule_profile === 'object' && !Array.isArray(t.game_rule_profile)
+      ? t.game_rule_profile
+      : {};
+    const featureFlags = ruleProfile.feature_flags && typeof ruleProfile.feature_flags === 'object'
+      ? ruleProfile.feature_flags
+      : {};
+    const enhancedUiEnabled = featureFlags.new_bracket_ui !== false;
+    return `
+      <tr>
+        <td class="p-2 align-middle w-14"><div class="h-10 w-14 rounded-sm game-cover ${gc}" title="${g}"></div></td>
+        <td class="font-head text-sm font-bold">${t.name}</td>
+        <td class="font-mono text-xs text-[var(--wz-text-secondary)]">${g}</td>
+        <td class="font-mono text-xs text-[var(--wz-text-secondary)] capitalize">${t.type}</td>
+        <td class="font-mono text-xs text-[var(--wz-text-secondary)]">${t.start_date}</td>
+        <td class="font-mono text-xs text-[var(--wz-text-secondary)]">${t.registered_count}/${t.max_slots}</td>
+        <td class="font-head text-sm font-bold text-[#e8c14a]">${centsToRand(t.prize_total)}</td>
+        <td>
+          <div class="flex flex-col gap-2 items-start">
+            <select onchange="changeTournamentStatus('${t.id}', this.value)" class="wz-input" style="padding:4px 8px;font-size:11px;width:auto">
+              ${['upcoming','open','live','completed'].map(s =>
+                `<option value="${s}" ${t.status === s ? 'selected' : ''}>${s.toUpperCase()}</option>`
+              ).join('')}
+            </select>
+            <button type="button" onclick="toggleTournamentEnhancedUi('${t.id}')" class="${enhancedUiEnabled ? 'btn-primary' : 'btn-ghost'} btn-sm" title="Toggle enhanced bracket UI rollout for this tournament">
+              Enhanced Bracket UI: ${enhancedUiEnabled ? 'ON' : 'OFF'}
+            </button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function toggleTournamentEnhancedUi(tournamentId) {
+  const t = (_tourneys || []).find((x) => String(x.id) === String(tournamentId));
+  if (!t) {
+    showToast('Tournament not found in current list.', 'error');
+    return;
+  }
+
+  const currentProfile =
+    t.game_rule_profile && typeof t.game_rule_profile === 'object' && !Array.isArray(t.game_rule_profile)
+      ? t.game_rule_profile
+      : {};
+  const currentFlags =
+    currentProfile.feature_flags && typeof currentProfile.feature_flags === 'object'
+      ? currentProfile.feature_flags
+      : {};
+  const currentlyEnabled = currentFlags.new_bracket_ui !== false;
+  const nextEnabled = !currentlyEnabled;
+
+  const patchProfile = {
+    ...currentProfile,
+    feature_flags: {
+      ...currentFlags,
+      new_bracket_ui: nextEnabled,
+    },
+  };
+
+  try {
+    await updateTournament(t.id, { game_rule_profile: patchProfile });
+    showToast(`Enhanced Bracket UI ${nextEnabled ? 'enabled' : 'disabled'} ✓`);
+    _tourneys = await getTournaments();
+    renderTournamentsManageBody();
+    renderOverviewTournamentsTable();
+  } catch (err) {
+    showToast(err.message || 'Failed to toggle enhanced bracket UI.', 'error');
+  }
+}
+
+// ── Login ─────────────────────────────────────────────────
+async function adminLogin() {
+  const email = document.getElementById('admin-email').value.trim();
+  const pass  = document.getElementById('admin-pass').value;
+  const errEl = document.getElementById('login-error');
+  errEl.classList.add('hidden');
+  if (!email || !pass) { showToast('Enter email and password', 'error'); return; }
+  try {
+    const user = await authLogin(email, pass);
+    if (user.role !== 'admin') {
+      clearSession();
+      errEl.textContent = 'This account does not have admin access.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    setCurrentUser(user);
+    document.getElementById('auth-gate').classList.add('hidden');
+    document.getElementById('admin-panel').classList.remove('hidden');
+    document.getElementById('admin-username-badge').textContent = user.username;
+    showToast('Admin access granted ✓');
+    initAdmin();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+// ── Logout ────────────────────────────────────────────────
+async function adminLogout() {
+  await authLogout();
+  clearCurrentUser();
+  document.getElementById('admin-panel').classList.add('hidden');
+  document.getElementById('auth-gate').classList.remove('hidden');
+  document.getElementById('admin-email').value = '';
+  document.getElementById('admin-pass').value  = '';
+  showToast('Logged out');
+}
+
+// ── Tab switching ─────────────────────────────────────────
+function updateAdminMenuBreadcrumb(tab, explicitSub) {
+  const el = document.getElementById('admin-menu-breadcrumb');
+  if (!el) return;
+  let sub = explicitSub;
+  if (tab === 'matches' && sub !== 'create' && sub !== 'update') sub = _matchSubTab;
+  if (tab === 'tournaments' && sub !== 'list' && sub !== 'create') sub = _tournamentSubTab;
+
+  if (tab === 'overview') el.textContent = 'Overview — dashboard snapshot';
+  else if (tab === 'teams') el.textContent = 'Teams — registrations & approvals';
+  else if (tab === 'announce') el.textContent = 'Announcements — publish banners';
+  else if (tab === 'participants') el.textContent = 'Participants — roster by tournament';
+  else if (tab === 'live') el.textContent = 'Live snapshot — public site pulse';
+  else if (tab === 'matches')
+    el.textContent = sub === 'update' ? 'Matches — update match & stats' : 'Matches — create match';
+  else if (tab === 'tournaments')
+    el.textContent = sub === 'create' ? 'Tournaments — create event' : 'Tournaments — all events';
+  else el.textContent = 'Admin workspace';
+}
+
+function collapseAdminMainMenuAfterNav() {
+  const menu = document.getElementById('admin-main-menu');
+  const toggle = document.getElementById('admin-menu-expand-toggle');
+  if (!menu) return;
+  menu.classList.add('admin-main-menu--collapsed');
+  if (toggle) {
+    toggle.textContent = 'Full menu';
+    toggle.setAttribute('aria-expanded', 'false');
+  }
+}
+
+function toggleAdminMainMenuExpand() {
+  const menu = document.getElementById('admin-main-menu');
+  const toggle = document.getElementById('admin-menu-expand-toggle');
+  if (!menu) return;
+  const collapsed = menu.classList.toggle('admin-main-menu--collapsed');
+  if (toggle) {
+    toggle.textContent = collapsed ? 'Full menu' : 'Collapse menu';
+    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  }
+}
+
+/**
+ * Hub navigation: logo transition, then same tab logic as adminTab.
+ */
+function adminNavigateWithLoader(tab, sub) {
+  const ms = wzRouteLoaderDurationMs();
+  wzShowRouteLoader();
+  window.setTimeout(() => {
+    adminTab(tab, sub);
+    collapseAdminMainMenuAfterNav();
+    wzHideRouteLoader();
+    const prefersReduced = (() => {
+      try {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      } catch {
+        return false;
+      }
+    })();
+    requestAnimationFrame(() => {
+      document.getElementById('admin-workspace')?.scrollIntoView({
+        behavior: prefersReduced ? 'auto' : 'smooth',
+        block: 'start',
+      });
+    });
+  }, ms);
+}
+
+function updateAdminNavActive() {
+  const visible = (name) => {
+    const p = document.getElementById('pane-' + name);
+    return !!(p && !p.classList.contains('hidden'));
+  };
+  document.querySelectorAll('[data-admin-nav]').forEach((el) => {
+    const t = el.getAttribute('data-tab');
+    const s = el.getAttribute('data-sub');
+    let active = false;
+    if (s) {
+      if (t === 'matches') active = visible('matches') && _matchSubTab === s;
+      else if (t === 'tournaments') active = visible('tournaments') && _tournamentSubTab === s;
+    } else {
+      active = visible(t);
+    }
+    el.classList.toggle('admin-nav-btn--active', active);
+    el.classList.toggle('admin-hub-tile--active', active);
+    el.setAttribute('aria-current', active ? 'page' : 'false');
+  });
+}
+
+function setTournamentSubTab(sub) {
+  _tournamentSubTab = sub;
+  document.getElementById('tournament-subtab-list')?.classList.toggle('hidden', sub !== 'list');
+  document.getElementById('tournament-subtab-create')?.classList.toggle('hidden', sub !== 'create');
+  const listBtn = document.getElementById('tournament-inline-tab-list');
+  const createBtn = document.getElementById('tournament-inline-tab-create');
+  if (listBtn) listBtn.className = sub === 'list' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm';
+  if (createBtn) createBtn.className = sub === 'create' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm';
+  if (sub === 'create') syncCreateGamePreview();
+  updateAdminNavActive();
+}
+
+function adminTab(tab, sub) {
+  if (tab === 'matches' && (sub === 'create' || sub === 'update')) _matchSubTab = sub;
+  if (tab === 'tournaments' && (sub === 'list' || sub === 'create')) _tournamentSubTab = sub;
+
+  ['overview', 'teams', 'matches', 'tournaments', 'announce', 'participants', 'live'].forEach((t) => {
+    document.getElementById('pane-' + t)?.classList.toggle('hidden', t !== tab);
+  });
+
+  if (tab === 'teams') renderTeams();
+  if (tab === 'matches') {
+    setMatchSubTab(_matchSubTab);
+    renderMatchHistory();
+    syncMatchGamePreview();
+    syncMatchModeDropdownForCreate();
+    populateMatchTeamDropdowns();
+  }
+  if (tab === 'tournaments') {
+    renderTournamentsManage();
+    setTournamentSubTab(_tournamentSubTab);
+  }
+  if (tab === 'announce') renderPublishedAnn();
+  if (tab === 'participants') renderParticipants();
+  if (tab === 'live') renderLiveSitePanel(false);
+  updateAdminGameStripVisibility(tab);
+  if (tab === 'overview') void renderOverviewPendingQueue();
+  updateAdminMenuBreadcrumb(tab, sub);
+  updateAdminNavActive();
+}
+
+function updateAdminGameStripVisibility(tab) {
+  const wrap = document.getElementById('admin-game-strip-wrap');
+  if (!wrap) return;
+  wrap.classList.toggle('hidden', tab === 'overview');
+}
+
+function setMatchSubTab(tab) {
+  _matchSubTab = tab;
+  document.getElementById('match-subtab-create')?.classList.toggle('hidden', tab !== 'create');
+  document.getElementById('match-subtab-update')?.classList.toggle('hidden', tab !== 'update');
+  const createBtn = document.getElementById('match-subtab-create-btn');
+  const updateBtn = document.getElementById('match-subtab-update-btn');
+  if (createBtn) createBtn.className = tab === 'create' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm';
+  if (updateBtn) updateBtn.className = tab === 'update' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm';
+  if (tab === 'update') populateLiveMatchesDropdown();
+  updateAdminNavActive();
+}
+
+async function renderLiveSitePanel(showToastRefresh) {
+  const originEl = document.getElementById('live-site-origin');
+  try {
+    const pubRoot = new URL('../', window.location.href).href;
+    if (originEl) originEl.textContent = pubRoot.replace(/\/$/, '');
+  } catch {
+    if (originEl) originEl.textContent = '—';
+  }
+
+  const wrap = document.getElementById('live-quick-links');
+  if (wrap) {
+    const links = [
+      { label: 'Home', href: '../index.html' },
+      { label: 'Tournaments', href: 'tournaments.html' },
+      { label: 'Tournament hub', href: 'tournament-hub.html' },
+      { label: 'Bracket', href: 'bracket.html' },
+      { label: 'Leaderboard', href: 'leaderboard.html' },
+      { label: 'Schedule', href: 'schedule.html' }
+    ];
+    wrap.innerHTML = links
+      .map(
+        (l) =>
+          `<a href="${l.href}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-sm border border-[var(--wz-border-input)] px-2.5 py-1.5 font-mono text-[10px] tracking-wider text-[#e8c14a] hover:bg-[var(--wz-surface2)] transition-colors">${adminHtmlEscape(l.label)}</a>`
+      )
+      .join('');
+  }
+
+  try {
+    const dash = await getAdminDashboard();
+    const p = document.getElementById('live-st-pulse-pending');
+    if (p) p.textContent = String(dash.pending_registrations ?? 0);
+  } catch {
+    const p = document.getElementById('live-st-pulse-pending');
+    if (p) p.textContent = '—';
+  }
+
+  try {
+    _tourneys = await getTournaments();
+    _matches = await getMatches();
+  } catch (err) {
+    showToast('Could not refresh public snapshot: ' + (err.message || err), 'error');
+  }
+
+  const tourneys = _tourneys || [];
+  const matches = _matches || [];
+  const elOpen = document.getElementById('live-st-pulse-open');
+  if (elOpen) elOpen.textContent = String(tourneys.filter((t) => t.status === 'open' || t.status === 'live').length);
+
+  const liveM = matches.filter((m) => m.status === 'live');
+  const elLm = document.getElementById('live-st-pulse-live-matches');
+  if (elLm) elLm.textContent = String(liveM.length);
+
+  const sched = matches.filter((m) => m.status === 'scheduled' || m.status === 'upcoming');
+  const elSc = document.getElementById('live-st-pulse-scheduled');
+  if (elSc) elSc.textContent = String(sched.length);
+
+  const liveBox = document.getElementById('live-site-live-matches');
+  if (liveBox) {
+    if (!liveM.length) {
+      liveBox.innerHTML =
+        '<p class="text-[var(--wz-muted)]">No matches marked <span class="text-red-400 font-semibold">live</span> — switch status under <strong class="text-[var(--wz-text)]">Update match &amp; stats</strong>.</p>';
+    } else {
+      liveBox.innerHTML = liveM
+        .map(
+          (m) =>
+            `<div class="rounded border border-red-800/50 bg-red-950/20 px-2 py-1.5"><span class="text-red-400 text-[9px] mr-1 font-bold">LIVE</span><span class="text-[var(--wz-text)]">${adminHtmlEscape(m.tournament?.name || 'Event')}</span> · <span class="text-[#e8c14a]">${adminHtmlEscape(m.team_a?.name || 'TBD')} vs ${adminHtmlEscape(m.team_b?.name || 'TBD')}</span></div>`
+        )
+        .join('');
+    }
+  }
+
+  const upBox = document.getElementById('live-site-upcoming');
+  if (upBox) {
+    const upcoming = [...matches]
+      .filter((m) => ['scheduled', 'upcoming', 'live'].includes(m.status))
+      .sort((a, b) => String(a.scheduled_at || '').localeCompare(String(b.scheduled_at || '')))
+      .slice(0, 10);
+    if (!upcoming.length) {
+      upBox.innerHTML = '<p class="text-[var(--wz-muted)]">No scheduled or live matches.</p>';
+    } else {
+      upBox.innerHTML = upcoming
+        .map((m) => {
+          const when = m.scheduled_at
+            ? new Date(m.scheduled_at).toLocaleString('en-ZA', { dateStyle: 'short', timeStyle: 'short' })
+            : 'TBA';
+          const st = (m.status || '').toUpperCase();
+          return `<div class="rounded border border-[var(--wz-border)] px-2 py-1.5 flex flex-col sm:flex-row sm:justify-between gap-1"><span class="text-[var(--wz-text)]">${adminHtmlEscape(m.tournament?.name || '')}</span><span class="text-[var(--wz-muted)] shrink-0 font-mono text-[10px]">${adminHtmlEscape(when)} · ${adminHtmlEscape(st)}</span></div>`;
+        })
+        .join('');
+    }
+  }
+
+  try {
+    const publicAnn = await getPublicAnnouncements();
+    const bannerEl = document.getElementById('live-banner-preview');
+    const pick = publicAnn.find((a) => a.type === 'live') || publicAnn[0];
+    if (bannerEl) {
+      if (!pick) {
+        bannerEl.innerHTML =
+          '<span class="font-mono text-[10px] text-[var(--wz-muted)]">No public announcements yet — publish under Announcements (live types surface first on the homepage).</span>';
+      } else {
+        const snippet = (pick.body || '').slice(0, 160);
+        bannerEl.innerHTML = `<span class="font-mono text-[9px] text-red-400 mr-2 uppercase">${adminHtmlEscape(pick.type)}</span><span class="font-head text-xs leading-snug">${adminHtmlEscape(pick.title)} — ${adminHtmlEscape(snippet)}${(pick.body || '').length > 160 ? '…' : ''}</span>`;
+      }
+    }
+    const annBox = document.getElementById('live-site-announcements');
+    if (annBox) {
+      const slice = publicAnn.slice(0, 6);
+      if (!slice.length) {
+        annBox.innerHTML =
+          '<div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">No announcements</div>';
+      } else {
+        annBox.innerHTML = slice
+          .map(
+            (a) =>
+              `<div class="px-4 py-3"><div class="flex flex-wrap gap-2 mb-1"><span class="font-mono text-[9px] text-[var(--wz-muted)]">${new Date(a.created_at).toLocaleDateString('en-ZA')}</span><span class="font-mono text-[9px] uppercase text-[#e8c14a]">${adminHtmlEscape(a.type)}</span></div><div class="font-head text-sm font-bold">${adminHtmlEscape(a.title)}</div><div class="font-body text-xs text-[var(--wz-text-secondary)] mt-0.5 line-clamp-3">${adminHtmlEscape(a.body)}</div></div>`
+          )
+          .join('');
+      }
+    }
+  } catch (err) {
+    const bannerEl = document.getElementById('live-banner-preview');
+    if (bannerEl) bannerEl.innerHTML = `<span class="text-red-400 text-[10px]">${adminHtmlEscape(err.message)}</span>`;
+  }
+
+  if (showToastRefresh) showToast('Live site panel refreshed');
+}
+
+// ── Overview: pending queue (shared registration list for modals) ──
+async function renderOverviewPendingQueue() {
+  const wrap = document.getElementById('overview-pending-queue');
+  const card = document.getElementById('overview-pending-card');
+  if (!wrap) return;
+  wrap.innerHTML =
+    '<div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">Loading…</div>';
+  try {
+    _registrations = await getRegistrations({});
+    const pending = _registrations.filter((r) => r.status === 'pending');
+    if (card) {
+      card.classList.toggle('border-l-emerald-600', pending.length === 0);
+      card.classList.toggle('border-l-amber-500', pending.length > 0);
+    }
+    if (!pending.length) {
+      wrap.innerHTML = `<div class="px-4 py-8 text-center">
+        <p class="font-head text-sm text-emerald-400/90 mb-1">You&apos;re caught up</p>
+        <p class="font-mono text-[10px] text-[var(--wz-muted)]">No pending registrations. New team sign-ups will appear here first.</p>
+      </div>`;
+      return;
+    }
+    wrap.innerHTML = pending
+      .map(
+        (r) => `
+      <div class="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-[var(--wz-border)] last:border-0 cursor-pointer hover:bg-[color-mix(in_srgb,var(--wz-surface2)_65%,transparent)] transition-colors"
+           id="overview-reg-row-${r.id}"
+           role="button"
+           tabindex="0"
+           onclick="openRegistrationDetailModal('${r.id}')"
+           onkeydown="registrationDetailRowKeydown(event,'${r.id}')"
+           aria-label="View details: ${adminHtmlEscape((r.team?.name || 'Team') + ' — ' + (r.tournament?.name || 'tournament'))}">
+        <div class="flex-1 min-w-0">
+          <div class="font-head text-sm font-bold tracking-wide">
+            ${adminHtmlEscape(r.team?.name || '—')} <span class="font-mono text-[10px] text-[var(--wz-muted)]">[${adminHtmlEscape(r.team?.tag || '?')}]</span>
+          </div>
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] mt-0.5">
+            ${adminHtmlEscape(r.team?.region || '—')} · ${adminHtmlEscape(r.tournament?.name || '—')} · ${adminHtmlEscape(r.game_mode || '—')}
+          </div>
+          ${r.notes ? `<div class="font-body text-[11px] text-amber-400 mt-0.5">Note: ${adminHtmlEscape(String(r.notes))}</div>` : ''}
+        </div>
+        ${statusBadge(r.status)}
+        <div class="flex gap-2" onclick="event.stopPropagation()">
+          <button type="button" onclick="handleApprove('${r.id}')" class="btn-primary btn-sm">Approve</button>
+          <button type="button" onclick="handleReject('${r.id}')" class="btn-danger btn-sm">Reject</button>
+        </div>
+      </div>`
+      )
+      .join('');
+  } catch (err) {
+    wrap.innerHTML = `<div class="px-4 py-6 text-center font-mono text-[10px] text-red-400">${adminHtmlEscape(err.message || String(err))}</div>`;
+  }
+}
+
+// ── Init overview ─────────────────────────────────────────
+async function initAdmin() {
+
+  // ── Section 1: Dashboard stats ──────────────────────────
+  try {
+    const dash = await getAdminDashboard();
+    document.getElementById('stat-pending').textContent     = dash.pending_registrations;
+    document.getElementById('stat-total-teams').textContent = dash.total_teams;
+    document.getElementById('stat-tournaments').textContent = dash.active_tournaments;
+
+    const feed = document.getElementById('activity-feed');
+    if (!dash.recent_registrations.length) {
+      feed.innerHTML = '<div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">No recent registrations</div>';
+    } else {
+      feed.innerHTML = dash.recent_registrations.map(r => `
+        <div class="flex gap-3 px-4 py-3 border-b border-[var(--wz-border)] last:border-0">
+          <span class="font-mono text-[10px] text-[var(--wz-muted)] min-w-[70px]">${new Date(r.submitted_at).toLocaleDateString('en-ZA')}</span>
+          <span class="font-body text-sm text-[var(--wz-text-secondary)]">
+            <strong class="text-[var(--wz-text)]">${r.team?.name || '—'}</strong>
+            registered for <strong class="text-[var(--wz-text)]">${r.tournament?.name || '—'}</strong>
+            — ${statusBadge(r.status)}
+          </span>
+        </div>`).join('');
+    }
+  } catch (err) {
+    showToast('Stats error: ' + err.message, 'error');
+  }
+
+  // ── Section 2: Match count + status table ─────────────────
+  try {
+    const matchData = await getMatches();
+    _matches = matchData;
+    _matchUpdatesSince = new Date().toISOString();
+    document.getElementById('stat-matches').textContent = matchData.length;
+    renderOverviewMatchesStatus();
+  } catch (err) {
+    document.getElementById('stat-matches').textContent = '—';
+    const tbody = document.getElementById('overview-matches-status');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 font-mono text-[10px] text-red-400">Could not load matches</td></tr>';
+    }
+  }
+
+  // ── Section 3: Tournaments table + dropdowns ─────────────
+  try {
+    _tourneys = await getTournaments();
+    populateTournamentDropdowns();
+    renderOverviewTournamentsTable();
+    updateAdminGameStripActiveStyles();
+  } catch (err) {
+    showToast('Tournaments error: ' + err.message, 'error');
+  }
+
+  await renderOverviewPendingQueue();
+  updateAdminGameStripVisibility('overview');
+  updateAdminMenuBreadcrumb('overview');
+  updateAdminNavActive();
+  ensureMatchUpdatesPolling();
+}
+
+// ── Change tournament status inline ──────────────────────
+async function changeTournamentStatus(id, status) {
+  try {
+    await updateTournament(id, { status });
+    showToast(`Status updated to ${status} ✓`);
+    _tourneys = await getTournaments();
+    renderOverviewTournamentsTable();
+    renderTournamentsManageBody();
+    populateTournamentDropdowns();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function renderOverviewMatchesStatus() {
+  const tbody = document.getElementById('overview-matches-status');
+  if (!tbody) return;
+  if (!_matches.length) {
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 font-mono text-[10px] text-[var(--wz-muted)]">No matches created yet</td></tr>';
+    return;
+  }
+
+  const sorted = [..._matches].sort((a, b) => (a.scheduled_at || '').localeCompare(b.scheduled_at || ''));
+  tbody.innerHTML = sorted.slice(0, 20).map(m => {
+    const info = [
+      m.tournament?.name || 'No tournament',
+      (m.round || '').replace(/_/g, ' ').toUpperCase() || 'ROUND N/A',
+      m.scheduled_at ? new Date(m.scheduled_at).toLocaleString('en-ZA') : 'Time TBA',
+      m.status === 'completed' ? `Score ${m.score_a ?? '—'}-${m.score_b ?? '—'}` : null
+    ].filter(Boolean).join(' · ');
+    return `
+      <tr>
+        <td class="font-head text-sm font-bold">${m.team_a?.name || 'TBD'} vs ${m.team_b?.name || 'TBD'}</td>
+        <td>
+          <select onchange="changeMatchStatus('${m.id}', this.value)" class="wz-input" style="padding:4px 8px;font-size:11px;width:auto">
+            ${['scheduled','live','completed'].map(s =>
+              `<option value="${s}" ${(m.status === s || (s === 'scheduled' && m.status === 'upcoming')) ? 'selected' : ''}>${s === 'scheduled' ? 'SCHEDULED' : s.toUpperCase()}</option>`
+            ).join('')}
+          </select>
+        </td>
+        <td class="font-mono text-[10px] text-[var(--wz-text-secondary)]">${info}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function changeMatchStatus(matchId, status) {
+  try {
+    await updateMatch(matchId, { status });
+    showToast(`Match status updated to ${status} ✓`);
+    await renderMatchHistory();
+    renderOverviewMatchesStatus();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ── Populate tournament dropdowns ─────────────────────────
+function populateTournamentDropdowns() {
+  const participantsSel = document.getElementById('participants-tourney');
+  populateMatchTournamentDropdown();
+  participantsSel.innerHTML = '<option value="">— Select Tournament —</option>';
+  _tourneys.forEach(t => {
+    const opt = `<option value="${t.id}">${t.name}</option>`;
+    participantsSel.innerHTML += opt;
+  });
+}
+
+function populateMatchTournamentDropdown() {
+  const matchSel = document.getElementById('match-tourney-id');
+  const selectedGame = document.getElementById('match-game')?.value || '';
+  if (!matchSel) return;
+
+  if (!selectedGame) {
+    matchSel.innerHTML = '<option value="">— Select Game First —</option>';
+    syncMatchGamePreview();
+    return;
+  }
+
+  const filtered = _tourneys.filter(t => inferTournamentGame(t) === selectedGame);
+  matchSel.innerHTML = '<option value="">— Select Tournament —</option>';
+
+  if (!filtered.length) {
+    matchSel.innerHTML = '<option value="">— No tournaments for selected game —</option>';
+    syncMatchGamePreview();
+    return;
+  }
+
+  filtered.forEach(t => {
+    matchSel.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+  });
+  syncMatchGamePreview();
+  populateMatchTeamDropdowns();
+}
+
+function _matchOptEsc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Load Team A / Team B dropdowns from approved registrations for the selected tournament. */
+async function populateMatchTeamDropdowns() {
+  const tid = document.getElementById('match-tourney-id')?.value;
+  const aSel = document.getElementById('match-a-id');
+  const bSel = document.getElementById('match-b-id');
+  if (!aSel || !bSel) return;
+
+  const setPlaceholder = (msg) => {
+    aSel.innerHTML = `<option value="">${msg}</option>`;
+    bSel.innerHTML = `<option value="">${msg}</option>`;
+  };
+
+  if (!tid) {
+    setPlaceholder('— Select tournament first —');
+    return;
+  }
+
+  aSel.innerHTML = '<option value="">Loading…</option>';
+  bSel.innerHTML = '<option value="">Loading…</option>';
+
+  try {
+    const regs = await getRegistrations({ tournament_id: tid, status: 'approved' });
+    const teams = [];
+    const seen = new Set();
+    (regs || []).forEach((r) => {
+      const t = r.team;
+      if (t?.id && !seen.has(t.id)) {
+        seen.add(t.id);
+        teams.push(t);
+      }
+    });
+    teams.sort((x, y) => String(x.name || '').localeCompare(String(y.name || '')));
+
+    if (!teams.length) {
+      setPlaceholder('— No approved teams for this tournament —');
+      return;
+    }
+
+    const opts = teams
+      .map(
+        (t) =>
+          `<option value="${t.id}">${_matchOptEsc(t.name)} [${_matchOptEsc(t.tag || '—')}]</option>`
+      )
+      .join('');
+
+    aSel.innerHTML = `<option value="">— Select Team A —</option>${opts}`;
+    bSel.innerHTML = `<option value="">— TBD / bye —</option>${opts}`;
+  } catch (err) {
+    setPlaceholder('— Could not load teams —');
+    showToast(err.message || 'Failed to load teams', 'error');
+  }
+}
+
+// ── Participants view toggle ───────────────────────────────
+function participantsView(view) {
+  document.getElementById('participants-teams-view').classList.toggle('hidden', view !== 'teams');
+  document.getElementById('participants-players-view').classList.toggle('hidden', view !== 'players');
+  document.getElementById('pview-teams').className   = view === 'teams'   ? 'btn-primary btn-sm' : 'btn-ghost btn-sm';
+  document.getElementById('pview-players').className = view === 'players' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm';
+}
+
+// ── Render participants ────────────────────────────────────
+async function renderParticipants() {
+  participantsView('teams');
+  const tourneyId  = document.getElementById('participants-tourney').value;
+  const teamsBody  = document.getElementById('participants-teams-body');
+  const playerBody = document.getElementById('participants-players-body');
+  const countEl    = document.getElementById('participants-count');
+
+  if (!tourneyId) {
+    document.getElementById('participants-game-visual')?.classList.add('hidden');
+    teamsBody.innerHTML  = '<tr><td colspan="7" class="text-center py-6 font-mono text-[10px] text-[var(--wz-muted)]">Select a tournament above</td></tr>';
+    playerBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 font-mono text-[10px] text-[var(--wz-muted)]">Select a tournament above</td></tr>';
+    countEl.textContent  = '';
+    return;
+  }
+
+  const pt = _tourneys.find(x => String(x.id) === String(tourneyId));
+  const vis = document.getElementById('participants-game-visual');
+  const cover = document.getElementById('participants-game-cover');
+  const label = document.getElementById('participants-game-label');
+  if (pt && vis && cover && label) {
+    const g = inferTournamentGame(pt);
+    cover.className = `w-36 flex-shrink-0 game-cover min-h-[72px] ${gameCoverClass(g)}`;
+    label.textContent = `${pt.name} · ${g}`;
+    vis.classList.remove('hidden');
+  } else if (vis) {
+    vis.classList.add('hidden');
+  }
+
+  teamsBody.innerHTML  = '<tr><td colspan="7" class="text-center py-4 font-mono text-[10px] text-[var(--wz-muted)] animate-pulse">Loading…</td></tr>';
+  playerBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 font-mono text-[10px] text-[var(--wz-muted)] animate-pulse">Loading…</td></tr>';
+
+  try {
+    const registrations = await getRegistrations({ tournament_id: tourneyId });
+
+    if (!registrations.length) {
+      teamsBody.innerHTML  = '<tr><td colspan="7" class="text-center py-6 font-mono text-[10px] text-[var(--wz-muted)]">No registrations for this tournament</td></tr>';
+      playerBody.innerHTML = '<tr><td colspan="6" class="text-center py-6 font-mono text-[10px] text-[var(--wz-muted)]">No players found</td></tr>';
+      countEl.textContent  = '0 teams · 0 players';
+      return;
+    }
+
+    const teamDetails = await Promise.all(
+      registrations.map(r => getTeam(r.team.id).catch(() => null))
+    );
+
+    teamsBody.innerHTML = registrations.map((r, i) => `
+      <tr>
+        <td class="font-mono text-xs text-[var(--wz-muted)]">${i + 1}</td>
+        <td class="font-head text-sm font-bold">${r.team?.name || '—'}</td>
+        <td class="font-mono text-xs text-[#e8c14a]">${r.team?.tag || '—'}</td>
+        <td class="font-mono text-xs text-[var(--wz-text-secondary)]">${r.team?.region || '—'}</td>
+        <td class="font-mono text-xs text-[var(--wz-text-secondary)]">${r.game_mode || '—'}</td>
+        <td class="font-mono text-xs text-[var(--wz-text-secondary)]">${r.device_type || '—'}</td>
+        <td>${statusBadge(r.status)}</td>
+      </tr>`).join('');
+
+    const allPlayers = [];
+    teamDetails.forEach((td, i) => {
+      if (!td?.players) return;
+      const regTeam = registrations[i]?.team || {};
+      const captainUserId = regTeam?.captain?.id || null;
+      const captainPlayerId = regTeam?.captain?.player_id || null;
+      td.players.forEach((p) => {
+        const isTeamCaptainByUser = captainUserId && p?.user_id && String(p.user_id) === String(captainUserId);
+        const isTeamCaptainByPlayer = captainPlayerId && String(p.id) === String(captainPlayerId);
+        const isTeamCaptain = Boolean(isTeamCaptainByUser || isTeamCaptainByPlayer);
+        allPlayers.push({
+          ...p,
+          teamName: regTeam?.name || '—',
+          isTeamCaptain
+        });
+      });
+    });
+
+    playerBody.innerHTML = allPlayers.length ? allPlayers.map((p, i) => `
+      <tr>
+        <td class="font-mono text-xs text-[var(--wz-muted)]">${i + 1}</td>
+        <td class="font-head text-sm font-bold">${p.ign || '—'}</td>
+        <td class="font-mono text-xs text-[var(--wz-text-secondary)]">${p.codm_uid || '—'}</td>
+        <td class="font-mono text-xs text-[var(--wz-text-secondary)]">${p.isTeamCaptain ? 'Team captain' : (p.role || '—')}${p.is_substitute ? ' <span class="text-[10px] wz-text-dynamic-faint">(sub)</span>' : ''}</td>
+        <td class="font-mono text-xs text-[var(--wz-text-secondary)] capitalize">${p.device || '—'}</td>
+        <td class="font-head text-sm font-semibold text-[#e8c14a]">${p.teamName}${p.isTeamCaptain ? ' <span class="font-mono text-[10px] text-emerald-300">(captain)</span>' : ''}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" class="text-center py-6 font-mono text-[10px] text-[var(--wz-muted)]">No player data found</td></tr>';
+
+    countEl.textContent = `${registrations.length} team${registrations.length !== 1 ? 's' : ''} · ${allPlayers.length} player${allPlayers.length !== 1 ? 's' : ''}`;
+
+  } catch (err) {
+    teamsBody.innerHTML  = `<tr><td colspan="7" class="text-center py-4 font-mono text-[10px] text-red-400">${err.message}</td></tr>`;
+    playerBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 font-mono text-[10px] text-red-400">${err.message}</td></tr>`;
+  }
+}
+
+// ── Render teams/registrations ────────────────────────────
+async function renderTeams() {
+  const filter = document.getElementById('teams-filter').value;
+  const search = document.getElementById('teams-search').value.toLowerCase();
+  const list   = document.getElementById('teams-list');
+  list.innerHTML = '<div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">Loading…</div>';
+
+  try {
+    const params = {};
+    if (filter) params.status = filter;
+    _registrations = await getRegistrations(params);
+
+    let filtered = _registrations;
+    if (search) filtered = filtered.filter(r => r.team?.name?.toLowerCase().includes(search) || r.team?.tag?.toLowerCase().includes(search));
+    if (_adminGameStripFilter) {
+      filtered = filtered.filter(r => inferRegistrationGame(r) === _adminGameStripFilter);
+    }
+
+    const filterHint = _adminGameStripFilter
+      ? ` · game: ${_adminGameStripFilter}`
+      : '';
+    document.getElementById('teams-count').textContent =
+      `${filtered.filter(r => r.status === 'pending').length} pending · ${filtered.length} total${filterHint}`;
+
+    if (!filtered.length) {
+      const g = _adminGameStripFilter;
+      const msg = g
+        ? `No registrations for tournaments in <span class="text-[#e8c14a]">${adminHtmlEscape(g)}</span>${search ? ' (try clearing search)' : ''}`
+        : 'NO REGISTRATIONS FOUND';
+      list.innerHTML = `<div class="px-4 py-8 text-center font-mono text-[10px] text-[var(--wz-muted)]">${msg}</div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(r => `
+      <div class="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-[var(--wz-border)] last:border-0 cursor-pointer hover:bg-[color-mix(in_srgb,var(--wz-surface2)_65%,transparent)] transition-colors"
+           id="reg-row-${r.id}"
+           role="button"
+           tabindex="0"
+           onclick="openRegistrationDetailModal('${r.id}')"
+           onkeydown="registrationDetailRowKeydown(event,'${r.id}')"
+           aria-label="View details: ${adminHtmlEscape((r.team?.name || 'Team') + ' — ' + (r.tournament?.name || 'tournament'))}">
+        <div class="flex-1 min-w-0">
+          <div class="font-head text-sm font-bold tracking-wide">
+            ${r.team?.name || '—'} <span class="font-mono text-[10px] text-[var(--wz-muted)]">[${r.team?.tag || '?'}]</span>
+          </div>
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] mt-0.5">
+            ${r.team?.region || '—'} · ${r.tournament?.name || '—'} · ${r.game_mode}
+            ${r.saved_roster?.name ? ` · <span class="text-emerald-400/90">Lineup: ${String(r.saved_roster.name).replace(/</g, '')}</span>` : ''}
+          </div>
+          ${r.notes ? `<div class="font-body text-[11px] text-amber-400 mt-0.5">Note: ${r.notes}</div>` : ''}
+        </div>
+        ${statusBadge(r.status)}
+        <div class="flex gap-2" onclick="event.stopPropagation()">
+          ${r.status === 'pending'
+            ? `<button type="button" onclick="handleApprove('${r.id}')" class="btn-primary btn-sm">Approve</button>
+               <button type="button" onclick="handleReject('${r.id}')" class="btn-danger btn-sm">Reject</button>`
+            : `<span class="font-mono text-[10px] text-[var(--wz-muted)]">${r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString('en-ZA') : '—'}</span>`
+          }
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    list.innerHTML = `<div class="px-4 py-6 text-center font-mono text-[10px] text-red-400">${err.message}</div>`;
+  }
+}
+
+function registrationDetailRowKeydown(e, id) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    openRegistrationDetailModal(id);
+  }
+}
+
+function renderRegistrationDetailBody(r, teamFull) {
+  const submitted = r.submitted_at
+    ? new Date(r.submitted_at).toLocaleString('en-ZA')
+    : '—';
+  const reviewed = r.reviewed_at
+    ? new Date(r.reviewed_at).toLocaleString('en-ZA')
+    : '—';
+  const reviewedBy = r.reviewed_by_user?.username
+    ? adminHtmlEscape(String(r.reviewed_by_user.username))
+    : null;
+
+  const metaRows = [
+    ['Region', adminHtmlEscape(String(r.team?.region || '—'))],
+    ['Game mode', adminHtmlEscape(String(r.game_mode || '—'))],
+    ['Device', adminHtmlEscape(String(r.device_type || '—'))],
+    ['Submitted', adminHtmlEscape(submitted)],
+    ...(r.status !== 'pending' ? [['Reviewed', adminHtmlEscape(reviewed)]] : []),
+    ...(reviewedBy ? [['Reviewed by', reviewedBy]] : []),
+    ...(r.saved_roster?.name ? [['Saved lineup', adminHtmlEscape(String(r.saved_roster.name))]] : [])
+  ];
+
+  const metaHtml = `
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 font-mono text-[11px] mb-5">
+      ${metaRows.map(([k, v]) => `
+        <div class="flex flex-col sm:flex-row sm:gap-2 border-b border-[var(--wz-border)] border-dotted pb-2 sm:border-0 sm:pb-0">
+          <span class="text-[var(--wz-muted)] flex-shrink-0 w-28">${adminHtmlEscape(k)}</span>
+          <span class="text-[var(--wz-text)]">${v}</span>
+        </div>`).join('')}
+    </div>`;
+
+  const notesBlock = r.notes
+    ? `<div class="mb-5 p-3 rounded-sm bg-amber-900/15 border border-amber-800/40">
+         <div class="font-mono text-[10px] text-amber-400/90 tracking-widest uppercase mb-1">Admin / payment notes</div>
+         <div class="font-body text-sm text-[var(--wz-text)]">${adminHtmlEscape(String(r.notes))}</div>
+       </div>`
+    : '';
+
+  const cap = teamFull?.captain;
+  const captainBlock = cap
+    ? `<div class="mb-5">
+         <div class="font-head text-[10px] font-bold tracking-widest uppercase text-[var(--wz-text-secondary)] mb-2">Captain</div>
+         <div class="font-mono text-[11px] space-y-1">
+           <div><span class="text-[var(--wz-muted)]">Username</span> · <span class="text-[var(--wz-text)]">${adminHtmlEscape(cap.username || '—')}</span></div>
+           ${cap.whatsapp ? `<div><span class="text-[var(--wz-muted)]">WhatsApp</span> · <span class="text-[var(--wz-text)]">${adminHtmlEscape(String(cap.whatsapp))}</span></div>` : ''}
+         </div>
+       </div>`
+    : '';
+
+  const players = (teamFull?.players || []).slice().sort((a, b) => {
+    const sa = a.is_substitute === b.is_substitute ? 0 : a.is_substitute ? 1 : -1;
+    if (sa !== 0) return sa;
+    return String(a.ign || '').localeCompare(String(b.ign || ''));
+  });
+
+  const rosterHtml = players.length
+    ? `<div class="overflow-x-auto -mx-1">
+         <table class="wz-table text-left w-full min-w-[520px]">
+           <thead>
+             <tr>
+               <th>IGN</th>
+               <th>Player ID</th>
+               <th>Role</th>
+               <th>Device</th>
+               <th></th>
+             </tr>
+           </thead>
+           <tbody>
+             ${players.map(p => `
+               <tr>
+                 <td class="font-head text-sm text-[var(--wz-text)]">${adminHtmlEscape(p.ign || '—')}</td>
+                 <td class="font-mono text-[11px]">${adminHtmlEscape(String(p.codm_uid || '—'))}</td>
+                 <td class="capitalize">${adminHtmlEscape(p.role || '—')}</td>
+                 <td class="capitalize">${adminHtmlEscape(p.device || '—')}</td>
+                 <td class="font-mono text-[10px] text-[var(--wz-muted)]">${p.is_substitute ? 'Sub' : ''}</td>
+               </tr>`).join('')}
+           </tbody>
+         </table>
+       </div>`
+    : '<p class="font-mono text-[11px] text-[var(--wz-muted)]">No roster players returned for this team.</p>';
+
+  const logoHtml = teamFull?.logo_url
+    ? `<div class="mb-4 flex items-center gap-3">
+         <img src="${adminHtmlEscape(String(teamFull.logo_url))}" alt="" class="h-14 w-14 rounded-sm object-cover border border-[var(--wz-border)] bg-[var(--wz-page)]"/>
+         <span class="font-mono text-[10px] text-[var(--wz-muted)]">Team logo</span>
+       </div>`
+    : '';
+
+  const matches = (teamFull?.match_history || []).slice(0, 4);
+  const matchMini = matches.length
+    ? `<div class="mt-6 pt-4 border-t border-[var(--wz-border)]">
+         <div class="font-head text-[10px] font-bold tracking-widest uppercase text-[var(--wz-text-secondary)] mb-2">Recent matches (team)</div>
+         <ul class="space-y-1.5 font-mono text-[10px] text-[var(--wz-text-secondary)]">
+           ${matches.map(m => {
+             const sc = m.score_a != null && m.score_b != null ? `${m.score_a}–${m.score_b}` : '—';
+             const st = adminHtmlEscape(String(m.status || '—'));
+             return `<li>${sc} · ${st}${m.map_name ? ` · ${adminHtmlEscape(String(m.map_name))}` : ''}</li>`;
+           }).join('')}
+         </ul>
+       </div>`
+    : '';
+
+  return `${logoHtml}${metaHtml}${notesBlock}${captainBlock}
+    <div>
+      <div class="font-head text-[10px] font-bold tracking-widest uppercase text-[var(--wz-text-secondary)] mb-2">Roster</div>
+      ${rosterHtml}
+    </div>
+    ${matchMini}`;
+}
+
+async function openRegistrationDetailModal(regId) {
+  const r = _registrations.find(x => String(x.id) === String(regId));
+  if (!r) return;
+
+  _registrationDetailOpenId = r.id;
+  const titleEl = document.getElementById('reg-detail-title');
+  const subEl = document.getElementById('reg-detail-sub');
+  const statusEl = document.getElementById('reg-detail-status');
+  const bodyEl = document.getElementById('reg-detail-body');
+  const actionsEl = document.getElementById('reg-detail-actions');
+
+  const teamLabel = `${r.team?.name || 'Team'} [${r.team?.tag || '?'}]`;
+  titleEl.textContent = teamLabel;
+  subEl.textContent = `${r.tournament?.name || '—'} · ${r.game_mode || '—'} · ${r.device_type || '—'}`;
+  statusEl.innerHTML = statusBadge(r.status);
+
+  bodyEl.innerHTML = '<div class="flex items-center justify-center py-10 font-mono text-[11px] text-[var(--wz-muted)]">Loading team details…</div>';
+
+  const pendingActions = `
+    <button type="button" onclick="handleApproveFromDetailModal()" class="btn-primary btn-sm">Approve</button>
+    <button type="button" onclick="handleRejectFromDetailModal()" class="btn-danger btn-sm">Reject</button>
+    <button type="button" onclick="closeModal('registration-detail-modal')" class="btn-ghost btn-sm">Close</button>`;
+  const doneActions = `
+    <span class="font-mono text-[10px] text-[var(--wz-muted)] mr-auto self-center max-w-[55%] truncate" title="${r.reviewed_at ? new Date(r.reviewed_at).toLocaleString('en-ZA') : ''}">
+      ${r.reviewed_at ? `Reviewed ${new Date(r.reviewed_at).toLocaleDateString('en-ZA')}` : '—'}
+    </span>
+    <button type="button" onclick="closeModal('registration-detail-modal')" class="btn-ghost btn-sm">Close</button>`;
+  actionsEl.innerHTML = r.status === 'pending' ? pendingActions : doneActions;
+
+  openModal('registration-detail-modal');
+
+  if (!r.team?.id) {
+    bodyEl.innerHTML = renderRegistrationDetailBody(r, null);
+    return;
+  }
+
+  try {
+    const teamFull = await getTeam(r.team.id);
+    bodyEl.innerHTML = renderRegistrationDetailBody(r, teamFull);
+  } catch (err) {
+    bodyEl.innerHTML = `<div class="font-mono text-[11px] text-red-400 mb-3">${adminHtmlEscape(err.message || 'Failed to load team')}</div>${renderRegistrationDetailBody(r, null)}`;
+  }
+}
+
+async function handleApproveFromDetailModal() {
+  const id = _registrationDetailOpenId;
+  if (!id) return;
+  closeModal('registration-detail-modal');
+  await handleApprove(id);
+}
+
+async function handleRejectFromDetailModal() {
+  const id = _registrationDetailOpenId;
+  if (!id) return;
+  closeModal('registration-detail-modal');
+  await handleReject(id);
+}
+
+async function handleApprove(id) {
+  try {
+    await updateRegistrationStatus(id, 'approved');
+    showToast('Registration approved ✓');
+    renderTeams();
+    await initAdmin();
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+async function handleReject(id) {
+  try {
+    await updateRegistrationStatus(id, 'rejected', 'Rejected by admin.');
+    showToast('Registration rejected', 'error');
+    renderTeams();
+    await initAdmin();
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+// ── Matches tab: operational snapshot (scheduled / live) ─────────────
+function adminGoToLiveMatchUpdate(matchId) {
+  if (!matchId) return;
+  adminTab('matches', 'update');
+  requestAnimationFrame(() => {
+    const sel = document.getElementById('live-match-id');
+    if (sel) {
+      sel.value = String(matchId);
+      fillLiveMatchFromSelection();
+    }
+    document.getElementById('live-match-id')?.focus?.({ preventScroll: true });
+  });
+}
+
+async function renderMatchHistory(useCacheOnly = false) {
+  const tbody = document.getElementById('match-ops-snapshot');
+  if (!tbody) return;
+  try {
+    if (!useCacheOnly) {
+      _matches = await getMatches();
+      _matchUpdatesSince = new Date().toISOString();
+    }
+    if (!_matches.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="5" class="text-center py-4 font-mono text-[10px] text-[var(--wz-muted)]">No matches yet — create fixtures from <strong class="text-[var(--wz-text)]">Create Match</strong> above.</td></tr>';
+      populateLiveMatchesDropdown();
+      return;
+    }
+    const relevant = _matches.filter((m) => ['scheduled', 'upcoming', 'live'].includes(m.status));
+    const live = relevant.filter((m) => m.status === 'live');
+    const rest = relevant
+      .filter((m) => m.status !== 'live')
+      .sort((a, b) => String(a.scheduled_at || '').localeCompare(String(b.scheduled_at || '')));
+    const ordered = [...live, ...rest].slice(0, 20);
+
+    if (!ordered.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="5" class="text-center py-4 font-mono text-[10px] text-[var(--wz-muted)]">No scheduled or live matches. Use overview <strong class="text-[var(--wz-text)]">Matches status</strong> for the full list.</td></tr>';
+      populateLiveMatchesDropdown();
+      return;
+    }
+
+    const whenText = (m) => {
+      if (m.status === 'live') return 'Now';
+      if (m.scheduled_at) {
+        try {
+          return new Date(m.scheduled_at).toLocaleString('en-ZA', { dateStyle: 'short', timeStyle: 'short' });
+        } catch {
+          return '—';
+        }
+      }
+      return 'TBD';
+    };
+
+    tbody.innerHTML = ordered
+      .map((m) => {
+        const safeId = String(m.id).replace(/'/g, '\\\'');
+        return `<tr>
+        <td>${statusBadge(m.status)}</td>
+        <td class="font-mono text-[10px] text-[var(--wz-text-secondary)] whitespace-nowrap">${adminHtmlEscape(whenText(m))}</td>
+        <td class="font-mono text-[10px]">${adminHtmlEscape(m.tournament?.name || '—')}</td>
+        <td class="font-head text-sm">${adminHtmlEscape(m.team_a?.name || '—')} <span class="text-[var(--wz-muted)] font-mono text-xs">vs</span> ${adminHtmlEscape(m.team_b?.name || 'TBD')}</td>
+        <td class="text-right"><button type="button" class="btn-ghost btn-sm" onclick="adminGoToLiveMatchUpdate('${safeId}')">Update</button></td>
+      </tr>`;
+      })
+      .join('');
+    populateLiveMatchesDropdown();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 font-mono text-[10px] text-red-400">${adminHtmlEscape(err.message || String(err))}</td></tr>`;
+  }
+}
+
+function toDatetimeLocalValue(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fillLiveMatchFromSelection() {
+  const id = document.getElementById('live-match-id')?.value;
+  const m = (_matches || []).find((x) => String(x.id) === String(id));
+  const clearIds = [
+    'live-score-a', 'live-score-b', 'live-map-name', 'live-scheduled-at', 'live-stats-json',
+    'live-round-number', 'live-match-order', 'live-next-match-id',
+    'live-disputed-by-team-id', 'live-dispute-notes', 'live-dispute-proof-url', 'live-dispute-winner-id',
+    'live-game-mode-custom'
+  ];
+  if (!m) {
+    clearIds.forEach((rid) => { const el = document.getElementById(rid); if (el) el.value = ''; });
+    const lg = document.getElementById('live-game-mode');
+    const lgc = document.getElementById('live-game-mode-custom');
+    if (lg) lg.innerHTML = '<option value="">— Select a match first —</option>';
+    if (lgc) {
+      lgc.value = '';
+      lgc.classList.add('hidden');
+    }
+    const bt = document.getElementById('live-bracket-type');
+    if (bt) bt.value = 'single';
+    const ns = document.getElementById('live-next-slot');
+    if (ns) ns.value = '';
+    const da = document.getElementById('live-dispute-action');
+    if (da) da.value = '';
+    return;
+  }
+  const sa = document.getElementById('live-score-a');
+  const sb = document.getElementById('live-score-b');
+  if (sa) sa.value = m.score_a != null && m.score_a !== '' ? String(m.score_a) : '';
+  if (sb) sb.value = m.score_b != null && m.score_b !== '' ? String(m.score_b) : '';
+  const stRaw = m.status === 'upcoming' ? 'scheduled' : (m.status || 'scheduled');
+  const st = ['scheduled', 'live', 'completed'].includes(stRaw) ? stRaw : 'scheduled';
+  const stEl = document.getElementById('live-status');
+  if (stEl) stEl.value = st;
+  const lr = document.getElementById('live-round');
+  if (lr) lr.value = m.round || 'group_stage';
+  const bt = document.getElementById('live-bracket-type');
+  if (bt) bt.value = m.bracket_type || 'single';
+  const rn = document.getElementById('live-round-number');
+  if (rn) rn.value = m.round_number != null ? String(m.round_number) : '';
+  const mo = document.getElementById('live-match-order');
+  if (mo) mo.value = m.match_order != null ? String(m.match_order) : '';
+  const nid = document.getElementById('live-next-match-id');
+  if (nid) nid.value = m.next_match_id || '';
+  const nslot = document.getElementById('live-next-slot');
+  if (nslot) nslot.value = m.next_match_slot || '';
+  const da = document.getElementById('live-dispute-action');
+  if (da) da.value = '';
+  const dbt = document.getElementById('live-disputed-by-team-id');
+  if (dbt) dbt.value = m.disputed_by_team_id || '';
+  const dnotes = document.getElementById('live-dispute-notes');
+  if (dnotes) dnotes.value = m.dispute_notes || '';
+  const dproof = document.getElementById('live-dispute-proof-url');
+  if (dproof) dproof.value = m.dispute_proof_url || '';
+  const dw = document.getElementById('live-dispute-winner-id');
+  if (dw) dw.value = '';
+  const mn = document.getElementById('live-map-name');
+  if (mn) mn.value = m.map_name || '';
+  populateLiveGameModeSelect(m);
+  const dt = document.getElementById('live-scheduled-at');
+  if (dt) dt.value = toDatetimeLocalValue(m.scheduled_at);
+  const tx = document.getElementById('live-stats-json');
+  if (tx) {
+    const stats = m.stats;
+    tx.value =
+      stats && typeof stats === 'object' && !Array.isArray(stats) && Object.keys(stats).length
+        ? JSON.stringify(stats, null, 2)
+        : '';
+  }
+}
+
+function populateLiveMatchesDropdown() {
+  const sel = document.getElementById('live-match-id');
+  if (!sel) return;
+  const prev = sel.value;
+  const list = [...(_matches || [])].sort((a, b) => {
+    const ta = (a.scheduled_at || '').localeCompare(b.scheduled_at || '');
+    if (ta !== 0) return ta;
+    return String(a.tournament?.name || '').localeCompare(String(b.tournament?.name || ''));
+  });
+  if (!list.length) {
+    sel.innerHTML = '<option value="">— No matches —</option>';
+    return;
+  }
+  sel.innerHTML =
+    '<option value="">— Select match —</option>' +
+    list
+      .map((m) => {
+        const statusLabel = m.status || '—';
+        const label = `${m.tournament?.name || 'Tournament'} · ${m.team_a?.name || 'TBD'} vs ${m.team_b?.name || 'TBD'} · ${statusLabel}`;
+        return `<option value="${m.id}">${label.replace(/</g, '&lt;')}</option>`;
+      })
+      .join('');
+  if (prev && list.some((m) => String(m.id) === String(prev))) {
+    sel.value = prev;
+    fillLiveMatchFromSelection();
+  }
+}
+
+async function handleSubmitMatch() {
+  const selectedGame  = document.getElementById('match-game').value;
+  const tournament_id = document.getElementById('match-tourney-id').value;
+  const team_a_id     = document.getElementById('match-a-id').value.trim();
+  const team_b_id     = document.getElementById('match-b-id').value.trim();
+  const score_a       = document.getElementById('score-a').value;
+  const score_b       = document.getElementById('score-b').value;
+  const round         = document.getElementById('match-round').value;
+  const bracket_type  = document.getElementById('match-bracket-type').value;
+  const round_number  = document.getElementById('match-round-number').value;
+  const match_order   = document.getElementById('match-order').value;
+  const map_name      = document.getElementById('match-map').value;
+  const game_mode     = getMatchModeValue('match-mode', 'match-mode-custom');
+  const scheduled_at  = document.getElementById('match-scheduled-at').value;
+  const next_match_id = document.getElementById('match-next-id').value.trim();
+  const next_match_slot = document.getElementById('match-next-slot').value;
+
+  if (!selectedGame) { showToast('Select the game first', 'error'); return; }
+  if (!tournament_id || !team_a_id) { showToast('Select a tournament and Team A', 'error'); return; }
+  if (team_b_id && team_a_id === team_b_id) {
+    showToast('Team A and Team B must be different squads.', 'error');
+    return;
+  }
+  if (next_match_id && !isUuidLike(next_match_id)) {
+    showToast('next_match_id must be a valid UUID.', 'error');
+    return;
+  }
+  if (score_a !== '' || score_b !== '') {
+    showToast('New matches are created as scheduled. Set scores from the update panel when the match is live/completed.', 'info');
+  }
+  if (score_a !== '' || score_b !== '') {
+    document.getElementById('score-a').value = '';
+    document.getElementById('score-b').value = '';
+  }
+
+  try {
+    await submitMatch({
+      tournament_id,
+      team_a_id,
+      team_b_id: team_b_id || null,
+      score_a: null,
+      score_b: null,
+      round,
+      bracket_type,
+      round_number: round_number === '' ? null : parseInt(round_number, 10),
+      match_order: match_order === '' ? null : parseInt(match_order, 10),
+      map_name,
+      game_mode,
+      next_match_id: next_match_id || null,
+      next_match_slot: next_match_slot || null,
+      status: 'scheduled',
+      scheduled_at: scheduled_at || null
+    });
+    showToast('Match created as scheduled ✓');
+    ['score-a','score-b','match-scheduled-at','match-round-number','match-order','match-next-id'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('match-a-id').value = '';
+    document.getElementById('match-b-id').value = '';
+    document.getElementById('match-next-slot').value = '';
+    document.getElementById('match-bracket-type').value = 'single';
+    await populateMatchTeamDropdowns();
+    _matches = await getMatches();
+    renderOverviewMatchesStatus();
+    renderMatchHistory();
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+async function handleUpdateLiveMatch() {
+  const matchId = document.getElementById('live-match-id').value;
+  const scoreA = document.getElementById('live-score-a').value;
+  const scoreB = document.getElementById('live-score-b').value;
+  const status = document.getElementById('live-status').value;
+  const mapName = document.getElementById('live-map-name').value.trim();
+  const round = document.getElementById('live-round').value;
+  const bracketType = document.getElementById('live-bracket-type').value;
+  const roundNumberRaw = document.getElementById('live-round-number').value;
+  const matchOrderRaw = document.getElementById('live-match-order').value;
+  const nextMatchIdRaw = document.getElementById('live-next-match-id').value.trim();
+  const nextSlot = document.getElementById('live-next-slot').value;
+  const disputeAction = document.getElementById('live-dispute-action').value;
+  const disputedByTeamId = document.getElementById('live-disputed-by-team-id').value.trim();
+  const disputeNotes = document.getElementById('live-dispute-notes').value.trim();
+  const disputeProofUrl = document.getElementById('live-dispute-proof-url').value.trim();
+  const disputeWinnerId = document.getElementById('live-dispute-winner-id').value.trim();
+  const gameMode = getMatchModeValue('live-game-mode', 'live-game-mode-custom');
+  const scheduledAt = document.getElementById('live-scheduled-at').value;
+  const rawStats = document.getElementById('live-stats-json').value.trim();
+
+  if (!matchId) {
+    showToast('Select a match first.', 'error');
+    return;
+  }
+  if (nextMatchIdRaw && !isUuidLike(nextMatchIdRaw)) {
+    showToast('next_match_id must be a valid UUID.', 'error');
+    return;
+  }
+  if (disputedByTeamId && !isUuidLike(disputedByTeamId)) {
+    showToast('disputed_by_team_id must be a valid UUID.', 'error');
+    return;
+  }
+  if (disputeWinnerId && !isUuidLike(disputeWinnerId)) {
+    showToast('resolved winner team id must be a valid UUID.', 'error');
+    return;
+  }
+
+  const scoreNumA = scoreA === '' ? null : parseInt(scoreA, 10);
+  const scoreNumB = scoreB === '' ? null : parseInt(scoreB, 10);
+  if (scoreA !== '' && Number.isNaN(scoreNumA)) {
+    showToast('Score A must be a valid number.', 'error');
+    return;
+  }
+  if (scoreB !== '' && Number.isNaN(scoreNumB)) {
+    showToast('Score B must be a valid number.', 'error');
+    return;
+  }
+  const anyScore = scoreA !== '' || scoreB !== '';
+  const hasBothScores = scoreNumA != null && scoreNumB != null;
+  if (anyScore && !hasBothScores) {
+    showToast('Enter both scores or leave both empty.', 'error');
+    return;
+  }
+
+  let statsPayload = undefined;
+  if (rawStats) {
+    try {
+      const parsed = JSON.parse(rawStats);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        throw new Error('COD stats must be a JSON object');
+      }
+      statsPayload = parsed;
+    } catch (e) {
+      showToast(e.message || 'Invalid JSON in COD stats', 'error');
+      return;
+    }
+  }
+
+  if (status === 'completed') {
+    const hasStats = statsPayload && Object.keys(statsPayload).length > 0;
+    if (!hasBothScores && !hasStats) {
+      showToast('For completed status, enter both scores or provide COD stats so a winner can be determined.', 'error');
+      return;
+    }
+  }
+
+  const payload = {
+    score_a: scoreNumA,
+    score_b: scoreNumB,
+    status,
+    round,
+    bracket_type: bracketType,
+    round_number: roundNumberRaw === '' ? null : parseInt(roundNumberRaw, 10),
+    match_order: matchOrderRaw === '' ? null : parseInt(matchOrderRaw, 10),
+    next_match_id: nextMatchIdRaw || null,
+    next_match_slot: nextSlot || null,
+    map_name: mapName || undefined,
+    game_mode: gameMode || undefined,
+    scheduled_at: scheduledAt || null
+  };
+  if (disputeAction) payload.dispute_action = disputeAction;
+  if (disputedByTeamId) payload.disputed_by_team_id = disputedByTeamId;
+  if (disputeNotes) payload.dispute_notes = disputeNotes;
+  if (disputeProofUrl) payload.dispute_proof_url = disputeProofUrl;
+  if (disputeWinnerId) payload.dispute_resolved_winner_id = disputeWinnerId;
+  if (statsPayload !== undefined) {
+    payload.stats = statsPayload;
+  }
+
+  try {
+    await updateMatch(matchId, payload);
+    showToast('Match updated ✓');
+    await renderMatchHistory();
+    renderOverviewMatchesStatus();
+    const sel = document.getElementById('live-match-id');
+    if (sel) {
+      sel.value = matchId;
+      fillLiveMatchFromSelection();
+    }
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+
+// ── Render tournaments management table ───────────────────
+async function renderTournamentsManage() {
+  const tbody = document.getElementById('tournaments-manage-body');
+  tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 font-mono text-[10px] text-[var(--wz-muted)] animate-pulse">Loading…</td></tr>';
+  try {
+    _tourneys = await getTournaments();
+    populateTournamentDropdowns();
+    renderTournamentsManageBody();
+    updateAdminGameStripActiveStyles();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 font-mono text-[10px] text-red-400">${err.message}</td></tr>`;
+  }
+}
+// ── Create tournament ─────────────────────────────────────
+async function handleCreateTournament() {
+  const name = document.getElementById('new-name').value.trim();
+  const gameTitle = document.getElementById('new-game-title').value.trim();
+  const modeLabel = document.getElementById('new-mode-label').value.trim();
+  if (!name) { showToast('Enter tournament name', 'error'); return; }
+  if (!gameTitle) { showToast('Enter a game title', 'error'); return; }
+  const gameRuleProfile = buildCreateGameRuleProfile(gameTitle);
+  try {
+    const modeValue = modeLabel ? `${gameTitle} · ${modeLabel}` : gameTitle;
+    await createTournament({
+      name,
+      tag:         document.getElementById('new-tag').value.trim().toUpperCase(),
+      mode:        modeValue,
+      type:        document.getElementById('new-type').value,
+      format:      document.getElementById('new-format').value.trim(),
+      start_date:  document.getElementById('new-date').value,
+      reg_deadline:document.getElementById('new-deadline').value,
+      max_slots:   parseInt(document.getElementById('new-slots').value),
+      prize_total: parseInt(document.getElementById('new-prize').value) || 0,
+      entry_fee:   parseInt(document.getElementById('new-fee').value)   || 0,
+      prize_1st:   parseInt(document.getElementById('prize-1').value)   || 0,
+      prize_2nd:   parseInt(document.getElementById('prize-2').value)   || 0,
+      prize_3rd:   parseInt(document.getElementById('prize-3').value)   || 0,
+      prize_mvp:   parseInt(document.getElementById('prize-mvp').value) || 0,
+      description: document.getElementById('new-desc').value.trim(),
+      game_rule_profile: gameRuleProfile
+    });
+    showToast(`${name} created! ✓`);
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-game-title').value = '';
+    document.getElementById('new-mode-label').value = '';
+    document.getElementById('new-flag-enhanced-ui').checked = true;
+    document.getElementById('new-flag-allow-draw').checked = true;
+    document.getElementById('new-flag-gf-reset').checked = false;
+    syncCreateGamePreview();
+    initAdmin();
+    adminTab('tournaments', 'list');
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+// ── Announcements ─────────────────────────────────────────
+async function handlePublishAnnouncement() {
+  const title = document.getElementById('ann-title').value.trim();
+  const body  = document.getElementById('ann-body').value.trim();
+  if (!title || !body) { showToast('Enter title and message', 'error'); return; }
+  try {
+    await publishAnnouncement({ title, body, type: document.getElementById('ann-type').value });
+    document.getElementById('ann-title').value = '';
+    document.getElementById('ann-body').value  = '';
+    showToast('Announcement published ✓');
+    renderPublishedAnn();
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+async function renderPublishedAnn() {
+  const container = document.getElementById('published-ann');
+  try {
+    const ann = await getAnnouncements();
+    if (!ann.length) { container.innerHTML = '<div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">No announcements yet</div>'; return; }
+    const typeColor = { live:'border-red-600', info:'border-[#e8c14a]', update:'border-blue-600', warning:'border-amber-500' };
+    container.innerHTML = ann.map(a => `
+      <div class="border-l-2 ${typeColor[a.type]||'border-[#e8c14a]'} px-4 py-3 border-b border-[var(--wz-border)] last:border-b-0">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="font-mono text-[9px] text-[var(--wz-muted)] uppercase">${a.type}</span>
+              <span class="font-mono text-[9px] text-[#3a4050]">${new Date(a.created_at).toLocaleDateString('en-ZA')}</span>
+            </div>
+            <div class="font-head text-sm font-bold">${a.title}</div>
+            <div class="font-body text-xs text-[var(--wz-text-secondary)] mt-0.5">${a.body}</div>
+          </div>
+          <button type="button" class="btn-danger btn-sm whitespace-nowrap" onclick="handleDeleteAnnouncement('${a.id}')">Delete</button>
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    container.innerHTML = `<div class="px-4 py-6 text-center font-mono text-[10px] text-red-400">${err.message}</div>`;
+  }
+}
+
+async function handleDeleteAnnouncement(id) {
+  if (!id) return;
+  const ok = await showConfirmDialog({
+    title: 'Delete Announcement',
+    message: 'This will permanently remove the announcement from the platform. This action cannot be undone.',
+    confirmLabel: 'Yes, delete',
+    cancelLabel: 'Cancel',
+    variant: 'danger'
+  });
+  if (!ok) return;
+  try {
+    await deleteAnnouncementById(id);
+    showToast('Announcement deleted ✓');
+    renderPublishedAnn();
+  } catch (err) {
+    showToast(err.message || 'Failed to delete announcement', 'error');
+  }
+}
+
+// ── Auto-skip auth gate if already signed in as admin ─────
+(function checkAdminSession() {
+  const user = getCurrentUser();
+  if (user && user.role === 'admin') {
+    document.getElementById('auth-gate').classList.add('hidden');
+    document.getElementById('admin-panel').classList.remove('hidden');
+    document.getElementById('admin-username-badge').textContent = user.username;
+    initAdmin();
+  }
+})();
+</script>
+</body>
+</html>

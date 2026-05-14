@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Platform Guide - EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+  <script src="../js/config.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/main.js"></script>
+  <script>injectNav('platform-guide.html')</script>
+
+  <main class="max-w-6xl mx-auto px-5 py-8 fade-up">
+    <section class="wz-card accent-left p-8 mb-8">
+      <div class="font-mono text-[10px] tracking-widest text-[var(--wz-muted)] uppercase mb-2">Platform Guide</div>
+      <h1 class="font-head text-4xl font-black tracking-widest uppercase mb-4">How EVOLVE Works</h1>
+      <p class="font-body text-[15px] text-[var(--wz-text-secondary)] max-w-4xl leading-relaxed">
+        This guide maps each role's journey across the platform, from discovery and account creation to team operations,
+        tournament registration, match management, and result processing through the game logic engines.
+      </p>
+    </section>
+
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      <a href="platform-guide-guest.html" class="wz-card wz-card-hover p-5 block">
+        <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-2">Role 01</div>
+        <h2 class="font-head text-xl font-bold uppercase tracking-wide mb-2">Guest Users</h2>
+        <p class="font-body text-sm text-[var(--wz-text-secondary)]">Discovery, browsing, and conversion into registered users.</p>
+      </a>
+      <a href="platform-guide-player.html" class="wz-card wz-card-hover p-5 block">
+        <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-2">Role 02</div>
+        <h2 class="font-head text-xl font-bold uppercase tracking-wide mb-2">Players Without Teams</h2>
+        <p class="font-body text-sm text-[var(--wz-text-secondary)]">Sign in, profile state, and paths into active team participation.</p>
+      </a>
+      <a href="platform-guide-captain.html" class="wz-card wz-card-hover p-5 block">
+        <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-2">Role 03</div>
+        <h2 class="font-head text-xl font-bold uppercase tracking-wide mb-2">Team Captains</h2>
+        <p class="font-body text-sm text-[var(--wz-text-secondary)]">Team creation, roster governance, and tournament registration flow.</p>
+      </a>
+      <a href="platform-guide-admin.html" class="wz-card wz-card-hover p-5 block">
+        <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-2">Role 04</div>
+        <h2 class="font-head text-xl font-bold uppercase tracking-wide mb-2">Admins</h2>
+        <p class="font-body text-sm text-[var(--wz-text-secondary)]">Tournament and match creation, bracket ops, and result publishing.</p>
+      </a>
+      <a href="platform-guide-engine.html" class="wz-card wz-card-hover p-5 block md:col-span-2 lg:col-span-2">
+        <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-2">Logic Layer</div>
+        <h2 class="font-head text-xl font-bold uppercase tracking-wide mb-2">Engine Responsibilities</h2>
+        <p class="font-body text-sm text-[var(--wz-text-secondary)]">How COD, FIFA, FGC, and Racing engines resolve outcomes and standings.</p>
+      </a>
+    </section>
+
+    <section class="wz-card p-6">
+      <h2 class="section-title mb-4">Platform Lifecycle</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="border border-[var(--wz-border)] rounded p-4">
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-1">1. Access</div>
+          <div class="font-head text-sm font-bold uppercase">Guest Browses Platform</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mt-2">User views tournaments, schedule, bracket, and rules before registering.</p>
+        </div>
+        <div class="border border-[var(--wz-border)] rounded p-4">
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-1">2. Identity</div>
+          <div class="font-head text-sm font-bold uppercase">Registration and Sign In</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mt-2">User account is created and authenticated for role-aware platform access.</p>
+        </div>
+        <div class="border border-[var(--wz-border)] rounded p-4">
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-1">3. Team State</div>
+          <div class="font-head text-sm font-bold uppercase">Join or Build a Team</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mt-2">Players either join existing squads or captains create/manage team rosters.</p>
+        </div>
+        <div class="border border-[var(--wz-border)] rounded p-4">
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-1">4. Competition</div>
+          <div class="font-head text-sm font-bold uppercase">Tournament Registration</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mt-2">Captains submit team entries, admins approve, and fixtures become visible in hub views.</p>
+        </div>
+        <div class="border border-[var(--wz-border)] rounded p-4 md:col-span-2">
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-1">5. Resolution</div>
+          <div class="font-head text-sm font-bold uppercase">Admin Result Upload + Engine Processing</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mt-2">Submitted match results are validated and resolved by game engines to update standings, bracket progression, and public views.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

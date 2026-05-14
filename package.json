@@ -1,0 +1,24 @@
+{
+  "name": "warzonegg",
+  "version": "1.0.0",
+  "description": "Full-Stack web application designed to serve as the official tournament management platform.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev:lan": "node scripts/dev-static-server.js",
+    "security:scan:secrets": "powershell -ExecutionPolicy Bypass -File scripts/scan-secrets.ps1"
+  },
+  "keywords": [
+    "warzonegg"
+  ],
+  "author": "Mlungisi Nxumalo",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.104.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.2",
+    "nodemon": "^3.1.14"
+  }
+}

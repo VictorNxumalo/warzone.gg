@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register — EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+<script src="../js/config.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/main.js"></script>
+<script>injectNav('register.html')</script>
+
+<main class="max-w-6xl mx-auto px-5 py-8 fade-up">
+  <div class="flex items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)]">
+    <h1 id="reg-page-title" class="section-title text-2xl">Team Registration</h1>
+  </div>
+
+  <!-- ── AUTH GATE ─────────────────────────────────────── -->
+  <div id="auth-gate" class="max-w-md mx-auto">
+    <div class="wz-card border-t-2 border-t-[#e8c14a] p-8">
+      <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-4">● ACCOUNT REQUIRED</div>
+      <h2 class="font-head text-2xl font-black tracking-widest uppercase mb-2">Sign In to Register</h2>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6">You need an account to register your team. Sign in or create a new account below.</p>
+
+      <!-- Toggle -->
+      <div class="flex gap-2 mb-5">
+        <button onclick="showAuthTab('login')" id="auth-tab-login" class="flex-1 py-2 font-head text-xs tracking-widest uppercase font-bold border border-[#e8c14a] text-[#e8c14a] rounded-sm transition-all">Sign In</button>
+        <button onclick="showAuthTab('signup')" id="auth-tab-signup" class="flex-1 py-2 font-head text-xs tracking-widest uppercase font-bold border border-[#2a2f3d] text-[var(--wz-muted)] rounded-sm transition-all">Create Account</button>
+      </div>
+
+      <!-- Login form -->
+      <div id="auth-login-form" class="flex flex-col gap-4">
+        <div><label class="wz-label">Email</label><input type="email" id="auth-email" class="wz-input" placeholder="your@email.com"/></div>
+        <div><label class="wz-label">Password</label><input type="password" id="auth-password" class="wz-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')handleLogin()"/></div>
+        <button onclick="handleLogin()" class="btn-primary w-full py-2.5">Sign In →</button>
+      </div>
+
+      <!-- Signup form -->
+      <div id="auth-signup-form" class="hidden flex flex-col gap-4">
+        <div><label class="wz-label">Username</label><input type="text" id="signup-username" class="wz-input" placeholder="Your display name"/></div>
+        <div><label class="wz-label">Email</label><input type="email" id="signup-email" class="wz-input" placeholder="your@email.com"/></div>
+        <div><label class="wz-label">Password</label><input type="password" id="signup-password" class="wz-input" placeholder="Min. 6 characters"/></div>
+        <div><label class="wz-label">WhatsApp (Optional)</label><input type="tel" id="signup-whatsapp" class="wz-input" placeholder="+27 ..."/></div>
+        <button onclick="handleSignup()" class="btn-primary w-full py-2.5">Create Account →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SUCCESS STATE ──────────────────────────────────── -->
+  <div id="success-state" class="hidden wz-card accent-left p-8 text-center mb-8">
+    <div class="font-mono text-[10px] text-green-400 tracking-widest mb-3">● REGISTRATION SUBMITTED</div>
+    <h2 class="font-head text-3xl font-black tracking-widest uppercase text-[#e8c14a] mb-2" id="success-name"></h2>
+    <p id="success-detail" class="font-body text-[var(--wz-text-secondary)] mb-6">Your registration has been received. An admin will review and approve your team. You will be contacted via WhatsApp once confirmed.</p>
+    <div id="success-actions-new-team" class="flex gap-3 justify-center flex-wrap">
+      <a href="team-profile.html?mine=1" class="btn-primary">View My Team →</a>
+      <a href="tournaments.html" class="btn-ghost">View Tournaments</a>
+      <button type="button" onclick="resetForm()" id="btn-register-another" class="btn-ghost">Register Another Team</button>
+    </div>
+    <div id="success-actions-captain" class="hidden flex gap-3 justify-center flex-wrap">
+      <a href="tournaments.html" class="btn-primary">View Tournaments</a>
+      <a href="team-profile.html?mine=1" class="btn-ghost">My Team</a>
+      <button type="button" onclick="resetCaptainPanelFromSuccess()" class="btn-ghost">Enter another tournament</button>
+    </div>
+  </div>
+
+  <!-- ── CAPTAIN: register existing squad for an open tournament ── -->
+  <div id="reg-captain-panel" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="md:col-span-3 flex items-center justify-between px-4 py-2 bg-[var(--wz-surface)] border border-[var(--wz-border)] rounded">
+      <span class="font-mono text-[11px] text-amber-400">● Captain · <span id="cap-logged-in-user" class="text-[var(--wz-text)]"></span></span>
+      <button type="button" onclick="handleLogout()" class="font-mono text-[10px] text-[var(--wz-muted)] hover:text-[#e8c14a] transition-colors">Sign out</button>
+    </div>
+    <p class="md:col-span-3 font-mono text-[10px] text-[var(--wz-text-secondary)] leading-relaxed">
+      Your squad is already on EVOLVE. Use this panel to request entry into an <strong class="text-[var(--wz-text)]">open</strong> tournament with your current roster. Only the team captain can submit this. For a brand-new team application (different roster), contact support or use a separate captain account.
+    </p>
+
+    <div class="md:col-span-2 flex flex-col gap-5">
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-5 py-3 flex items-center gap-3">
+          <span class="font-mono text-[#e8c14a] text-xs">●</span>
+          <span class="font-head text-sm font-bold tracking-widest uppercase">Your team</span>
+        </div>
+        <div class="p-5" id="cap-team-summary"></div>
+      </div>
+
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-5 py-3 flex items-center gap-3">
+          <span class="font-mono text-[#e8c14a] text-xs">01</span>
+          <span class="font-head text-sm font-bold tracking-widest uppercase">Open tournament</span>
+        </div>
+        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="wz-label">Game</label>
+            <select id="cap-reg-game" class="wz-input" onchange="filterCaptainTournamentOptions()">
+              <option value="">— Select a Game —</option>
+              <option value="COD Mobile">COD Mobile</option>
+              <option value="COD Warzone">COD Warzone</option>
+              <option value="COD Modern Warfare">COD Modern Warfare</option>
+              <option value="FIFA">FIFA</option>
+              <option value="Need for Speed">Need for Speed</option>
+              <option value="Forza">Forza</option>
+              <option value="Mortal Kombat">Mortal Kombat</option>
+            </select>
+          </div>
+          <div>
+            <label class="wz-label">Tournament</label>
+            <select id="cap-reg-tournament" class="wz-input" onchange="updateCaptainSidebar()">
+              <option value="">— Select a Game First —</option>
+            </select>
+          </div>
+          <div>
+            <label class="wz-label">Game / Division</label>
+            <select id="cap-reg-mode" class="wz-input">
+              <option>Open Division</option>
+              <option>1v1 Bracket</option>
+              <option>2v2 Bracket</option>
+              <option>5v5 Team League</option>
+              <option>Racing Circuit</option>
+              <option>Fighting Game Bracket</option>
+            </select>
+          </div>
+          <div>
+            <label class="wz-label">Device type</label>
+            <select id="cap-reg-device" class="wz-input">
+              <option value="android">Android</option>
+              <option value="ios">iOS</option>
+              <option value="emulator">Emulator (PC)</option>
+            </select>
+          </div>
+          <div class="md:col-span-2">
+            <label class="wz-label">Tournament lineup <span class="text-red-400">*</span></label>
+            <select id="cap-reg-roster" class="wz-input">
+              <option value="">Loading…</option>
+            </select>
+            <p id="cap-reg-roster-hint" class="font-mono text-[9px] text-[var(--wz-muted)] mt-1 leading-relaxed"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 p-4 wz-card">
+        <input type="checkbox" id="cap-reg-agree" style="accent-color:#e8c14a;width:16px;height:16px;flex-shrink:0"/>
+        <label for="cap-reg-agree" class="font-body text-sm text-[var(--wz-text-secondary)]">
+          I have read and agree to the <a href="rules.html" class="wz-link-accent">Tournament Rules & Code of Conduct</a>
+        </label>
+      </div>
+
+      <button type="button" onclick="submitCaptainTournamentReg()" id="cap-submit-btn" class="btn-primary w-full py-3 text-base tracking-widest">
+        Submit squad entry →
+      </button>
+    </div>
+
+    <div class="flex flex-col gap-4">
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3">
+          <span class="font-head text-xs font-bold tracking-widest uppercase">Selected tournament</span>
+        </div>
+        <div class="p-4">
+          <div id="cap-sidebar-tourney-info" class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">Select a tournament above</div>
+        </div>
+      </div>
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3">
+          <span class="font-head text-xs font-bold tracking-widest uppercase">Entry fee</span>
+        </div>
+        <div class="p-4">
+          <div id="cap-sidebar-fee" class="font-head text-3xl font-black text-[#e8c14a]">R —</div>
+        </div>
+      </div>
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3">
+          <span class="font-head text-xs font-bold tracking-widest uppercase">Prize breakdown</span>
+        </div>
+        <div class="p-4 flex flex-col gap-3" id="cap-sidebar-prizes-body">
+          <div class="font-mono text-[10px] text-[var(--wz-muted)]">Select tournament to see prizes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REGISTRATION FORM ──────────────────────────────── -->
+  <div id="reg-form" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Welcome bar -->
+    <div class="md:col-span-3 flex items-center justify-between px-4 py-2 bg-[var(--wz-surface)] border border-[var(--wz-border)] rounded">
+      <span class="font-mono text-[11px] text-green-400">● Signed in as <span id="logged-in-user" class="text-[var(--wz-text)]"></span></span>
+      <button onclick="handleLogout()" class="font-mono text-[10px] text-[var(--wz-muted)] hover:text-[#e8c14a] transition-colors">Sign out</button>
+    </div>
+
+    <!-- Main form col -->
+    <div class="md:col-span-2 flex flex-col gap-5">
+
+      <!-- Step 1: Tournament -->
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-5 py-3 flex items-center gap-3">
+          <span class="font-mono text-[#e8c14a] text-xs">01</span>
+          <span class="font-head text-sm font-bold tracking-widest uppercase">Select Tournament</span>
+        </div>
+        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="wz-label">Game</label>
+            <select id="reg-game" class="wz-input" onchange="filterTournamentOptions()">
+              <option value="">— Select a Game —</option>
+              <option value="COD Mobile">COD Mobile</option>
+              <option value="COD Warzone">COD Warzone</option>
+              <option value="COD Modern Warfare">COD Modern Warfare</option>
+              <option value="FIFA">FIFA</option>
+              <option value="Need for Speed">Need for Speed</option>
+              <option value="Forza">Forza</option>
+              <option value="Mortal Kombat">Mortal Kombat</option>
+            </select>
+          </div>
+          <div>
+            <label class="wz-label">Tournament</label>
+            <select id="reg-tournament" class="wz-input" onchange="updateSidebar()">
+              <option value="">— Select a Game First —</option>
+            </select>
+          </div>
+          <div>
+            <label class="wz-label">Game / Division</label>
+            <select id="reg-mode" class="wz-input">
+              <option>Open Division</option>
+              <option>1v1 Bracket</option>
+              <option>2v2 Bracket</option>
+              <option>5v5 Team League</option>
+              <option>Racing Circuit</option>
+              <option>Fighting Game Bracket</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Team Info -->
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-5 py-3 flex items-center gap-3">
+          <span class="font-mono text-[#e8c14a] text-xs">02</span>
+          <span class="font-head text-sm font-bold tracking-widest uppercase">Team Info</span>
+        </div>
+        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="md:col-span-2">
+            <label class="wz-label">Team Name</label>
+            <input type="text" id="reg-teamname" class="wz-input" placeholder="e.g. Ghost Squad ZA"/>
+          </div>
+          <div>
+            <label class="wz-label">Team Tag (max 4 chars)</label>
+            <input type="text" id="reg-tag" class="wz-input" placeholder="GSZ" maxlength="4"/>
+          </div>
+          <div>
+            <label class="wz-label">Home Region</label>
+            <select id="reg-region" class="wz-input">
+              <option>Gauteng</option>
+              <option>Western Cape</option>
+              <option>KwaZulu-Natal</option>
+              <option>Eastern Cape</option>
+              <option>Mpumalanga</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Roster -->
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-5 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="font-mono text-[#e8c14a] text-xs">03</span>
+            <span class="font-head text-sm font-bold tracking-widest uppercase">Team Roster</span>
+          </div>
+          <span class="font-mono text-[10px] text-[var(--wz-muted)]">5 Players required + 1 sub</span>
+        </div>
+        <div class="p-5 flex flex-col gap-3" id="roster-fields"></div>
+      </div>
+
+      <!-- Step 4: Contact -->
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-5 py-3 flex items-center gap-3">
+          <span class="font-mono text-[#e8c14a] text-xs">04</span>
+          <span class="font-head text-sm font-bold tracking-widest uppercase">Captain / Contact</span>
+        </div>
+        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="wz-label">WhatsApp Number</label>
+            <input type="tel" id="reg-whatsapp" class="wz-input" placeholder="+27 ..."/>
+          </div>
+          <div>
+            <label class="wz-label">Device Type</label>
+            <select id="reg-device" class="wz-input">
+              <option value="android">Android</option>
+              <option value="ios">iOS</option>
+              <option value="emulator">Emulator (PC)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agreement + Submit -->
+      <div class="flex items-center gap-3 p-4 wz-card">
+        <input type="checkbox" id="reg-agree" style="accent-color:#e8c14a;width:16px;height:16px;flex-shrink:0"/>
+        <label for="reg-agree" class="font-body text-sm text-[var(--wz-text-secondary)]">
+          I have read and agree to the <a href="rules.html" class="wz-link-accent">Tournament Rules & Code of Conduct</a>
+        </label>
+      </div>
+
+      <button type="button" onclick="submitRegistration()" id="submit-btn" class="btn-primary w-full py-3 text-base tracking-widest">
+        Submit Registration →
+      </button>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="flex flex-col gap-4">
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3">
+          <span class="font-head text-xs font-bold tracking-widest uppercase">Selected Tournament</span>
+        </div>
+        <div class="p-4">
+          <div id="sidebar-tourney-info" class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">Select a tournament above</div>
+        </div>
+      </div>
+
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3">
+          <span class="font-head text-xs font-bold tracking-widest uppercase">Entry Fee</span>
+        </div>
+        <div class="p-4">
+          <div id="sidebar-fee" class="font-head text-3xl font-black text-[#e8c14a]">R —</div>
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] mb-3">Per team · EFT or cash</div>
+          <div class="font-body text-xs text-[var(--wz-text-secondary)] leading-relaxed">Payment details sent after approval by admin via WhatsApp.</div>
+        </div>
+      </div>
+
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3">
+          <span class="font-head text-xs font-bold tracking-widest uppercase">Prize Breakdown</span>
+        </div>
+        <div class="p-4 flex flex-col gap-3" id="sidebar-prizes-body">
+          <div class="font-mono text-[10px] text-[var(--wz-muted)]">Select tournament to see prizes</div>
+        </div>
+      </div>
+
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3">
+          <span class="font-head text-xs font-bold tracking-widest uppercase">Requirements</span>
+        </div>
+        <div class="p-4 flex flex-col gap-2">
+          <div class="flex items-start gap-2 font-body text-xs text-[var(--wz-text-secondary)]"><span class="text-[#e8c14a] mt-0.5">✓</span>Min. 5 registered players</div>
+          <div class="flex items-start gap-2 font-body text-xs text-[var(--wz-text-secondary)]"><span class="text-[#e8c14a] mt-0.5">✓</span>Active game account in good standing</div>
+          <div class="flex items-start gap-2 font-body text-xs text-[var(--wz-text-secondary)]"><span class="text-[#e8c14a] mt-0.5">✓</span>Age 16+ (under 18 needs consent)</div>
+          <div class="flex items-start gap-2 font-body text-xs text-[var(--wz-text-secondary)]"><span class="text-[#e8c14a] mt-0.5">✓</span>Valid SA contact number</div>
+          <div class="flex items-start gap-2 font-body text-xs text-[var(--wz-text-secondary)]"><span class="text-[#e8c14a] mt-0.5">✓</span>Agree to rules & CoC</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── Cached tournaments from API ───────────────────────────
+let _tournaments = [];
+let _registrationSubmitting = false;
+let _captainEntrySubmitting = false;
+
+function _wzEsc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function inferTournamentGame(t) {
+  const text = `${t?.game || ''} ${t?.title || ''} ${t?.name || ''} ${t?.mode || ''} ${t?.type || ''}`.toLowerCase();
+  if (text.includes('cod mobile') || text.includes('codm')) return 'COD Mobile';
+  if (text.includes('warzone')) return 'COD Warzone';
+  if (text.includes('modern warfare') || text.includes('morden warfare')) return 'COD Modern Warfare';
+  if (text.includes('fifa')) return 'FIFA';
+  if (text.includes('need for speed') || text.includes('nfs')) return 'Need for Speed';
+  if (text.includes('forza')) return 'Forza';
+  if (text.includes('mortal kombat') || text.includes('mortal kombak') || text.includes('mk')) return 'Mortal Kombat';
+  return 'Other';
+}
+
+// ── Auth tab toggle ───────────────────────────────────────
+function showAuthTab(tab) {
+  document.getElementById('auth-login-form').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('auth-signup-form').classList.toggle('hidden', tab !== 'signup');
+  document.getElementById('auth-tab-login').className  = `flex-1 py-2 font-head text-xs tracking-widest uppercase font-bold border rounded-sm transition-all ${tab==='login'  ? 'border-[#e8c14a] text-[#e8c14a]' : 'border-[#2a2f3d] text-[var(--wz-muted)]'}`;
+  document.getElementById('auth-tab-signup').className = `flex-1 py-2 font-head text-xs tracking-widest uppercase font-bold border rounded-sm transition-all ${tab==='signup' ? 'border-[#e8c14a] text-[#e8c14a]' : 'border-[#2a2f3d] text-[var(--wz-muted)]'}`;
+}
+
+// ── Login ─────────────────────────────────────────────────
+async function handleLogin() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email || !password) { showToast('Enter email and password', 'error'); return; }
+  try {
+    const user = await authLogin(email, password);
+    setCurrentUser(user);
+    onAuthSuccess(user);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ── Sign up ───────────────────────────────────────────────
+async function handleSignup() {
+  const username = document.getElementById('signup-username').value.trim();
+  const email    = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  const whatsapp = document.getElementById('signup-whatsapp').value.trim();
+  if (!username || !email || !password) { showToast('Fill in all required fields', 'error'); return; }
+  try {
+    await authRegister(email, password, username, whatsapp);
+    showToast('Account created — sign in to continue ✓', 'success');
+    showAuthTab('login');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ── After successful auth ─────────────────────────────────
+async function onAuthSuccess(user) {
+  const access = await getRegistrationAccessState();
+  const titleEl = document.getElementById('reg-page-title');
+
+  if (!access.allowed) {
+    if (access.variant === 'team_member') {
+      if (titleEl) titleEl.textContent = 'Team Registration';
+      showToast(access.shortReason || access.reason, 'info');
+      setTimeout(() => { window.location.replace('tournaments.html'); }, 450);
+      return;
+    }
+    renderBlockedRegisterState(access, user);
+    if (titleEl) titleEl.textContent = 'Team Registration';
+    return;
+  }
+
+  document.getElementById('auth-gate').classList.add('hidden');
+
+  if (access.registerMode === 'captain_existing' && access.team) {
+    if (titleEl) titleEl.textContent = 'Tournament entry';
+    document.getElementById('reg-form').classList.add('hidden');
+    document.getElementById('success-state').classList.add('hidden');
+    document.getElementById('reg-captain-panel').classList.remove('hidden');
+    document.getElementById('cap-logged-in-user').textContent = user.username;
+    fillCaptainTeamCard(access.team);
+    await loadTournamentsForCaptain();
+    await refreshCaptainRosterSelect();
+    const urlTourney = new URLSearchParams(window.location.search).get('tournament');
+    if (urlTourney && /^[a-zA-Z0-9-]+$/.test(urlTourney)) {
+      const tourney = _tournaments.find((t) => String(t.id) === String(urlTourney));
+      if (tourney) {
+        document.getElementById('cap-reg-game').value = inferTournamentGame(tourney);
+        filterCaptainTournamentOptions();
+        const capSel = document.getElementById('cap-reg-tournament');
+        if (capSel && [...capSel.options].some((o) => o.value === urlTourney)) {
+          capSel.value = urlTourney;
+        }
+        updateCaptainSidebar();
+      }
+    }
+    return;
+  }
+
+  document.getElementById('reg-captain-panel').classList.add('hidden');
+  if (titleEl) titleEl.textContent = 'Team Registration';
+  document.getElementById('reg-form').classList.remove('hidden');
+  document.getElementById('logged-in-user').textContent = user.username;
+  await loadTournaments();
+  buildRosterFields();
+  const urlTourney = new URLSearchParams(window.location.search).get('tournament');
+  if (urlTourney) {
+    const tourney = _tournaments.find((t) => t.id === urlTourney);
+    if (tourney) {
+      document.getElementById('reg-game').value = inferTournamentGame(tourney);
+      filterTournamentOptions();
+    }
+    document.getElementById('reg-tournament').value = urlTourney;
+    updateSidebar();
+  }
+}
+
+function renderBlockedRegisterState(access, user) {
+  const gate = document.getElementById('auth-gate');
+  document.getElementById('reg-form').classList.add('hidden');
+  document.getElementById('success-state').classList.add('hidden');
+  gate.classList.remove('hidden');
+  const reason = typeof access === 'string' ? access : access?.reason;
+  const variant = typeof access === 'object' ? access?.variant : undefined;
+  const safeReason = String(reason || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+  if (user?.role === 'admin') {
+    gate.innerHTML = `
+      <div class="wz-card border-t-2 border-t-red-500 p-8 max-w-lg mx-auto">
+        <div class="font-mono text-[10px] text-red-400 tracking-widest uppercase mb-4">● ACCESS BLOCKED</div>
+        <h2 class="font-head text-2xl font-black tracking-widest uppercase mb-2">Team Registration Unavailable</h2>
+        <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6">${safeReason}</p>
+        <div class="flex gap-2 flex-wrap justify-center">
+          <a href="admin.html" class="btn-primary">Go to Admin →</a>
+          <a href="../index.html" class="btn-ghost">Back to Home</a>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (variant === 'team_member') {
+    gate.innerHTML = `
+      <div class="wz-card border-t-2 border-t-emerald-600/60 p-8 max-w-lg mx-auto">
+        <div class="font-mono text-[10px] text-emerald-400 tracking-widest uppercase mb-3">● SQUAD MEMBER</div>
+        <h2 class="font-head text-2xl font-black tracking-widest uppercase text-[var(--wz-text)] mb-3">Your captain registers the team</h2>
+        <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-4 leading-relaxed">${safeReason}</p>
+        <p class="font-mono text-[11px] text-[var(--wz-muted)] mb-6 leading-relaxed border-l-2 border-[var(--wz-border)] pl-3">
+          Only your team captain can submit tournament registration for your squad. Ask them about upcoming events, or check the schedule together on Tournaments.
+        </p>
+        <div class="flex gap-3 justify-center flex-wrap">
+          <a href="tournaments.html" class="btn-primary">Browse tournaments</a>
+          <a href="team-profile.html?mine=1" class="btn-ghost">Squad overview</a>
+          <a href="../index.html" class="btn-ghost">Home</a>
+        </div>
+      </div>`;
+    return;
+  }
+
+  gate.innerHTML = `
+    <div class="wz-card accent-left p-8 text-center max-w-lg mx-auto">
+      <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-3">● REGISTRATION NOT AVAILABLE</div>
+      <h2 class="font-head text-2xl font-black tracking-widest uppercase text-[var(--wz-text)] mb-3">Cannot register a new team</h2>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6 leading-relaxed">${safeReason}</p>
+      <div class="flex gap-3 justify-center flex-wrap">
+        <a href="player-profile.html" class="btn-primary">Player profile</a>
+        <a href="team-profile.html?mine=1" class="btn-ghost">Squad overview</a>
+        <a href="../index.html" class="btn-ghost">Home</a>
+      </div>
+    </div>`;
+}
+
+// ── Logout ────────────────────────────────────────────────
+async function handleLogout() {
+  await authLogout();
+  clearCurrentUser();
+  document.getElementById('reg-form').classList.add('hidden');
+  document.getElementById('reg-captain-panel')?.classList.add('hidden');
+  document.getElementById('success-state')?.classList.add('hidden');
+  const t = document.getElementById('reg-page-title');
+  if (t) t.textContent = 'Team Registration';
+  document.getElementById('auth-gate').classList.remove('hidden');
+  showToast('Signed out');
+}
+
+// ── Load tournaments from API (registration only allowed when status is "open" on server) ──
+async function loadTournaments() {
+  try {
+    const raw = await getTournaments();
+    _tournaments = Array.isArray(raw) ? raw : [];
+    filterTournamentOptions();
+  } catch (err) {
+    showToast('Failed to load tournaments', 'error');
+  }
+}
+
+async function loadTournamentsForCaptain() {
+  try {
+    const raw = await getTournaments();
+    _tournaments = Array.isArray(raw) ? raw : [];
+    filterCaptainTournamentOptions();
+  } catch (err) {
+    showToast('Failed to load tournaments', 'error');
+  }
+}
+
+function fillCaptainTeamCard(team) {
+  const el = document.getElementById('cap-team-summary');
+  if (!el || !team) return;
+  const n = (team.players || []).length;
+  el.innerHTML = `
+    <div class="font-head text-lg font-bold text-[var(--wz-text)]">${_wzEsc(team.name)} <span class="font-mono text-[#e8c14a]">[${_wzEsc(team.tag)}]</span></div>
+    <div class="font-mono text-[10px] text-[var(--wz-muted)] mt-1">${_wzEsc(team.region || '—')} · ${n} roster player(s)</div>`;
+}
+
+function filterCaptainTournamentOptions() {
+  const selectedGame = document.getElementById('cap-reg-game').value;
+  const sel = document.getElementById('cap-reg-tournament');
+  if (!sel) return;
+  if (!selectedGame) {
+    sel.innerHTML = '<option value="">— Select a Game First —</option>';
+    updateCaptainSidebar();
+    return;
+  }
+
+  const forGame = _tournaments.filter((t) => inferTournamentGame(t) === selectedGame);
+  const openForReg = forGame.filter((t) => t.status === 'open' && (t.registered_count || 0) < (t.max_slots || 0));
+
+  sel.innerHTML = '<option value="">— Select a Tournament —</option>';
+
+  if (!forGame.length) {
+    sel.innerHTML = '<option value="">No tournaments listed for this game</option>';
+    updateCaptainSidebar();
+    return;
+  }
+
+  if (!openForReg.length) {
+    const statuses = [...new Set(forGame.map((t) => t.status))].join(', ');
+    sel.innerHTML = `<option value="">No open slots — tournaments exist (${statuses})</option>`;
+    forGame.forEach((t) => {
+      const prize = centsToRand(t.prize_total);
+      sel.innerHTML += `<option value="" disabled>${_wzEsc(t.name)} (${prize}) · ${t.status}</option>`;
+    });
+    updateCaptainSidebar();
+    return;
+  }
+
+  openForReg.forEach((t) => {
+    const prize = centsToRand(t.prize_total);
+    sel.innerHTML += `<option value="${t.id}">${_wzEsc(t.name)} (${prize})</option>`;
+  });
+  updateCaptainSidebar();
+}
+
+async function refreshCaptainRosterSelect() {
+  const sel = document.getElementById('cap-reg-roster');
+  const hint = document.getElementById('cap-reg-roster-hint');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Loading lineups…</option>';
+  if (hint) hint.textContent = '';
+  try {
+    const rows = await getTeamSavedRosters();
+    if (!rows.length) {
+      sel.innerHTML =
+        '<option value="__none__" selected>Default — current roster order (no saved preset)</option>';
+      if (hint) {
+        hint.innerHTML =
+          'Optional: save named lineups on <a href="team-profile.html?mine=1" class="wz-link-accent">My Team</a> to require a pick for future entries.';
+      }
+      return;
+    }
+    sel.innerHTML =
+      '<option value="">— Select tournament lineup —</option>' +
+      rows.map((r) => `<option value="${r.id}">${_wzEsc(r.name)}</option>`).join('');
+    if (hint) {
+      hint.textContent =
+        'Required when your squad has saved presets — pick which order admins should use for this event.';
+    }
+  } catch (e) {
+    sel.innerHTML = '<option value="" disabled selected>Could not load lineups</option>';
+    if (hint) hint.textContent = e.message || 'API error';
+  }
+}
+
+function updateCaptainSidebar() {
+  const id = document.getElementById('cap-reg-tournament').value;
+  const t = _tournaments.find((x) => String(x.id) === String(id));
+  if (!t) {
+    document.getElementById('cap-sidebar-tourney-info').innerHTML =
+      '<span class="text-[var(--wz-muted)]">Select a tournament above</span>';
+    document.getElementById('cap-sidebar-fee').textContent = 'R —';
+    document.getElementById('cap-sidebar-prizes-body').innerHTML =
+      '<div class="font-mono text-[10px] text-[var(--wz-muted)]">Select tournament to see prizes</div>';
+    return;
+  }
+  document.getElementById('cap-sidebar-tourney-info').innerHTML = `
+    <div class="font-head text-sm font-bold text-[var(--wz-text)] mb-1">${_wzEsc(t.name)}</div>
+    <div class="font-mono text-[10px] text-[var(--wz-muted)] flex flex-col gap-1">
+      <span>🗓 ${_wzEsc(t.start_date)}</span>
+      <span>⚔ ${_wzEsc(t.format)}</span>
+      ${slotsBar(t.registered_count, t.max_slots)}
+    </div>`;
+  document.getElementById('cap-sidebar-fee').textContent = centsToRand(t.entry_fee);
+  document.getElementById('cap-sidebar-prizes-body').innerHTML = `
+    <div class="flex items-center justify-between"><span class="font-mono text-[10px] text-[#e8c14a]">🥇 1st Place</span><span class="font-head text-sm font-bold">${centsToRand(t.prize_1st)}</span></div>
+    <div class="flex items-center justify-between"><span class="font-mono text-[10px] text-[var(--wz-text-secondary)]">🥈 2nd Place</span><span class="font-head text-sm font-bold">${centsToRand(t.prize_2nd)}</span></div>
+    <div class="flex items-center justify-between"><span class="font-mono text-[10px] text-[var(--wz-muted)]">🥉 3rd Place</span><span class="font-head text-sm font-bold">${centsToRand(t.prize_3rd)}</span></div>
+    <div class="flex items-center justify-between"><span class="font-mono text-[10px] text-[var(--wz-muted)]">🎯 MVP</span><span class="font-head text-sm font-bold">${centsToRand(t.prize_mvp)}</span></div>`;
+}
+
+async function submitCaptainTournamentReg() {
+  if (_captainEntrySubmitting) return;
+  const tournamentId = document.getElementById('cap-reg-tournament').value;
+  const selectedGame = document.getElementById('cap-reg-game').value;
+  const gameMode = document.getElementById('cap-reg-mode').value;
+  const deviceType = document.getElementById('cap-reg-device').value;
+  const agreed = document.getElementById('cap-reg-agree').checked;
+
+  if (!selectedGame) {
+    showToast('Select a game first', 'error');
+    return;
+  }
+  if (!tournamentId) {
+    showToast('Select an open tournament', 'error');
+    return;
+  }
+  if (!agreed) {
+    showToast('Agree to the rules first', 'error');
+    return;
+  }
+
+  let rosterRows = [];
+  try {
+    rosterRows = await getTeamSavedRosters();
+  } catch (_) {
+    rosterRows = [];
+  }
+  const rosterValRaw = document.getElementById('cap-reg-roster')?.value?.trim() || '';
+  const rosterVal =
+    rosterValRaw === '__none__' || rosterValRaw === '' ? undefined : rosterValRaw;
+  if (rosterRows.length > 0 && !rosterVal) {
+    showToast('Select a tournament lineup', 'error');
+    return;
+  }
+
+  _captainEntrySubmitting = true;
+  const btn = document.getElementById('cap-submit-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+  }
+
+  function release() {
+    _captainEntrySubmitting = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Submit squad entry →';
+    }
+  }
+
+  try {
+    const out = await registerExistingTeamForTournament({
+      tournament_id: tournamentId,
+      game_mode: gameMode || undefined,
+      device_type: deviceType || undefined,
+      ...(rosterVal ? { saved_roster_id: rosterVal } : {})
+    });
+    const msg =
+      out.alreadySubmitted === true
+        ? 'Your team is already registered for this tournament.'
+        : 'Tournament entry submitted. Awaiting admin approval.';
+    showToast(msg, out.alreadySubmitted ? 'info' : 'success');
+    const teamName =
+      document.querySelector('#cap-team-summary .font-head')?.textContent?.trim() || 'Your squad';
+    showCaptainEntrySuccess(teamName, out.alreadySubmitted);
+  } catch (err) {
+    showToast(err.message, 'error');
+    release();
+  }
+}
+
+function showCaptainEntrySuccess(teamLabel, alreadySubmitted) {
+  document.getElementById('reg-captain-panel').classList.add('hidden');
+  document.getElementById('success-name').textContent = teamLabel;
+  document.getElementById('success-detail').textContent = alreadySubmitted
+    ? 'Your squad is already on the list for this tournament. Check Tournaments or My Team for status.'
+    : 'Your tournament entry has been received. An admin will review and approve your squad for this event. You will be contacted via WhatsApp when confirmed.';
+  document.getElementById('success-actions-new-team').classList.add('hidden');
+  document.getElementById('success-actions-captain').classList.remove('hidden');
+  document.getElementById('success-state').classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  _captainEntrySubmitting = false;
+  const btn = document.getElementById('cap-submit-btn');
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Submit squad entry →';
+  }
+}
+
+function resetCaptainPanelFromSuccess() {
+  document.getElementById('success-state').classList.add('hidden');
+  document.getElementById('success-actions-new-team').classList.remove('hidden');
+  document.getElementById('success-actions-captain').classList.add('hidden');
+  document.getElementById('success-detail').textContent =
+    'Your registration has been received. An admin will review and approve your team. You will be contacted via WhatsApp once confirmed.';
+  document.getElementById('reg-captain-panel').classList.remove('hidden');
+  document.getElementById('cap-reg-agree').checked = false;
+  refreshCaptainRosterSelect();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function filterTournamentOptions() {
+  const selectedGame = document.getElementById('reg-game').value;
+  const sel = document.getElementById('reg-tournament');
+  if (!selectedGame) {
+    sel.innerHTML = '<option value="">— Select a Game First —</option>';
+    updateSidebar();
+    return;
+  }
+
+  const forGame = _tournaments.filter(t => inferTournamentGame(t) === selectedGame);
+  const openForReg = forGame.filter(t => t.status === 'open' && (t.registered_count || 0) < (t.max_slots || 0));
+
+  sel.innerHTML = '<option value="">— Select a Tournament —</option>';
+
+  if (!forGame.length) {
+    sel.innerHTML = '<option value="">No tournaments listed for this game</option>';
+    updateSidebar();
+    return;
+  }
+
+  if (!openForReg.length) {
+    const statuses = [...new Set(forGame.map(t => t.status))].join(', ');
+    sel.innerHTML = `<option value="">No open slots — tournaments exist (${statuses}). Set status to Open in Admin.</option>`;
+    forGame.forEach(t => {
+      const prize = centsToRand(t.prize_total);
+      sel.innerHTML += `<option value="" disabled>${t.name} (${prize}) · ${t.status}</option>`;
+    });
+    updateSidebar();
+    return;
+  }
+
+  openForReg.forEach(t => {
+    const prize = centsToRand(t.prize_total);
+    sel.innerHTML += `<option value="${t.id}">${t.name} (${prize})</option>`;
+  });
+  updateSidebar();
+}
+
+// ── Sidebar update ────────────────────────────────────────
+function updateSidebar() {
+  const id = document.getElementById('reg-tournament').value;
+  const t  = _tournaments.find(x => x.id === id);
+  if (!t) {
+    document.getElementById('sidebar-tourney-info').innerHTML = '<span class="text-[var(--wz-muted)]">Select a tournament above</span>';
+    document.getElementById('sidebar-fee').textContent = 'R —';
+    document.getElementById('sidebar-prizes-body').innerHTML = '<div class="font-mono text-[10px] text-[var(--wz-muted)]">Select tournament to see prizes</div>';
+    return;
+  }
+  const slots = t.max_slots - t.registered_count;
+  document.getElementById('sidebar-tourney-info').innerHTML = `
+    <div class="font-head text-sm font-bold text-[var(--wz-text)] mb-1">${t.name}</div>
+    <div class="font-mono text-[10px] text-[var(--wz-muted)] flex flex-col gap-1">
+      <span>🗓 ${t.start_date}</span>
+      <span>⚔ ${t.format}</span>
+      ${slotsBar(t.registered_count, t.max_slots)}
+    </div>`;
+  document.getElementById('sidebar-fee').textContent = centsToRand(t.entry_fee);
+  document.getElementById('sidebar-prizes-body').innerHTML = `
+    <div class="flex items-center justify-between"><span class="font-mono text-[10px] text-[#e8c14a]">🥇 1st Place</span><span class="font-head text-sm font-bold">${centsToRand(t.prize_1st)}</span></div>
+    <div class="flex items-center justify-between"><span class="font-mono text-[10px] text-[var(--wz-text-secondary)]">🥈 2nd Place</span><span class="font-head text-sm font-bold">${centsToRand(t.prize_2nd)}</span></div>
+    <div class="flex items-center justify-between"><span class="font-mono text-[10px] text-[var(--wz-muted)]">🥉 3rd Place</span><span class="font-head text-sm font-bold">${centsToRand(t.prize_3rd)}</span></div>
+    <div class="flex items-center justify-between"><span class="font-mono text-[10px] text-[var(--wz-muted)]">🎯 MVP</span><span class="font-head text-sm font-bold">${centsToRand(t.prize_mvp)}</span></div>`;
+}
+
+// ── Build roster fields ───────────────────────────────────
+function buildRosterFields() {
+  const container = document.getElementById('roster-fields');
+  const roles     = ['igl','fragger','sniper','support','rusher','substitute'];
+  const labels    = ['Player 1 (IGL)','Player 2 (Fragger)','Player 3 (Sniper)','Player 4 (Support)','Player 5 (Rusher)','Substitute (Optional)'];
+  container.innerHTML = '';
+  labels.forEach((label, i) => {
+    container.innerHTML += `
+      <div class="grid grid-cols-3 gap-3 pb-3 ${i < 5 ? 'border-b border-[var(--wz-border)]' : ''}">
+        <div>
+          <label class="wz-label">${label}</label>
+          <input type="text" id="player-ign-${i}" class="wz-input" placeholder="In-game name"/>
+        </div>
+        <div>
+          <label class="wz-label">Player ID / Gamer Tag</label>
+          <input type="text" id="player-uid-${i}" class="wz-input" placeholder="Unique in-game identifier" maxlength="32"/>
+        </div>
+        <div>
+          <label class="wz-label">Device</label>
+          <select id="player-device-${i}" class="wz-input">
+            <option value="android">Android</option>
+            <option value="ios">iOS</option>
+            <option value="emulator">Emulator</option>
+          </select>
+        </div>
+        <div class="col-span-3">
+          <label class="wz-label">Player Email ${i < 5 ? '' : '(Optional for substitute)'}</label>
+          <input type="email" id="player-email-${i}" class="wz-input" placeholder="used later for account activation"/>
+        </div>
+        <input type="hidden" id="player-role-${i}" value="${roles[i]}"/>
+      </div>`;
+  });
+}
+
+// ── Submit registration ───────────────────────────────────
+async function submitRegistration() {
+  if (_registrationSubmitting) return;
+  const btnEarly = document.getElementById('submit-btn');
+  if (btnEarly?.disabled) return;
+
+  const tournamentId = document.getElementById('reg-tournament').value;
+  const selectedGame = document.getElementById('reg-game').value;
+  const name         = document.getElementById('reg-teamname').value.trim();
+  const tag          = document.getElementById('reg-tag').value.trim();
+  const region       = document.getElementById('reg-region').value;
+  const gameMode     = document.getElementById('reg-mode').value;
+  const whatsapp     = document.getElementById('reg-whatsapp').value.trim();
+  const agreed       = document.getElementById('reg-agree').checked;
+
+  function releaseSubmitLock() {
+    _registrationSubmitting = false;
+    const b = document.getElementById('submit-btn');
+    if (b) {
+      b.disabled = false;
+      b.textContent = 'Submit Registration →';
+    }
+  }
+
+  // Validation
+  if (!selectedGame)    { showToast('Select a game first', 'error'); return; }
+  if (!tournamentId)    { showToast('Select a tournament first', 'error'); return; }
+  if (!name)            { showToast('Enter your team name', 'error'); return; }
+  if (!tag)             { showToast('Enter your team tag', 'error'); return; }
+  if (!agreed)          { showToast('Agree to the rules first', 'error'); return; }
+
+  // Build players array (require at least 5)
+  const players = [];
+  for (let i = 0; i < 6; i++) {
+    const ign     = document.getElementById(`player-ign-${i}`)?.value.trim();
+    const uid     = document.getElementById(`player-uid-${i}`)?.value.trim();
+    const role    = document.getElementById(`player-role-${i}`)?.value;
+    const device  = document.getElementById(`player-device-${i}`)?.value;
+    const email   = document.getElementById(`player-email-${i}`)?.value.trim().toLowerCase();
+    if (ign && uid) {
+      if (!/^[A-Za-z0-9_.-]{3,32}$/.test(uid)) {
+        showToast(`Player ${i+1} ID must be 3-32 characters (letters, numbers, ., _, -)`, 'error');
+        return;
+      }
+      if (i < 5 && !email) { showToast(`Enter email for ${ign}`, 'error'); return; }
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast(`Player ${i+1} email is invalid`, 'error'); return;
+      }
+      players.push({ ign, codm_uid: uid, role, device, email });
+    } else if (i < 5 && ign && !uid) {
+      showToast(`Enter player ID for ${ign}`, 'error'); return;
+    } else if (i < 5 && !ign) {
+      showToast(`Enter in-game name for Player ${i+1}`, 'error'); return;
+    } else if (i < 5 && !email) {
+      showToast(`Enter email for Player ${i+1}`, 'error'); return;
+    }
+  }
+
+  if (players.length < 5) { showToast('At least 5 players required', 'error'); return; }
+
+  _registrationSubmitting = true;
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  try {
+    await registerTeam({ name, tag, region, tournament_id: tournamentId, game_mode: gameMode, players, whatsapp });
+    document.getElementById('reg-form').classList.add('hidden');
+    document.getElementById('success-state').classList.remove('hidden');
+    document.getElementById('success-name').textContent = name;
+    document.getElementById('success-detail').textContent =
+      'Your registration has been received. An admin will review and approve your team. You will be contacted via WhatsApp once confirmed.';
+    document.getElementById('success-actions-new-team').classList.remove('hidden');
+    document.getElementById('success-actions-captain').classList.add('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast('Registration submitted! ✓');
+  } catch (err) {
+    showToast(err.message, 'error');
+    releaseSubmitLock();
+  }
+}
+
+function resetForm() {
+  _registrationSubmitting = false;
+  document.getElementById('reg-form').classList.remove('hidden');
+  document.getElementById('success-state').classList.add('hidden');
+  document.getElementById('success-detail').textContent =
+    'Your registration has been received. An admin will review and approve your team. You will be contacted via WhatsApp once confirmed.';
+  document.getElementById('success-actions-new-team').classList.remove('hidden');
+  document.getElementById('success-actions-captain').classList.add('hidden');
+  document.getElementById('reg-teamname').value = '';
+  document.getElementById('reg-tag').value = '';
+  const sb = document.getElementById('submit-btn');
+  if (sb) {
+    sb.disabled = false;
+    sb.textContent = 'Submit Registration →';
+  }
+  buildRosterFields();
+}
+
+// ── Auto-skip auth gate if already signed in ──────────────
+(function checkExistingSession() {
+  const user = getCurrentUser();
+  if (user) onAuthSuccess(user);
+})();
+</script>
+</body>
+</html>

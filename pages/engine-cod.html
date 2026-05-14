@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Call of Duty Engine - Platform Guide</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+  <script src="../js/config.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/main.js"></script>
+  <script>injectNav('platform-guide.html')</script>
+
+  <main class="max-w-5xl mx-auto px-5 py-8 fade-up">
+    <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest uppercase mb-4">
+      <a href="platform-guide.html" class="hover:text-[#e8c14a]">Platform Guide</a> /
+      <a href="platform-guide-engine.html" class="hover:text-[#e8c14a]">Engine Logic</a> / Call of Duty
+    </div>
+
+    <section class="wz-card accent-left p-7 mb-6">
+      <h1 class="font-head text-3xl font-black tracking-widest uppercase mb-3">Call of Duty Engine</h1>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)]">
+        Built to resolve multi-map and mode-dependent COD fixtures consistently, while supporting tournament-grade auditability.
+      </p>
+    </section>
+
+    <section class="wz-card p-6 mb-6">
+      <h2 class="section-title mb-4">Why It Was Created</h2>
+      <ul class="space-y-2 font-body text-sm text-[var(--wz-text-secondary)]">
+        <li>- COD formats are not single-score friendly; they are often best-of map series with mode context.</li>
+        <li>- Manual winner handling introduces inconsistencies for map count, tie-break logic, and match state.</li>
+        <li>- The engine creates one deterministic rule-set for all COD tournaments across admin actions and public views.</li>
+      </ul>
+    </section>
+
+    <section class="wz-card p-6">
+      <h2 class="section-title mb-4">Core Responsibilities</h2>
+      <ul class="space-y-2 font-body text-sm text-[var(--wz-text-secondary)]">
+        <li>- Resolve per-map outcomes and aggregate them into official match winner output.</li>
+        <li>- Support mode-aware logic and series progression for COD tournament formats.</li>
+        <li>- Provide reliable data for standings and bracket progression services.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

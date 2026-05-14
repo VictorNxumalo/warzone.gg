@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bracket — EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <script src="../js/theme.js"></script>
+  <style>
+    .connector { position: relative; }
+    .connector::after {
+      content: '›';
+      position: absolute;
+      right: -22px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--wz-border-input);
+      font-size: 20px;
+    }
+    .bracket-filter-grid {
+      display: grid;
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+      gap: 0.8rem;
+    }
+    @media (min-width: 780px) {
+      .bracket-filter-grid {
+        grid-template-columns: 0.85fr 0.85fr 1.6fr;
+      }
+    }
+    .bracket-filter-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      min-width: 0;
+    }
+    .bracket-filter-field--wide {
+      min-width: 0;
+    }
+    .bracket-filter-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--wz-muted);
+    }
+    .bracket-filter-select {
+      width: 100%;
+      min-width: 0;
+      padding: 0.5rem 0.65rem;
+      font-size: 12px;
+    }
+    .bracket-meta-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.9rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--wz-border);
+    }
+    .bracket-meta-chip {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.38rem 0.62rem;
+      border-radius: 4px;
+      border: 1px solid var(--wz-border);
+      background: var(--wz-surface2);
+      color: var(--wz-text-secondary);
+      white-space: nowrap;
+    }
+    .bracket-meta-chip--muted {
+      color: var(--wz-muted);
+    }
+    .bracket-meta-chip--live {
+      background: rgba(127, 29, 29, 0.28);
+      color: #f87171;
+      border-color: rgba(185, 28, 28, 0.6);
+    }
+    .bracket-meta-chip--status {
+      background: rgba(146, 64, 14, 0.24);
+      color: #fbbf24;
+      border-color: rgba(180, 83, 9, 0.7);
+    }
+    .bracket-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.8rem;
+    }
+    .bracket-zoom-wrap {
+      transform-origin: top left;
+      transition: transform 140ms ease;
+      width: max-content;
+      min-width: 100%;
+    }
+  </style>
+</head>
+<body class="wz-page">
+<script src="../js/config.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/main.js"></script>
+<script>injectNav('bracket.html')</script>
+
+<main class="max-w-6xl mx-auto px-5 py-8 fade-up">
+
+  <!-- Header — populated dynamically -->
+  <div id="bracket-header" class="mb-6">
+    <div class="flex items-center justify-between mb-4 pb-3 border-b border-[var(--wz-border)]">
+      <h1 class="section-title text-2xl">Tournament Bracket</h1>
+    </div>
+    <div class="wz-card p-4 md:p-5">
+      <div class="bracket-filter-grid">
+        <div class="bracket-filter-field">
+          <span class="bracket-filter-label">Game</span>
+          <select id="game-filter" onchange="handleGameFilterChange()" class="wz-input bracket-filter-select">
+            <option value="">All Games</option>
+          </select>
+        </div>
+        <div class="bracket-filter-field">
+          <span class="bracket-filter-label">Status</span>
+          <select id="status-filter" onchange="applyTournamentFilters()" class="wz-input bracket-filter-select">
+            <option value="">All Statuses</option>
+            <option value="live">Live</option>
+            <option value="open">Open</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div class="bracket-filter-field bracket-filter-field--wide">
+          <span class="bracket-filter-label">Tournament</span>
+          <select id="tournament-select" onchange="handleTournamentChange()" class="wz-input bracket-filter-select">
+            <option value="">All Tournaments</option>
+          </select>
+        </div>
+      </div>
+      <div id="bracket-meta" class="bracket-meta-panel hidden"></div>
+    </div>
+  </div>
+
+  <div id="public-cta" class="hidden wz-card accent-left p-4 mb-6">
+    <div class="flex flex-col md:flex-row md:items-center gap-3 md:justify-between">
+      <div>
+        <div class="font-head text-sm font-bold tracking-wide uppercase">Want your team here?</div>
+        <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] mt-1">Create an account to register, get approved, and compete in upcoming brackets.</div>
+      </div>
+      <a href="register.html" class="btn-primary btn-sm w-fit">Create Account</a>
+    </div>
+  </div>
+
+  <!-- Live Match Alert — shown when a live match exists -->
+  <div id="live-alert" class="hidden wz-card red-left p-4 mb-6 flex items-center gap-4">
+    <span class="blink font-mono text-[10px] text-red-400 tracking-widest">● LIVE NOW</span>
+    <div class="flex-1 font-head text-sm font-bold tracking-wide" id="live-alert-text">—</div>
+    <button onclick="showToast('Stream link: discord.gg/warzoneza')" class="btn-danger btn-sm">Watch</button>
+  </div>
+
+  <div id="wz-host-bracket" class="relative min-h-[18rem]">
+  <!-- Bracket visual — dynamically rendered from match data -->
+  <div class="wz-card p-6 mb-8 overflow-x-auto" id="bracket-visual">
+    <div class="bracket-controls">
+      <select id="mobile-round-focus" onchange="applyMobileRoundFocus()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+        <option value="all">All Rounds</option>
+      </select>
+      <button type="button" onclick="setBracketZoom(0.9)" class="btn-ghost btn-sm">- Zoom</button>
+      <button type="button" onclick="setBracketZoom(1)" class="btn-ghost btn-sm">Reset</button>
+      <button type="button" onclick="setBracketZoom(1.1)" class="btn-ghost btn-sm">+ Zoom</button>
+    </div>
+    <div class="flex gap-4 min-h-[8rem] items-stretch">
+      <div class="flex-1 space-y-3"><div class="wz-skeleton h-16 w-full rounded-sm"></div><div class="wz-skeleton h-16 w-full rounded-sm"></div></div>
+      <div class="flex-1 space-y-8 pt-6"><div class="wz-skeleton h-16 w-full rounded-sm"></div><div class="wz-skeleton h-16 w-full rounded-sm"></div></div>
+      <div class="flex-1 space-y-12 pt-10"><div class="wz-skeleton h-14 w-full rounded-sm"></div></div>
+    </div>
+  </div>
+
+  <!-- Match Results -->
+  <div class="flex items-center justify-between mb-4 pb-3 border-b border-[var(--wz-border)]">
+    <h2 class="section-title">Match Results</h2>
+    <div class="flex gap-2 flex-wrap" id="round-filters">
+      <button onclick="filterRound('all')" id="btn-all" class="btn-primary btn-sm">All</button>
+      <button onclick="filterRound('quarter_final')" id="btn-quarter_final" class="btn-ghost btn-sm">Quarter Finals</button>
+      <button onclick="filterRound('semi_final')" id="btn-semi_final" class="btn-ghost btn-sm">Semi Finals</button>
+      <button onclick="filterRound('grand_final')" id="btn-grand_final" class="btn-ghost btn-sm">Grand Final</button>
+    </div>
+  </div>
+
+  <div id="match-results" class="flex flex-col gap-3">
+    <div class="wz-card p-4"><div class="wz-skeleton h-16 w-full rounded-sm"></div></div>
+    <div class="wz-card p-4"><div class="wz-skeleton h-16 w-full rounded-sm"></div></div>
+  </div>
+  </div>
+
+</main>
+
+<div id="match-details-modal" class="modal-overlay hidden fixed inset-0 z-50 items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="match-details-title">
+  <div class="bg-[var(--wz-surface)] border border-[var(--wz-border-input)] rounded-sm w-full max-w-2xl max-h-[88vh] flex flex-col" onclick="event.stopPropagation()">
+    <div class="px-4 py-3 border-b border-[var(--wz-border)] flex items-start justify-between gap-3">
+      <div>
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest uppercase">Match details</div>
+        <div id="match-details-title" class="font-head text-lg font-black tracking-wide">—</div>
+      </div>
+      <button type="button" onclick="closeModal('match-details-modal')" class="btn-ghost btn-sm">Close</button>
+    </div>
+    <div id="match-details-body" class="px-4 py-4 overflow-y-auto"></div>
+  </div>
+</div>
+
+<script>
+let _allMatches = [];
+let _currentRound = 'all';
+let _activeTournament = null;
+let _allTournaments = [];
+let _bracketUpdatesSince = null;
+let _bracketUpdatesPollTimer = null;
+let _roundRobinStandings = [];
+let _activeBracketLane = 'all';
+let _activeMatchDetailId = null;
+let _bracketZoom = 1;
+let _mobileRoundFocus = 'all';
+let _enhancedBracketEnabled = true;
+/** First load: auto-pick a tournament; after that, empty = “All” stays empty until user picks. */
+let _bracketDidInitialPick = false;
+
+/**
+ * Same titles as register.html + schedule.html game filters (full platform coverage).
+ * Order matches registration / schedule UX; "Other" catches unclassified events.
+ */
+const PLATFORM_GAMES = [
+  'COD Mobile',
+  'COD Warzone',
+  'COD Modern Warfare',
+  'FIFA',
+  'Need for Speed',
+  'Forza',
+  'Mortal Kombat',
+  'Other'
+];
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatDateTime(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('en-ZA');
+}
+
+function renderJsonPreview(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj) || !Object.keys(obj).length) {
+    return '<span class="font-mono text-[10px] text-[var(--wz-muted)]">No extra stats.</span>';
+  }
+  return `<pre class="font-mono text-[10px] bg-[var(--wz-page)] border border-[var(--wz-border)] rounded-sm p-3 overflow-x-auto whitespace-pre-wrap">${escapeHtml(JSON.stringify(obj, null, 2))}</pre>`;
+}
+
+function matchInteractionKeydown(ev, matchId) {
+  if (ev.key !== 'Enter' && ev.key !== ' ') return;
+  ev.preventDefault();
+  openMatchDetails(matchId);
+}
+
+function isEnhancedBracketEnabledForTournament(t) {
+  const globalEnabled = (typeof window.WZ_BRACKET_ENGINE_ENABLED === 'undefined')
+    ? true
+    : !!window.WZ_BRACKET_ENGINE_ENABLED;
+  if (!globalEnabled) return false;
+  const ff = t?.game_rule_profile?.feature_flags;
+  if (ff && typeof ff.new_bracket_ui === 'boolean') return ff.new_bracket_ui;
+  return true;
+}
+
+function openMatchDetails(matchId) {
+  if (!_enhancedBracketEnabled) {
+    showToast('Match details panel is disabled for this tournament rollout wave.', 'info');
+    return;
+  }
+  const m = (_allMatches || []).find((x) => String(x.id) === String(matchId));
+  if (!m) {
+    showToast('Match details not found', 'error');
+    return;
+  }
+  _activeMatchDetailId = m.id;
+  const title = document.getElementById('match-details-title');
+  const body = document.getElementById('match-details-body');
+  const teamA = escapeHtml(m.team_a?.name || 'TBD');
+  const teamB = escapeHtml(m.team_b?.name || 'TBD');
+  title.textContent = `${teamA} vs ${teamB}`;
+  body.innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+      <div class="wz-card p-3">
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-1">Status</div>
+        <div class="font-head text-sm font-bold">${escapeHtml(String(m.status || 'scheduled')).toUpperCase()}</div>
+      </div>
+      <div class="wz-card p-3">
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-1">Score</div>
+        <div class="font-head text-sm font-bold">${m.score_a ?? '—'} - ${m.score_b ?? '—'}</div>
+      </div>
+      <div class="wz-card p-3">
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-1">Round</div>
+        <div class="font-head text-sm font-bold">${escapeHtml(String(m.round || '—').replace(/_/g, ' ')).toUpperCase()}</div>
+      </div>
+      <div class="wz-card p-3">
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-1">Bracket lane</div>
+        <div class="font-head text-sm font-bold">${escapeHtml(laneLabel(m.bracket_type || 'single'))}</div>
+      </div>
+      <div class="wz-card p-3">
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-1">Scheduled</div>
+        <div class="font-mono text-xs">${escapeHtml(formatDateTime(m.scheduled_at))}</div>
+      </div>
+      <div class="wz-card p-3">
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-1">Played</div>
+        <div class="font-mono text-xs">${escapeHtml(formatDateTime(m.played_at))}</div>
+      </div>
+      <div class="wz-card p-3">
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-1">Dispute</div>
+        <div class="font-head text-sm font-bold">${escapeHtml(String(m.dispute_status || 'none')).toUpperCase()}</div>
+      </div>
+    </div>
+    <div class="wz-card p-3 mb-3">
+      <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-2">Map / Mode / Metadata</div>
+      <div class="font-mono text-xs text-[var(--wz-text-secondary)]">Map: ${escapeHtml(m.map_name || '—')}</div>
+      <div class="font-mono text-xs text-[var(--wz-text-secondary)]">Mode: ${escapeHtml(m.game_mode || '—')}</div>
+      <div class="font-mono text-xs text-[var(--wz-text-secondary)]">Match ID: ${escapeHtml(String(m.id || '—'))}</div>
+    </div>
+    <div class="wz-card p-3">
+      <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase tracking-widest mb-2">Stats payload / dispute context</div>
+      ${renderJsonPreview(m.stats)}
+    </div>
+  `;
+  openModal('match-details-modal');
+}
+
+/** Brief highlight on bracket / results rows after Realtime updates (skipped when prefers-reduced-motion). */
+function wzFlashUpdatedMatchIds(ids) {
+  const want = new Set((ids || []).map(String).filter(Boolean));
+  if (!want.size) return;
+  if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  requestAnimationFrame(() => {
+    document.querySelectorAll('[data-bracket-match-id], [data-result-match-id]').forEach((el) => {
+      const mid = el.getAttribute('data-bracket-match-id') || el.getAttribute('data-result-match-id');
+      if (!want.has(mid)) return;
+      el.classList.remove('wz-flash-updated');
+      void el.offsetWidth;
+      el.classList.add('wz-flash-updated');
+      const finish = () => el.classList.remove('wz-flash-updated');
+      el.addEventListener('animationend', finish, { once: true });
+      setTimeout(finish, 950);
+    });
+  });
+}
+
+function isRoundRobinTournament(t) {
+  const fmt = String(t?.format || '').toLowerCase();
+  const mode = String(t?.mode || '').toLowerCase();
+  return fmt.includes('round robin') || fmt.includes('round_robin') || mode.includes('round robin');
+}
+
+function isDoubleElimTournament(matches) {
+  const lanes = new Set((matches || []).map((m) => m?.bracket_type).filter(Boolean));
+  return lanes.has('upper') && lanes.has('lower');
+}
+
+function laneLabel(lane) {
+  if (lane === 'upper') return 'Upper Bracket';
+  if (lane === 'lower') return 'Lower Bracket';
+  if (lane === 'grand_finals') return 'Grand Finals';
+  if (lane === 'single') return 'Main Bracket';
+  return lane;
+}
+
+function getLaneFilteredMatches(matches) {
+  if (_activeBracketLane === 'all') return matches || [];
+  return (matches || []).filter((m) => (m.bracket_type || 'upper') === _activeBracketLane);
+}
+
+function renderBracketLaneFilters(matches) {
+  if (!_enhancedBracketEnabled) {
+    const laneWrap = document.getElementById('bracket-lane-filters');
+    if (laneWrap) {
+      laneWrap.innerHTML = '';
+      laneWrap.classList.add('hidden');
+    }
+    _activeBracketLane = 'all';
+    return;
+  }
+  const root = document.getElementById('round-filters');
+  if (!root) return;
+  let laneWrap = document.getElementById('bracket-lane-filters');
+  if (!laneWrap) {
+    laneWrap = document.createElement('div');
+    laneWrap.id = 'bracket-lane-filters';
+    laneWrap.className = 'flex gap-2 flex-wrap';
+    root.parentNode.insertBefore(laneWrap, root.nextSibling);
+  }
+
+  const lanes = Array.from(new Set((matches || []).map((m) => m?.bracket_type).filter(Boolean)));
+  if (!lanes.length || isRoundRobinTournament(_activeTournament)) {
+    laneWrap.innerHTML = '';
+    laneWrap.classList.add('hidden');
+    _activeBracketLane = 'all';
+    return;
+  }
+
+  const showLaneFilters = isDoubleElimTournament(matches) || lanes.includes('grand_finals');
+  if (!showLaneFilters) {
+    laneWrap.innerHTML = '';
+    laneWrap.classList.add('hidden');
+    _activeBracketLane = 'all';
+    return;
+  }
+
+  if (_activeBracketLane !== 'all' && !lanes.includes(_activeBracketLane)) {
+    _activeBracketLane = 'all';
+  }
+
+  const btn = (lane, label) => `
+    <button onclick="filterBracketLane('${lane}')" id="btn-lane-${lane}" class="${_activeBracketLane === lane ? 'btn-primary' : 'btn-ghost'} btn-sm">${label}</button>
+  `;
+  laneWrap.innerHTML =
+    btn('all', 'All Lanes') +
+    (lanes.includes('upper') ? btn('upper', 'Upper') : '') +
+    (lanes.includes('lower') ? btn('lower', 'Lower') : '') +
+    (lanes.includes('grand_finals') ? btn('grand_finals', 'Grand Finals') : '');
+  laneWrap.classList.remove('hidden');
+}
+
+function filterBracketLane(lane) {
+  _activeBracketLane = lane || 'all';
+  renderBracketLaneFilters(_allMatches);
+  if (isRoundRobinTournament(_activeTournament)) {
+    renderRoundRobinTable();
+    return;
+  }
+  renderBracket(_allMatches);
+  renderResults();
+}
+
+async function loadRoundRobinStandings(tournamentId) {
+  try {
+    _roundRobinStandings = await getLeaderboard({ tournament_id: tournamentId });
+  } catch (_) {
+    _roundRobinStandings = [];
+  }
+}
+
+function renderRoundRobinTable() {
+  const visual = document.getElementById('bracket-visual');
+  const rows = Array.isArray(_roundRobinStandings) ? _roundRobinStandings : [];
+
+  if (!rows.length) {
+    visual.innerHTML = '<div class="text-center py-8 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">NO STANDINGS DATA YET</div>';
+    return;
+  }
+
+  visual.innerHTML = `
+    <div>
+      <div class="bracket-controls">
+        <select id="mobile-round-focus" onchange="applyMobileRoundFocus()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+          <option value="all">All Rounds</option>
+        </select>
+        <button type="button" onclick="setBracketZoom(0.9)" class="btn-ghost btn-sm">- Zoom</button>
+        <button type="button" onclick="setBracketZoom(1)" class="btn-ghost btn-sm">Reset</button>
+        <button type="button" onclick="setBracketZoom(1.1)" class="btn-ghost btn-sm">+ Zoom</button>
+      </div>
+      <div class="font-mono text-[10px] tracking-widest text-[var(--wz-muted)] uppercase mb-3">Round Robin Standings</div>
+      <div class="overflow-x-auto">
+        <table class="wz-table">
+          <thead>
+            <tr>
+              <th style="width:56px">Rank</th>
+              <th>Team</th>
+              <th>W</th>
+              <th>L</th>
+              <th>D</th>
+              <th>Pts</th>
+              <th>GD</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((r) => `
+              <tr>
+                <td><span class="font-head text-base font-bold text-[#e8c14a]">${Number(r.rank || 0)}</span></td>
+                <td class="font-head text-sm font-bold">${escapeHtml(r.name || '—')}</td>
+                <td class="font-mono text-xs text-green-400">${Number(r.wins || 0)}</td>
+                <td class="font-mono text-xs text-[var(--wz-text-secondary)]">${Number(r.losses || 0)}</td>
+                <td class="font-mono text-xs text-[var(--wz-text-secondary)]">${Number(r.draws || 0)}</td>
+                <td class="font-head text-sm font-bold text-[#e8c14a]">${Number(r.points || 0)}</td>
+                <td class="font-mono text-xs text-[var(--wz-text-secondary)]">${Number(r.goal_difference || 0)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  applyBracketZoom();
+  fillMobileRoundFocusSelect([]);
+}
+
+function setBracketZoom(deltaOrTarget) {
+  if (deltaOrTarget === 1) {
+    _bracketZoom = 1;
+  } else {
+    _bracketZoom = Math.max(0.75, Math.min(1.35, Number((_bracketZoom * deltaOrTarget).toFixed(2))));
+  }
+  applyBracketZoom();
+}
+
+function applyBracketZoom() {
+  const wrap = document.getElementById('bracket-zoom-wrap');
+  if (!wrap) return;
+  wrap.style.transform = `scale(${_bracketZoom})`;
+}
+
+function fillMobileRoundFocusSelect(rounds) {
+  const sel = document.getElementById('mobile-round-focus');
+  if (!sel) return;
+  const prev = _mobileRoundFocus || 'all';
+  const opts = ['all', ...rounds];
+  sel.innerHTML = opts
+    .map((r) => `<option value="${r}">${r === 'all' ? 'All Rounds' : String(r).replace(/_/g, ' ').toUpperCase()}</option>`)
+    .join('');
+  _mobileRoundFocus = opts.includes(prev) ? prev : 'all';
+  sel.value = _mobileRoundFocus;
+}
+
+function applyMobileRoundFocus() {
+  const sel = document.getElementById('mobile-round-focus');
+  _mobileRoundFocus = sel?.value || 'all';
+  renderBracket(_allMatches);
+}
+
+function mergeBracketUpdates(updatedRows) {
+  if (!Array.isArray(updatedRows) || !updatedRows.length) return [];
+  const map = new Map((_allMatches || []).map((m) => [String(m.id), m]));
+  const changedIds = [];
+  updatedRows.forEach((row) => {
+    if (!row?.id) return;
+    const id = String(row.id);
+    map.set(id, row);
+    changedIds.push(id);
+  });
+  _allMatches = Array.from(map.values());
+  return changedIds;
+}
+
+async function pollBracketUpdates() {
+  if (!_enhancedBracketEnabled) return;
+  if (!_activeTournament?.id) return;
+  if (!_bracketUpdatesSince) {
+    _bracketUpdatesSince = new Date(Date.now() - 5000).toISOString();
+  }
+  try {
+    const out = await getMatchUpdates({
+      since: _bracketUpdatesSince,
+      tournament_id: _activeTournament.id,
+      limit: 300,
+    });
+    const rows = Array.isArray(out?.data) ? out.data : [];
+    const meta = out?.meta || {};
+    const changedIds = mergeBracketUpdates(rows);
+    _bracketUpdatesSince = meta.server_time || meta.last_event_at || new Date().toISOString();
+    if (changedIds.length) {
+      renderBracketLaneFilters(_allMatches);
+      if (isRoundRobinTournament(_activeTournament)) {
+        await loadRoundRobinStandings(_activeTournament.id);
+        renderRoundRobinTable();
+      } else {
+        renderBracket(_allMatches);
+      }
+      renderResults();
+      wzFlashUpdatedMatchIds(changedIds);
+    }
+  } catch (_) {
+    // retry silently on next tick
+  }
+}
+
+function stopBracketUpdatesPolling() {
+  if (_bracketUpdatesPollTimer) {
+    clearInterval(_bracketUpdatesPollTimer);
+    _bracketUpdatesPollTimer = null;
+  }
+}
+
+function ensureBracketUpdatesPolling() {
+  stopBracketUpdatesPolling();
+  _bracketUpdatesPollTimer = setInterval(pollBracketUpdates, 4000);
+}
+
+/** Aligns with pages/register.html + schedule.html — same labels as PLATFORM_GAMES. */
+function inferTournamentGame(t) {
+  const text = `${t?.game || ''} ${t?.title || ''} ${t?.name || ''} ${t?.mode || ''} ${t?.type || ''}`.toLowerCase();
+  if (text.includes('cod mobile') || text.includes('codm')) return 'COD Mobile';
+  if (text.includes('warzone')) return 'COD Warzone';
+  if (text.includes('modern warfare') || text.includes('morden warfare')) return 'COD Modern Warfare';
+  if (text.includes('fifa')) return 'FIFA';
+  if (text.includes('need for speed') || text.includes('nfs')) return 'Need for Speed';
+  if (text.includes('forza')) return 'Forza';
+  if (text.includes('mortal kombat') || text.includes('mortal kombak') || text.includes('mk')) return 'Mortal Kombat';
+  if (text.includes('call of duty')) return 'COD Mobile';
+  return 'Other';
+}
+
+function getFilteredTournaments() {
+  const statusFilter = document.getElementById('status-filter').value;
+  const gameFilter = document.getElementById('game-filter')?.value || '';
+  return _allTournaments.filter((t) => {
+    if (statusFilter && t.status !== statusFilter) return false;
+    if (gameFilter && inferTournamentGame(t) !== gameFilter) return false;
+    return true;
+  });
+}
+
+function populateGameSelect() {
+  const sel = document.getElementById('game-filter');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML =
+    '<option value="">All Games</option>' +
+    PLATFORM_GAMES.map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+  if (cur && PLATFORM_GAMES.includes(cur)) sel.value = cur;
+}
+
+async function handleGameFilterChange() {
+  const select = document.getElementById('tournament-select');
+  const prev = select.value;
+  populateTournamentSelect();
+  const filtered = getFilteredTournaments();
+  const inList = (id) => filtered.some((t) => String(t.id) === String(id));
+  if (prev && inList(prev)) {
+    select.value = prev;
+  } else if (filtered.length) {
+    select.value = String(filtered[0].id);
+  } else {
+    select.value = '';
+  }
+  await handleTournamentChange();
+}
+
+// ── Round filter ───────────────────────────────────────────
+function filterRound(round) {
+  _currentRound = round;
+  document.querySelectorAll('[id^="btn-"]').forEach((btn) => {
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-ghost');
+  });
+  const active = document.getElementById('btn-' + round);
+  if (active) {
+    active.classList.remove('btn-ghost');
+    active.classList.add('btn-primary');
+  }
+  renderResults();
+}
+
+// ── Render match results list ─────────────────────────────
+function renderResults() {
+  const container = document.getElementById('match-results');
+  const laneMatches = getLaneFilteredMatches(_allMatches);
+  const matches = laneMatches.filter(m => {
+    const hasScore =
+      m.score_a !== null && m.score_a !== undefined &&
+      m.score_b !== null && m.score_b !== undefined;
+    if (!hasScore) return false;
+    if (_currentRound !== 'all' && m.round !== _currentRound) return false;
+    return true;
+  });
+
+  if (!matches.length) {
+    container.className = 'flex flex-col gap-3';
+    container.innerHTML = '<div class="text-center py-8 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">NO COMPLETED MATCHES YET</div>';
+    return;
+  }
+
+  container.className = 'flex flex-col gap-3 reveal-stagger';
+  container.innerHTML = matches.map(m => {
+    const teamA = escapeHtml(m.team_a?.name || m.teamA || '—');
+    const teamB = escapeHtml(m.team_b?.name || m.teamB || 'TBD');
+    const scoreA = m.score_a ?? m.scoreA ?? 0;
+    const scoreB = m.score_b ?? m.scoreB ?? 0;
+    const mapName = escapeHtml(m.map_name || m.map || '—');
+    const gameMode = escapeHtml(m.game_mode || m.mode || '—');
+    const roundLabel = escapeHtml((m.round || '').replace(/_/g, ' ').toUpperCase());
+    const timeStr = m.played_at ? new Date(m.played_at).toLocaleTimeString('en-ZA', { hour:'2-digit', minute:'2-digit' }) : (m.time || '');
+    const aWin = scoreA > scoreB;
+
+    return `
+      <div data-result-match-id="${escapeHtml(String(m.id ?? ''))}" class="wz-card p-4 flex items-center cursor-pointer" role="button" tabindex="0" aria-label="Open match details" onclick="openMatchDetails('${escapeHtml(String(m.id ?? ''))}')" onkeydown="matchInteractionKeydown(event, '${escapeHtml(String(m.id ?? ''))}')">
+        <div class="flex-1">
+          <div class="font-head text-sm font-bold uppercase tracking-wide ${aWin?'text-[#e8c14a]':'text-[var(--wz-muted)]'}">${teamA}</div>
+          <div class="font-head text-3xl font-black leading-none mt-1 ${aWin?'text-[#e8c14a]':'text-[var(--wz-muted)]'}">${scoreA}</div>
+          ${aWin?'<div class="font-mono text-[10px] text-[#e8c14a] tracking-wider mt-1">WINNER</div>':''}
+        </div>
+        <div class="w-24 text-center flex-shrink-0">
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest">VS</div>
+          <div class="font-mono text-[9px] text-[#3a4050] mt-1">${mapName} · ${gameMode}</div>
+          <div class="font-mono text-[9px] text-[#3a4050]">${roundLabel}</div>
+          ${timeStr ? `<div class="font-mono text-[9px] text-[#3a4050] mt-1">${timeStr} SAST</div>` : ''}
+        </div>
+        <div class="flex-1 text-right">
+          <div class="font-head text-sm font-bold uppercase tracking-wide ${!aWin?'text-[#e8c14a]':'text-[var(--wz-muted)]'}">${teamB}</div>
+          <div class="font-head text-3xl font-black leading-none mt-1 ${!aWin?'text-[#e8c14a]':'text-[var(--wz-muted)]'}">${scoreB}</div>
+          ${!aWin?'<div class="font-mono text-[10px] text-[#e8c14a] tracking-wider mt-1 text-right">WINNER</div>':''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Render bracket visual from match data ─────────────────
+function renderBracket(matches) {
+  const visual = document.getElementById('bracket-visual');
+  document.getElementById('live-alert').classList.add('hidden');
+  const laneMatchesBase = getLaneFilteredMatches(matches);
+  const laneMatches = _mobileRoundFocus === 'all'
+    ? laneMatchesBase
+    : laneMatchesBase.filter((m) => m.round === _mobileRoundFocus);
+  const allRoundsInLane = Array.from(new Set(laneMatchesBase.map((m) => m.round).filter(Boolean)));
+  fillMobileRoundFocusSelect(allRoundsInLane);
+
+  const byRound = {
+    group_stage: laneMatches.filter(m => m.round === 'group_stage'),
+    quarter_final: laneMatches.filter(m => m.round === 'quarter_final'),
+    semi_final: laneMatches.filter(m => m.round === 'semi_final'),
+    grand_final: laneMatches.filter(m => m.round === 'grand_final'),
+  };
+
+  // Determine which rounds exist
+  const rounds = [
+    { key: 'quarter_final', label: 'Quarter Finals' },
+    { key: 'semi_final',    label: 'Semi Finals' },
+    { key: 'grand_final',   label: 'Grand Final' },
+  ].filter(r => byRound[r.key]?.length > 0);
+
+  if (!rounds.length && byRound.group_stage.length === 0) {
+    visual.innerHTML = `
+      <div class="bracket-controls">
+        <select id="mobile-round-focus" onchange="applyMobileRoundFocus()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+          <option value="all">All Rounds</option>
+        </select>
+        <button type="button" onclick="setBracketZoom(0.9)" class="btn-ghost btn-sm">- Zoom</button>
+        <button type="button" onclick="setBracketZoom(1)" class="btn-ghost btn-sm">Reset</button>
+        <button type="button" onclick="setBracketZoom(1.1)" class="btn-ghost btn-sm">+ Zoom</button>
+      </div>
+      <div class="text-center py-8 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">NO BRACKET DATA YET</div>
+    `;
+    fillMobileRoundFocusSelect(allRoundsInLane);
+    return;
+  }
+
+  // Check for a live match
+  const liveMatch = laneMatches.find(m => m.status === 'live');
+  if (liveMatch) {
+    const la = escapeHtml(liveMatch.team_a?.name || '—');
+    const lb = escapeHtml(liveMatch.team_b?.name || 'TBD');
+    const roundLabel = escapeHtml((liveMatch.round || '').replace(/_/g, ' ').toUpperCase());
+    document.getElementById('live-alert').classList.remove('hidden');
+    document.getElementById('live-alert-text').innerHTML =
+      `<span class="text-red-400">${roundLabel}</span> — <span>${la}</span><span class="font-mono text-[10px] text-[var(--wz-muted)] mx-2">vs</span><span>${lb}</span>`;
+  }
+
+  const matchCard = (m) => {
+    const teamA = escapeHtml(m.team_a?.name || 'TBD');
+    const teamB = escapeHtml(m.team_b?.name || 'TBD');
+    const scoreA = m.score_a;
+    const scoreB = m.score_b;
+    const live = m.status === 'live';
+    const done = m.status === 'completed';
+    const aWin = done && scoreA > scoreB;
+    const bWin = done && scoreB > scoreA;
+
+    const mid = escapeHtml(String(m.id ?? ''));
+    return `
+      <div data-bracket-match-id="${mid}" class="cursor-pointer" role="button" tabindex="0" aria-label="Open match details" onclick="openMatchDetails('${mid}')" onkeydown="matchInteractionKeydown(event, '${mid}')">
+      <div class="bracket-match ${live ? 'connector' : ''}">
+        <div class="bracket-team ${aWin ? 'bracket-winner' : done ? 'bracket-loser' : live ? '' : ''}">
+          <span class="${live ? 'text-red-400' : ''}">${teamA}</span>
+          <span class="font-mono text-xs ${aWin ? 'text-[#e8c14a]' : live ? 'text-red-400 blink' : 'text-[var(--wz-muted)]'}">
+            ${live ? '—' : (scoreA !== null && scoreA !== undefined) ? scoreA : '—'}
+          </span>
+        </div>
+        <div class="bracket-team ${bWin ? 'bracket-winner' : done ? 'bracket-loser' : live ? '' : 'bracket-tbd'}">
+          <span class="${live ? 'text-red-400' : ''}">${teamB}</span>
+          <span class="font-mono text-xs ${bWin ? 'text-[#e8c14a]' : live ? 'text-red-400 blink' : 'text-[var(--wz-muted)]'}">
+            ${live ? '—' : (scoreB !== null && scoreB !== undefined) ? scoreB : '—'}
+          </span>
+        </div>
+      </div>
+      ${live ? '<div class="font-mono text-[9px] text-red-400 text-center mt-1 blink">● LIVE</div>' : (m.map_name ? `<div class="font-mono text-[9px] text-[var(--wz-muted)] text-center mt-1">${escapeHtml(m.map_name)}</div>` : '')}
+      </div>`;
+  };
+
+  if (!rounds.length) {
+    // Show group stage
+    const groupRounds = byRound.group_stage;
+    visual.innerHTML = `
+      <div class="bracket-controls">
+        <select id="mobile-round-focus" onchange="applyMobileRoundFocus()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+          <option value="all">All Rounds</option>
+        </select>
+        <button type="button" onclick="setBracketZoom(0.9)" class="btn-ghost btn-sm">- Zoom</button>
+        <button type="button" onclick="setBracketZoom(1)" class="btn-ghost btn-sm">Reset</button>
+        <button type="button" onclick="setBracketZoom(1.1)" class="btn-ghost btn-sm">+ Zoom</button>
+      </div>
+      <div class="font-mono text-[10px] tracking-widest text-[var(--wz-muted)] uppercase text-center mb-4">Group Stage</div>
+      <div id="bracket-zoom-wrap" class="bracket-zoom-wrap">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          ${groupRounds.map(m => `<div>${matchCard(m)}</div>`).join('')}
+        </div>
+      </div>`;
+    applyBracketZoom();
+    fillMobileRoundFocusSelect(allRoundsInLane);
+    return;
+  }
+
+  visual.innerHTML = `
+    <div class="bracket-controls">
+      <select id="mobile-round-focus" onchange="applyMobileRoundFocus()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+        <option value="all">All Rounds</option>
+      </select>
+      <button type="button" onclick="setBracketZoom(0.9)" class="btn-ghost btn-sm">- Zoom</button>
+      <button type="button" onclick="setBracketZoom(1)" class="btn-ghost btn-sm">Reset</button>
+      <button type="button" onclick="setBracketZoom(1.1)" class="btn-ghost btn-sm">+ Zoom</button>
+    </div>
+    <div id="bracket-zoom-wrap" class="bracket-zoom-wrap">
+      <div class="flex gap-10 min-w-[600px]">
+        ${rounds.map(r => `
+          <div class="flex-shrink-0 ${r.key === 'semi_final' ? 'flex flex-col justify-center' : ''}  ${r.key === 'grand_final' ? 'flex flex-col justify-center' : ''}">
+            <div class="font-mono text-[10px] tracking-widest text-[var(--wz-muted)] uppercase text-center mb-4">${r.label}</div>
+            <div class="flex flex-col ${r.key === 'semi_final' ? 'gap-16' : r.key === 'grand_final' ? 'gap-4' : 'gap-4'}">
+              ${byRound[r.key].map(m => `<div>${matchCard(m)}</div>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  applyBracketZoom();
+  fillMobileRoundFocusSelect(allRoundsInLane);
+}
+
+function populateTournamentSelect() {
+  const select = document.getElementById('tournament-select');
+  const current = select.value;
+  const filtered = getFilteredTournaments();
+
+  select.innerHTML = '<option value="">All Tournaments</option>' +
+    filtered.map(t => `<option value="${String(t.id).replace(/"/g, '&quot;')}">${escapeHtml(t.name)} (${escapeHtml(String(t.status))})</option>`).join('');
+
+  const inList = (id) => filtered.some((t) => String(t.id) === String(id));
+  if (current !== '' && inList(current)) {
+    select.value = current;
+  } else if (_activeTournament?.id != null && inList(_activeTournament.id)) {
+    select.value = String(_activeTournament.id);
+  }
+}
+
+async function applyTournamentFilters() {
+  populateTournamentSelect();
+
+  const select = document.getElementById('tournament-select');
+  const filtered = getFilteredTournaments();
+
+  const p = new URLSearchParams(window.location.search);
+  const urlTid = p.get('tournament') || p.get('id');
+  if (urlTid && _allTournaments.some((t) => String(t.id) === String(urlTid))) {
+    const inFiltered = filtered.some((t) => String(t.id) === String(urlTid));
+    if (inFiltered) {
+      select.value = String(urlTid);
+      _bracketDidInitialPick = true;
+    }
+  }
+
+  if (!select.value) {
+    if (!_bracketDidInitialPick && filtered.length) {
+      const preferred =
+        filtered.find((t) => t.status === 'live') ||
+        filtered.find((t) => t.status === 'open') ||
+        filtered[0];
+      if (preferred) select.value = String(preferred.id);
+      _bracketDidInitialPick = true;
+    } else if (filtered.length && !_bracketDidInitialPick) {
+      select.value = String(filtered[0].id);
+    }
+  } else {
+    _bracketDidInitialPick = true;
+  }
+  await handleTournamentChange();
+}
+
+async function handleTournamentChange() {
+  const selectedIdRaw = document.getElementById('tournament-select').value;
+  const selectedId = selectedIdRaw === '' ? '' : String(selectedIdRaw);
+
+  if (selectedId === '') {
+    _activeTournament = null;
+    _allMatches = [];
+    _roundRobinStandings = [];
+    _activeBracketLane = 'all';
+    renderBracketLaneFilters([]);
+    _bracketUpdatesSince = null;
+    stopBracketUpdatesPolling();
+    document.querySelector('#bracket-header h1').textContent = 'Tournament Bracket';
+    const metaWrap = document.getElementById('bracket-meta');
+    metaWrap.innerHTML = '';
+    metaWrap.classList.add('hidden');
+    document.getElementById('live-alert').classList.add('hidden');
+    document.getElementById('bracket-visual').innerHTML =
+      '<div class="text-center py-10 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider max-w-md mx-auto">Select a tournament above to load bracket and results. Choosing <strong class="text-[var(--wz-text)]">All Tournaments</strong> shows this message — we do not mix every match in one view.</div>';
+    document.getElementById('match-results').innerHTML =
+      '<div class="text-center py-8 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">Select a tournament to see completed results.</div>';
+    return;
+  }
+
+  _activeTournament = _allTournaments.find((t) => String(t.id) === selectedId) || null;
+  if (!_activeTournament) {
+    document.getElementById('tournament-select').value = '';
+    _allMatches = [];
+    _roundRobinStandings = [];
+    _activeBracketLane = 'all';
+    renderBracketLaneFilters([]);
+    _bracketUpdatesSince = null;
+    stopBracketUpdatesPolling();
+    document.querySelector('#bracket-header h1').textContent = 'Tournament Bracket';
+    const metaWrap = document.getElementById('bracket-meta');
+    metaWrap.innerHTML = '';
+    metaWrap.classList.add('hidden');
+    document.getElementById('bracket-visual').innerHTML =
+      '<div class="text-center py-10 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">Tournament not found or removed. Choose another from the list.</div>';
+    document.getElementById('match-results').innerHTML =
+      '<div class="text-center py-8 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">—</div>';
+    return;
+  }
+  _enhancedBracketEnabled = isEnhancedBracketEnabledForTournament(_activeTournament);
+
+  document.querySelector('#bracket-header h1').textContent = _activeTournament.name;
+  const metaEl = document.getElementById('bracket-meta');
+  metaEl.classList.remove('hidden');
+  metaEl.innerHTML = `
+    <span class="bracket-meta-chip ${_activeTournament.status==='live' ? 'bracket-meta-chip--live blink' : 'bracket-meta-chip--status'}">
+      ${_activeTournament.status === 'live' ? '● LIVE' : escapeHtml(String(_activeTournament.status)).toUpperCase()}
+    </span>
+    <span class="bracket-meta-chip">${escapeHtml(_activeTournament.mode || '')}</span>
+    <span class="bracket-meta-chip bracket-meta-chip--muted">${escapeHtml(String(_activeTournament.max_slots ?? ''))} Teams</span>
+    ${_enhancedBracketEnabled
+      ? '<span class="bracket-meta-chip">Enhanced UI ON</span>'
+      : '<span class="bracket-meta-chip bracket-meta-chip--muted">Enhanced UI OFF (pilot gating)</span>'}`;
+
+  await wzWithLoading(
+    'wz-host-bracket',
+    async () => {
+      try {
+        const params = { tournament_id: _activeTournament.id };
+        _allMatches = await getMatches(params);
+        _activeBracketLane = 'all';
+        renderBracketLaneFilters(_allMatches);
+        if (isRoundRobinTournament(_activeTournament)) {
+          await loadRoundRobinStandings(_activeTournament.id);
+        } else {
+          _roundRobinStandings = [];
+        }
+        _bracketUpdatesSince = new Date().toISOString();
+      } catch (e) {
+        document.getElementById('bracket-visual').innerHTML =
+          `<div class="text-center py-8 font-mono text-[10px] text-red-400">${escapeHtml(e.message || 'Failed to load matches')}</div>`;
+        document.getElementById('match-results').innerHTML =
+          `<div class="text-center py-4 font-mono text-[10px] text-red-400">${escapeHtml(e.message || 'Failed to load matches')}</div>`;
+        return;
+      }
+      if (_enhancedBracketEnabled && isRoundRobinTournament(_activeTournament)) {
+        renderRoundRobinTable();
+      } else {
+        renderBracket(_allMatches);
+      }
+      renderResults();
+      if (_enhancedBracketEnabled) {
+        ensureBracketUpdatesPolling();
+      } else {
+        stopBracketUpdatesPolling();
+      }
+    },
+    { label: 'Loading bracket', minMs: 200 }
+  );
+}
+
+// ── Init ──────────────────────────────────────────────────
+async function loadBracket() {
+  try {
+    _allTournaments = await getTournaments();
+    populateGameSelect();
+    const p = new URLSearchParams(window.location.search);
+    const urlTid = p.get('tournament') || p.get('id');
+    if (urlTid) {
+      const tourney = _allTournaments.find((t) => String(t.id) === String(urlTid));
+      const gf = document.getElementById('game-filter');
+      if (gf && tourney) gf.value = inferTournamentGame(tourney);
+    }
+    await applyTournamentFilters();
+  } catch (err) {
+    const msg = escapeHtml(err.message || 'Failed to load bracket');
+    document.getElementById('bracket-visual').innerHTML =
+      `<div class="text-center py-8 font-mono text-[10px] text-red-400">${msg}</div>`;
+    document.getElementById('match-results').innerHTML =
+      `<div class="text-center py-4 font-mono text-[10px] text-red-400">${msg}</div>`;
+  }
+}
+
+if (!getCurrentUser()) {
+  document.getElementById('public-cta')?.classList.remove('hidden');
+}
+loadBracket();
+</script>
+</body>
+</html>

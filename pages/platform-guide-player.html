@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Player Journey - Platform Guide</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+  <script src="../js/config.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/main.js"></script>
+  <script>injectNav('platform-guide.html')</script>
+
+  <main class="max-w-5xl mx-auto px-5 py-8 fade-up">
+    <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest uppercase mb-4">
+      <a href="platform-guide.html" class="hover:text-[#e8c14a]">Platform Guide</a> / Players Without Teams
+    </div>
+
+    <section class="wz-card accent-left p-7 mb-6">
+      <h1 class="font-head text-3xl font-black tracking-widest uppercase mb-3">Player Journey (No Team Yet)</h1>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)]">
+        A signed-in user without team membership can manage a player identity and move toward team participation.
+      </p>
+    </section>
+
+    <section class="wz-card p-6 mb-6">
+      <h2 class="section-title mb-4">Interaction Flow</h2>
+      <div class="space-y-3">
+        <div class="border border-[var(--wz-border)] rounded p-4">
+          <div class="font-head text-sm font-bold uppercase">1. Register + sign in</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mt-1">User creates account, authenticates, and gets a role-aware navigation state.</p>
+        </div>
+        <div class="border border-[var(--wz-border)] rounded p-4">
+          <div class="font-head text-sm font-bold uppercase">2. Player profile and eligibility</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mt-1">User can view player profile and account details while not tied to a squad.</p>
+        </div>
+        <div class="border border-[var(--wz-border)] rounded p-4">
+          <div class="font-head text-sm font-bold uppercase">3. Join path</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mt-1">User discovers teams, receives invites, or sends join requests depending on team governance rules.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="wz-card p-6">
+      <h2 class="section-title mb-4">System Handling</h2>
+      <ul class="space-y-2 font-body text-sm text-[var(--wz-text-secondary)]">
+        <li>- Session persistence stores token and user object to keep sign-in state across pages.</li>
+        <li>- Team ownership checks drive visibility of team-specific actions and pages.</li>
+        <li>- Invite/request controllers and roster governance services enforce membership transitions.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

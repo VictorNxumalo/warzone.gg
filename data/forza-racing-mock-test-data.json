@@ -1,0 +1,254 @@
+{
+  "_title": "Forza Racing Engine Mock Test Data",
+  "_readme": "Use this to test RacingTournamentEngine end-to-end (admin create + race result submissions + leaderboard verification). Replace PLACEHOLDER UUIDs with real values.",
+  "preflight": [
+    "Run warzongg-api/sql/racing_tournament_engine.sql in Supabase SQL Editor.",
+    "Ensure API server is running.",
+    "Ensure at least 4 approved teams/participants are registered for this tournament.",
+    "Keep tournament name/mode containing 'Forza' or set tournaments.racing_config non-empty."
+  ],
+  "tournament_create": {
+    "method": "POST",
+    "url": "{{API_URL}}/api/tournaments",
+    "headers": {
+      "Authorization": "Bearer {{ADMIN_JWT}}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "name": "Forza Championship 2026 — Engine Test",
+      "tag": "FCH6",
+      "mode": "Forza Motorsport · Championship Series",
+      "type": "solo",
+      "format": "3 race events, cumulative points",
+      "region": "ZA",
+      "start_date": "2026-10-05",
+      "reg_deadline": "2026-09-29",
+      "max_slots": 12,
+      "prize_total": 42000,
+      "entry_fee": 0,
+      "prize_1st": 22000,
+      "prize_2nd": 12000,
+      "prize_3rd": 8000,
+      "prize_mvp": 0,
+      "description": "Racing engine mock: position scoring + fastest lap bonus."
+    }
+  },
+  "tournament_config_patch": {
+    "method": "PATCH",
+    "url": "{{API_URL}}/api/tournaments/TOURNAMENT_ID",
+    "headers": {
+      "Authorization": "Bearer {{ADMIN_JWT}}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "racing_config": {
+        "points_by_position": {
+          "1": 25,
+          "2": 18,
+          "3": 15,
+          "4": 12,
+          "5": 10,
+          "6": 8,
+          "7": 6,
+          "8": 4,
+          "9": 2,
+          "10": 1
+        },
+        "fastest_lap_bonus": 1
+      }
+    }
+  },
+  "participants": {
+    "driver_a": "PLACEHOLDER_DRIVER_A_TEAM_UUID",
+    "driver_b": "PLACEHOLDER_DRIVER_B_TEAM_UUID",
+    "driver_c": "PLACEHOLDER_DRIVER_C_TEAM_UUID",
+    "driver_d": "PLACEHOLDER_DRIVER_D_TEAM_UUID"
+  },
+  "race_1": {
+    "create_match": {
+      "method": "POST",
+      "url": "{{API_URL}}/api/matches",
+      "body": {
+        "tournament_id": "TOURNAMENT_ID",
+        "team_a_id": "PLACEHOLDER_DRIVER_A_TEAM_UUID",
+        "team_b_id": "PLACEHOLDER_DRIVER_B_TEAM_UUID",
+        "round": "group_stage",
+        "map_name": "Monza",
+        "game_mode": "Main Race",
+        "status": "scheduled",
+        "scheduled_at": "2026-10-10T18:00:00.000Z"
+      }
+    },
+    "complete_match": {
+      "method": "PATCH",
+      "url": "{{API_URL}}/api/matches/RACE_1_MATCH_ID",
+      "body": {
+        "status": "completed",
+        "stats": {
+          "racing": {
+            "event": "Round 1",
+            "session_type": "main_race",
+            "results": [
+              { "participant_id": "PLACEHOLDER_DRIVER_A_TEAM_UUID", "position": 1, "fastest_lap": true },
+              { "participant_id": "PLACEHOLDER_DRIVER_B_TEAM_UUID", "position": 2 },
+              { "participant_id": "PLACEHOLDER_DRIVER_C_TEAM_UUID", "position": 3 },
+              { "participant_id": "PLACEHOLDER_DRIVER_D_TEAM_UUID", "position": 4 }
+            ]
+          }
+        }
+      },
+      "expected_points": {
+        "driver_a": 26,
+        "driver_b": 18,
+        "driver_c": 15,
+        "driver_d": 12
+      }
+    }
+  },
+  "race_2": {
+    "create_match": {
+      "method": "POST",
+      "url": "{{API_URL}}/api/matches",
+      "body": {
+        "tournament_id": "TOURNAMENT_ID",
+        "team_a_id": "PLACEHOLDER_DRIVER_A_TEAM_UUID",
+        "team_b_id": "PLACEHOLDER_DRIVER_B_TEAM_UUID",
+        "round": "group_stage",
+        "map_name": "Silverstone",
+        "game_mode": "Main Race",
+        "status": "scheduled",
+        "scheduled_at": "2026-10-17T18:00:00.000Z"
+      }
+    },
+    "complete_match": {
+      "method": "PATCH",
+      "url": "{{API_URL}}/api/matches/RACE_2_MATCH_ID",
+      "body": {
+        "status": "completed",
+        "stats": {
+          "racing": {
+            "event": "Round 2",
+            "session_type": "main_race",
+            "results": [
+              { "participant_id": "PLACEHOLDER_DRIVER_B_TEAM_UUID", "position": 1, "fastest_lap": true },
+              { "participant_id": "PLACEHOLDER_DRIVER_C_TEAM_UUID", "position": 2 },
+              { "participant_id": "PLACEHOLDER_DRIVER_A_TEAM_UUID", "position": 3 },
+              { "participant_id": "PLACEHOLDER_DRIVER_D_TEAM_UUID", "position": 4, "dnf": true }
+            ]
+          }
+        }
+      },
+      "expected_points": {
+        "driver_a": 15,
+        "driver_b": 26,
+        "driver_c": 18,
+        "driver_d": 0
+      }
+    }
+  },
+  "race_3": {
+    "create_match": {
+      "method": "POST",
+      "url": "{{API_URL}}/api/matches",
+      "body": {
+        "tournament_id": "TOURNAMENT_ID",
+        "team_a_id": "PLACEHOLDER_DRIVER_A_TEAM_UUID",
+        "team_b_id": "PLACEHOLDER_DRIVER_B_TEAM_UUID",
+        "round": "group_stage",
+        "map_name": "Spa",
+        "game_mode": "Main Race",
+        "status": "scheduled",
+        "scheduled_at": "2026-10-24T18:00:00.000Z"
+      }
+    },
+    "complete_match": {
+      "method": "PATCH",
+      "url": "{{API_URL}}/api/matches/RACE_3_MATCH_ID",
+      "body": {
+        "status": "completed",
+        "stats": {
+          "racing": {
+            "event": "Round 3",
+            "session_type": "main_race",
+            "results": [
+              { "participant_id": "PLACEHOLDER_DRIVER_C_TEAM_UUID", "position": 1 },
+              { "participant_id": "PLACEHOLDER_DRIVER_A_TEAM_UUID", "position": 2, "fastest_lap": true },
+              { "participant_id": "PLACEHOLDER_DRIVER_B_TEAM_UUID", "position": 3 },
+              { "participant_id": "PLACEHOLDER_DRIVER_D_TEAM_UUID", "position": 4 }
+            ]
+          }
+        }
+      },
+      "expected_points": {
+        "driver_a": 19,
+        "driver_b": 15,
+        "driver_c": 25,
+        "driver_d": 12
+      }
+    }
+  },
+  "expected_championship_totals_after_3_races": [
+    {
+      "participant": "driver_a",
+      "total_points": 60,
+      "wins": 1,
+      "best_finish": 1
+    },
+    {
+      "participant": "driver_b",
+      "total_points": 59,
+      "wins": 1,
+      "best_finish": 1
+    },
+    {
+      "participant": "driver_c",
+      "total_points": 58,
+      "wins": 1,
+      "best_finish": 1
+    },
+    {
+      "participant": "driver_d",
+      "total_points": 24,
+      "wins": 0,
+      "best_finish": 4
+    }
+  ],
+  "verification": {
+    "leaderboard": "GET {{API_URL}}/api/leaderboard?tournament_id=TOURNAMENT_ID",
+    "matches": "GET {{API_URL}}/api/matches?tournament_id=TOURNAMENT_ID",
+    "what_to_check": [
+      "Each completed race has stats.racing.results rows with computed points.",
+      "Leaderboard ordering uses points DESC, then wins DESC, then best_finish ASC.",
+      "Totals match expected_championship_totals_after_3_races."
+    ]
+  },
+  "negative_tests": [
+    {
+      "name": "Duplicate position should fail",
+      "patch_body": {
+        "status": "completed",
+        "stats": {
+          "racing": {
+            "results": [
+              { "participant_id": "PLACEHOLDER_DRIVER_A_TEAM_UUID", "position": 1 },
+              { "participant_id": "PLACEHOLDER_DRIVER_B_TEAM_UUID", "position": 1 }
+            ]
+          }
+        }
+      },
+      "expected": "400 with duplicate finishing position/incomplete reason"
+    },
+    {
+      "name": "Empty results should fail",
+      "patch_body": {
+        "status": "completed",
+        "stats": {
+          "racing": {
+            "results": []
+          }
+        }
+      },
+      "expected": "400 incomplete: non-empty racing results required"
+    }
+  ]
+}

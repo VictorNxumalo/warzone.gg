@@ -1,0 +1,234 @@
+{
+  "_title": "FIFA tournament — admin mock setup & result submission (WARZONE.GG)",
+  "_version": "1.0",
+  "prerequisites": [
+    "Apply warzongg-api/sql/fifa_tournament_engine.sql in Supabase SQL Editor (optional columns + fifa_scoring_config).",
+    "API running (e.g. localhost:3000) and js/config.js WZ_API_URL pointing at it.",
+    "One admin account (Admin panel) and at least two approved teams registered for the tournament (captain flow). Admins cannot register teams; use captain accounts or seed registrations in Supabase.",
+    "Replace every PLACEHOLDER_* below with real UUIDs from Table Editor or GET /api/tournaments, /api/teams, /api/registrations."
+  ],
+  "why_engine_triggers": "The FIFA engine runs when the tournament row has 'fifa' in type OR mode (case-insensitive). The admin Create Tournament form sets mode = '<Game Title> · <Division label>', so choose Game Title = FIFA.",
+  "step_1_create_tournament_admin_ui": {
+    "navigate": "pages/admin.html → tab 'Create' (Create New Tournament)",
+    "fields": {
+      "Tournament Name": "FIFA Winter Cup 2026 — Mock",
+      "Short Tag": "FW26",
+      "Game Title": "FIFA",
+      "Division / Queue Label": "1v1 Ultimate Team — Group + Knockout",
+      "Tournament Structure": "solo or ranked (any; engine keys off FIFA in mode)",
+      "Format": "Group stage (round robin) → Knockout",
+      "Max Teams": "8",
+      "Start Date": "2026-07-01",
+      "Registration Deadline": "2026-06-25",
+      "Prize Pool / Entry / Prizes / Description": "Any valid numbers/text"
+    },
+    "result": "mode stored as 'FIFA · 1v1 Ultimate Team — Group + Knockout' → contains 'fifa' → FIFA engine active for all matches in this tournament."
+  },
+  "step_1b_create_tournament_rest": {
+    "method": "POST",
+    "url": "{{API_URL}}/api/tournaments",
+    "headers": { "Content-Type": "application/json", "Authorization": "Bearer {{ADMIN_JWT}}" },
+    "body": {
+      "name": "FIFA Winter Cup 2026 — Mock",
+      "tag": "FW26",
+      "mode": "FIFA · 1v1 Ultimate Team — Group + Knockout",
+      "type": "solo",
+      "format": "Group stage → Knockout",
+      "region": "ZA",
+      "start_date": "2026-07-01",
+      "reg_deadline": "2026-06-25",
+      "max_slots": 8,
+      "prize_total": 24000,
+      "entry_fee": 0,
+      "prize_1st": 12000,
+      "prize_2nd": 8000,
+      "prize_3rd": 4000,
+      "prize_mvp": 0,
+      "description": "Mock FIFA cup — goals as score_a/score_b; group draws allowed; knockout needs ET/PEN or admin winner."
+    },
+    "capture": "Save returned tournament id as TOURNAMENT_ID."
+  },
+  "step_2_registrations": [
+    "Captains: pages/register.html or POST /api/registrations with tournament_id = TOURNAMENT_ID (two different teams minimum).",
+    "Admin: pages/admin.html → Participants → select tournament → set each registration status to approved (PATCH /api/registrations/:id/status)."
+  ],
+  "step_3_schedule_matches_admin_ui": {
+    "navigate": "Admin → Matches → Create Match For Tournament",
+    "game_strip": "Click FIFA filter on the game strip so only FIFA tournaments appear in dropdowns.",
+    "per_match": {
+      "Game": "FIFA",
+      "Tournament": "FIFA Winter Cup 2026 — Mock",
+      "Round": "group_stage for group fixtures; quarter_final / semi_final / grand_final for KO",
+      "Team A / Team B": "Pick two distinct approved teams",
+      "Arena / Stage": "e.g. Ultímate pitch",
+      "Ruleset / Match Mode": "e.g. FUT 1v1",
+      "Scheduled time": "optional datetime-local",
+      "Leave scores empty on create": "Admin UI always creates as scheduled with null scores; enter results in Update panel."
+    }
+  },
+  "step_3b_create_scheduled_matches_rest": [
+    {
+      "label": "Group — Alpha vs Bravo",
+      "method": "POST",
+      "url": "{{API_URL}}/api/matches",
+      "headers": { "Content-Type": "application/json", "Authorization": "Bearer {{ADMIN_JWT}}" },
+      "body": {
+        "tournament_id": "PLACEHOLDER_TOURNAMENT_UUID",
+        "team_a_id": "PLACEHOLDER_TEAM_ALPHA_UUID",
+        "team_b_id": "PLACEHOLDER_TEAM_BRAVO_UUID",
+        "round": "group_stage",
+        "map_name": "FUT Stadium",
+        "game_mode": "FUT 1v1",
+        "status": "scheduled",
+        "scheduled_at": "2026-07-01T18:00:00.000Z",
+        "score_a": null,
+        "score_b": null
+      }
+    },
+    {
+      "label": "Group — Alpha vs Charlie",
+      "method": "POST",
+      "url": "{{API_URL}}/api/matches",
+      "body": {
+        "tournament_id": "PLACEHOLDER_TOURNAMENT_UUID",
+        "team_a_id": "PLACEHOLDER_TEAM_ALPHA_UUID",
+        "team_b_id": "PLACEHOLDER_TEAM_CHARLIE_UUID",
+        "round": "group_stage",
+        "map_name": "FUT Stadium",
+        "game_mode": "FUT 1v1",
+        "status": "scheduled",
+        "scheduled_at": "2026-07-02T18:00:00.000Z",
+        "score_a": null,
+        "score_b": null
+      }
+    },
+    {
+      "label": "Group — Bravo vs Charlie",
+      "method": "POST",
+      "url": "{{API_URL}}/api/matches",
+      "body": {
+        "tournament_id": "PLACEHOLDER_TOURNAMENT_UUID",
+        "team_a_id": "PLACEHOLDER_TEAM_BRAVO_UUID",
+        "team_b_id": "PLACEHOLDER_TEAM_CHARLIE_UUID",
+        "round": "group_stage",
+        "map_name": "FUT Stadium",
+        "game_mode": "FUT 1v1",
+        "status": "scheduled",
+        "scheduled_at": "2026-07-03T18:00:00.000Z",
+        "score_a": null,
+        "score_b": null
+      }
+    }
+  ],
+  "step_4_submit_results_admin_ui": {
+    "navigate": "Admin → Matches → Update Stats Match For Tournament",
+    "select_match": "Choose the scheduled fixture",
+    "fields": {
+      "Score A / Score B": "Goals for each side (integers)",
+      "Status": "completed",
+      "Round": "Must stay group_stage for group fixtures (leaderboard only counts group_stage for FIFA)",
+      "COD engine stats JSON": "For FIFA optional extras use JSON object with fifa key, e.g. penalties — see step_4b"
+    },
+    "group_win_example": { "live-score-a": "3", "live-score-b": "1", "live-status": "completed" },
+    "group_draw_example": { "live-score-a": "2", "live-score-b": "2", "live-status": "completed" },
+    "knockout_tie_then_pens_example": {
+      "live-score-a": "1",
+      "live-score-b": "1",
+      "live-round": "quarter_final",
+      "live-status": "completed",
+      "live-stats-json": "{\n  \"fifa\": {\n    \"pen_goals_a\": 4,\n    \"pen_goals_b\": 3\n  }\n}"
+    }
+  },
+  "step_4b_patch_results_rest": {
+    "group_win_alpha_vs_bravo": {
+      "method": "PATCH",
+      "url": "{{API_URL}}/api/matches/PLACEHOLDER_MATCH_ID_AB",
+      "headers": { "Content-Type": "application/json", "Authorization": "Bearer {{ADMIN_JWT}}" },
+      "body": {
+        "score_a": 3,
+        "score_b": 1,
+        "status": "completed",
+        "round": "group_stage"
+      },
+      "expect": "200; winner_id = team_a; stats.fifa.resolved_phase = 'regular'"
+    },
+    "group_draw_bravo_vs_charlie": {
+      "method": "PATCH",
+      "url": "{{API_URL}}/api/matches/PLACEHOLDER_MATCH_ID_BC",
+      "body": {
+        "score_a": 2,
+        "score_b": 2,
+        "status": "completed",
+        "round": "group_stage"
+      },
+      "expect": "200; winner_id null; is_draw; both get +1 point in tournament leaderboard"
+    },
+    "knockout_quarter_after_1_1": {
+      "method": "PATCH",
+      "url": "{{API_URL}}/api/matches/PLACEHOLDER_MATCH_ID_KO",
+      "body": {
+        "score_a": 1,
+        "score_b": 1,
+        "status": "completed",
+        "round": "quarter_final",
+        "stats": {
+          "fifa": {
+            "pen_goals_a": 5,
+            "pen_goals_b": 4
+          }
+        }
+      },
+      "expect": "200; winner team A on penalties; does NOT affect FIFA group leaderboard (round !== group_stage)"
+    },
+    "knockout_fail_without_resolution": {
+      "body": { "score_a": 1, "score_b": 1, "status": "completed", "round": "semi_final", "stats": {} },
+      "expect": "400 incomplete — must add ET/PEN or admin_winner_team_id"
+    }
+  },
+  "expected_group_mini_table_after_three_round_robin_matches": {
+    "_scenario": "Alpha beats Bravo 3-1; Alpha draws Charlie 2-2; Bravo beats Charlie 1-0",
+    "points_rules": "Win 3, draw 1, loss 0; sort by points, then goal difference, then goals for",
+    "expected_order_hint": "Alpha first (highest points), then order by GD/GF — verify with GET leaderboard below"
+  },
+  "step_5_verify_platform_everywhere": {
+    "api_leaderboard_tournament_scoped": {
+      "request": "GET {{API_URL}}/api/leaderboard?tournament_id=TOURNAMENT_ID",
+      "expect": "Each team has points, wins, losses, draws, goals_for, goals_against, goal_difference for FIFA; only group_stage matches counted."
+    },
+    "api_matches": {
+      "request": "GET {{API_URL}}/api/matches?tournament_id=TOURNAMENT_ID",
+      "expect": "Completed rows show score_a/score_b; winner_id set except draws; stats.fifa resolution metadata after PATCH."
+    },
+    "page_leaderboard_html": {
+      "url": "pages/leaderboard.html — pick game FIFA / your tournament in filters",
+      "expect": "Rows and ranks align with API (same recomputation rules)."
+    },
+    "page_tournaments_html": {
+      "url": "pages/tournaments.html — open tournament card → completed fixtures show scores",
+      "expect": "View Result shows same goals as API."
+    },
+    "page_schedule_html": {
+      "url": "pages/schedule.html",
+      "expect": "Match appears in date group with status completed when set."
+    },
+    "page_bracket_html": {
+      "url": "pages/bracket.html",
+      "expect": "Matches list uses score_a/score_b; KO fixtures appear when loaded for that tournament."
+    },
+    "page_admin_html": {
+      "url": "pages/admin.html — Overview match status + Match history table",
+      "expect": "Scores and winner direction (bold) match public API."
+    }
+  },
+  "powershell_quick_checks": [
+    "$API='http://localhost:3000'",
+    "$T='TOURNAMENT_UUID'",
+    "Invoke-RestMethod -Uri \"$API/api/leaderboard?tournament_id=$T\" | ConvertTo-Json -Depth 6",
+    "Invoke-RestMethod -Uri \"$API/api/matches?tournament_id=$T\" | ConvertTo-Json -Depth 6"
+  ],
+  "notes": [
+    "Global teams.wins/points are NOT updated for FIFA tournaments (only COD-style global tally); tournament view is authoritative.",
+    "If leaderboard looks empty, ensure registrations are approved and matches are status completed with both scores.",
+    "Head-to-head tie-break is not yet applied in /api/leaderboard — GD then GF are used."
+  ]
+}
