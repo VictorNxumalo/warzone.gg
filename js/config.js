@@ -12,7 +12,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 (function (global) {
-  var WZ_DEFAULT_PROD_API = '';
+  var WZ_DEFAULT_PROD_API = 'https://warzone-gg.onrender.com';
 
   /** True when opened via RFC1918 LAN IP (phone on Wi‑Fi hitting http://192.168.x.x:3333/). */
   function isPrivateLanHost(hostname) {
