@@ -70,6 +70,13 @@ Minimum must-pass checks:
 - Smoke test auth, registration, and key read APIs.
 - Confirm `main` is clean and pushed to GitHub.
 
+## Operations and monitoring
+
+- API liveness: `/healthz`
+- API readiness: `/readyz`
+- Plain-English operations notes: `docs/release/plain-english-ops-guide.md`
+- CI checks run on push/PR via `.github/workflows/ci.yml`
+
 ## Documentation (`docs/`)
 
 - **`docs/project/`** — Word/PDF write-ups (architecture notes, progress reports, folder-structure reference).

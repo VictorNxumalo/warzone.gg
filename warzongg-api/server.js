@@ -5,6 +5,7 @@ const express = require('express');
 const cors    = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const { supabaseAdmin } = require('./config/supabase');
 
 const errorHandler    = require('./middleware/errorHandler');
 const { withResponseCache } = require('./middleware/responseCache');
@@ -187,7 +188,46 @@ app.use(cors({
 // ── BODY PARSING ────────────────────────────────────────────
 app.use(express.json());
 
+async function checkDatabaseReady() {
+  const { error } = await supabaseAdmin
+    .from('users')
+    .select('id', { head: true })
+    .limit(1);
+  return !error;
+}
+
 // ── HEALTH CHECK ────────────────────────────────────────────
+app.get('/healthz', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'warzonegg-api',
+    env: NODE_ENV,
+    uptime_seconds: Math.round(process.uptime()),
+    now: new Date().toISOString(),
+  });
+});
+
+app.get('/readyz', async (req, res) => {
+  try {
+    const dbReady = await checkDatabaseReady();
+    if (!dbReady) {
+      return res.status(503).json({
+        status: 'not_ready',
+        checks: { database: 'down' },
+      });
+    }
+    return res.status(200).json({
+      status: 'ready',
+      checks: { database: 'up' },
+    });
+  } catch (_) {
+    return res.status(503).json({
+      status: 'not_ready',
+      checks: { database: 'down' },
+    });
+  }
+});
+
 app.get('/', (req, res) => {
   res.json({
     status: 'WARZONE.GG API is running',
