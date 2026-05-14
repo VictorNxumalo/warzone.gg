@@ -1,0 +1,567 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EVOLVE — Multi-Game Tournament Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css"/>
+  <script src="js/theme.js"></script>
+  <script>tailwind.config={theme:{extend:{}}}</script>
+</head>
+<body class="wz-page">
+
+  <!-- Scripts loaded at top so functions are available to inline script at bottom -->
+  <script src="js/config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/main.js"></script>
+
+  <script>injectNav('index.html')</script>
+
+  <!-- LIVE ANNOUNCEMENT BANNER — populated from API -->
+  <div id="live-banner" class="hidden bg-red-950 border-b border-red-800 px-5 py-2 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="font-mono text-[10px] text-red-400 tracking-widest">● LIVE</span>
+      <span class="font-head text-xs tracking-wider text-[var(--wz-text)]" id="live-banner-text"></span>
+    </div>
+    <a href="pages/bracket.html" class="font-mono text-[10px] tracking-wider transition-colors wz-link-accent">WATCH →</a>
+  </div>
+
+  <main class="max-w-6xl mx-auto px-5 py-8 fade-up">
+
+    <!-- HERO -->
+    <section class="wz-card accent-left p-8 mb-8 relative overflow-hidden scanlines hero-arc-banner">
+      <div class="absolute inset-0 hero-arc-bg pointer-events-none"></div>
+      <div class="hero-ambient-glow hero-ambient-glow-a" aria-hidden="true"></div>
+      <div class="hero-ambient-glow hero-ambient-glow-b" aria-hidden="true"></div>
+      <div class="hero-particles" aria-hidden="true">
+        <span class="hero-particle hero-particle-1"></span>
+        <span class="hero-particle hero-particle-2"></span>
+        <span class="hero-particle hero-particle-3"></span>
+        <span class="hero-particle hero-particle-4"></span>
+        <span class="hero-particle hero-particle-5"></span>
+        <span class="hero-particle hero-particle-6"></span>
+      </div>
+      <div class="hero-arc-ring hero-arc-ring-main" aria-hidden="true"></div>
+      <div class="hero-arc-ring hero-arc-ring-side" aria-hidden="true"></div>
+      <div class="hero-arc-dot hero-arc-dot-a" aria-hidden="true"></div>
+      <div class="hero-arc-dot hero-arc-dot-b" aria-hidden="true"></div>
+      <div class="hero-split relative z-10">
+        <div class="hero-content hero-copy-col">
+          <div class="hero-kicker font-mono text-[11px] tracking-widest uppercase mb-3 flex items-center gap-2">
+            <span>●</span> LIVE SEASON · Q2 2026
+          </div>
+          <h1 class="hero-title font-head text-6xl md:text-7xl font-black tracking-widest uppercase leading-none mb-3">
+            EVO<span class="text-[#e8c14a]">VLE</span>
+          </h1>
+          <p class="hero-subtitle font-head text-xl tracking-[0.18em] uppercase mb-6">Multi-Game Tournament Platform · South Africa</p>
+          <div class="flex flex-wrap gap-3 mb-8">
+            <a href="pages/register.html" class="btn-primary">Register Your Team</a>
+            <a href="pages/tournaments.html" class="btn-ghost">View Tournaments</a>
+            <a href="pages/bracket.html" class="btn-ghost">Live Bracket →</a>
+          </div>
+          <div class="flex flex-wrap gap-8 pt-6 border-t border-[var(--wz-border)]" id="hero-stats">
+            <div><div class="font-head text-3xl font-black hero-stat-value" id="stat-teams">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider uppercase">Teams</div></div>
+            <div><div class="font-head text-3xl font-black hero-stat-value" id="stat-tournaments">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider uppercase">Tournaments</div></div>
+            <div><div class="font-head text-3xl font-black hero-stat-value" id="stat-prize">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider uppercase">Prize Pool</div></div>
+            <div><div class="font-head text-3xl font-black hero-stat-value--active" id="stat-active">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider uppercase">Active Events</div></div>
+          </div>
+        </div>
+        <div class="hero-logo-col" aria-hidden="true">
+          <img
+            src="assets/Evovle%20Logo.png"
+            data-wz-logo-default="assets/Evovle%20Logo.png"
+            data-wz-logo-light="assets/Evovle%20Logo%20white.png"
+            alt=""
+            class="hero-banner-logo-emblem pointer-events-none"
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- Announcements -->
+    <div class="flex items-center justify-between mb-4 pb-3 border-b border-[var(--wz-border)]">
+      <h2 class="section-title">Announcements</h2>
+    </div>
+    <div id="wz-host-announcements" class="relative mb-10 min-h-[5rem]">
+    <div id="announcements" class="flex flex-col gap-3">
+      <div class="wz-card p-4 space-y-2"><div class="wz-skeleton wz-skel-line" style="width:40%"></div><div class="wz-skeleton wz-skel-line-sm w-full"></div><div class="wz-skeleton wz-skel-line-sm" style="width:92%"></div></div>
+    </div>
+    </div>
+
+    <!-- FEATURED TOURNAMENTS -->
+    <div class="flex items-center justify-between mb-4 pb-3 border-b border-[var(--wz-border)]">
+      <h2 class="section-title">Featured Tournaments</h2>
+      <a href="pages/tournaments.html" class="btn-ghost btn-sm">View All →</a>
+    </div>
+    <div id="home-participant-banner" class="hidden wz-card border border-emerald-600/40 p-4 mb-4">
+      <div class="font-mono text-[10px] text-emerald-400 uppercase tracking-widest mb-1">Your events</div>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] leading-relaxed">
+        Tournaments where your squad has an <strong class="text-[var(--wz-text)]">approved</strong> registration show <strong class="text-[var(--wz-text)]">Teams &amp; fixtures</strong> and an emerald highlight — same as on the full tournaments page.
+      </p>
+    </div>
+    <div class="wz-card p-4 mb-4">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <div class="font-head text-sm font-bold tracking-wide uppercase">Browse by game</div>
+          <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] mt-1">Switch between game categories to quickly find events you care about.</div>
+        </div>
+        <div id="featured-game-filters" class="flex flex-wrap gap-2">
+          <button class="btn-primary btn-sm">All Games</button>
+        </div>
+      </div>
+    </div>
+    <div id="wz-host-featured" class="relative mb-10 min-h-[8rem]">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 col-span-3 wz-skel-featured reveal-stagger" id="featured-tournaments">
+      <div class="wz-card wz-skel-card overflow-hidden"><div class="wz-skeleton wz-skel-banner w-full"></div><div class="p-4 space-y-2"><div class="wz-skeleton wz-skel-line" style="width:88%"></div><div class="wz-skeleton wz-skel-line-sm w-full"></div><div class="wz-skeleton wz-skel-line-sm" style="width:50%"></div></div><div class="flex justify-between px-4 py-3 bg-[var(--wz-surface2)] border-t border-[var(--wz-border)]"><div class="space-y-1"><div class="wz-skeleton w-16 h-3"></div><div class="wz-skeleton w-24 h-5"></div></div><div class="wz-skeleton w-20 h-8 rounded-sm"></div></div></div>
+      <div class="wz-card wz-skel-card overflow-hidden"><div class="wz-skeleton wz-skel-banner w-full"></div><div class="p-4 space-y-2"><div class="wz-skeleton wz-skel-line" style="width:78%"></div><div class="wz-skeleton wz-skel-line-sm w-full"></div><div class="wz-skeleton wz-skel-line-sm" style="width:58%"></div></div><div class="flex justify-between px-4 py-3 bg-[var(--wz-surface2)] border-t border-[var(--wz-border)]"><div class="space-y-1"><div class="wz-skeleton w-16 h-3"></div><div class="wz-skeleton w-24 h-5"></div></div><div class="wz-skeleton w-20 h-8 rounded-sm"></div></div></div>
+      <div class="wz-card wz-skel-card overflow-hidden"><div class="wz-skeleton wz-skel-banner w-full"></div><div class="p-4 space-y-2"><div class="wz-skeleton wz-skel-line" style="width:92%"></div><div class="wz-skeleton wz-skel-line-sm w-full"></div><div class="wz-skeleton wz-skel-line-sm" style="width:44%"></div></div><div class="flex justify-between px-4 py-3 bg-[var(--wz-surface2)] border-t border-[var(--wz-border)]"><div class="space-y-1"><div class="wz-skeleton w-16 h-3"></div><div class="wz-skeleton w-24 h-5"></div></div><div class="wz-skeleton w-20 h-8 rounded-sm"></div></div></div>
+    </div>
+    </div>
+
+    <div class="flex items-center justify-between mb-4 pb-3 border-b border-[var(--wz-border)]">
+      <h2 class="section-title">Game Universe</h2>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+      <a href="pages/tournaments.html?game=COD%20Mobile" class="game-cover game-cover-codm h-28 wz-card wz-card-hover reveal-slide flex items-end p-3"><span class="font-head text-base tracking-widest uppercase z-10">COD Mobile</span></a>
+      <a href="pages/tournaments.html?game=COD%20Warzone" class="game-cover game-cover-warzone h-28 wz-card wz-card-hover reveal-slide flex items-end p-3"><span class="font-head text-base tracking-widest uppercase z-10">COD Warzone</span></a>
+      <a href="pages/tournaments.html?game=COD%20Modern%20Warfare" class="game-cover game-cover-mw h-28 wz-card wz-card-hover reveal-slide flex items-end p-3"><span class="font-head text-base tracking-widest uppercase z-10">COD Modern Warfare</span></a>
+      <a href="pages/tournaments.html?game=FIFA" class="game-cover game-cover-fifa h-28 wz-card wz-card-hover reveal-slide flex items-end p-3"><span class="font-head text-base tracking-widest uppercase z-10">FIFA</span></a>
+      <a href="pages/tournaments.html?game=Forza" class="game-cover game-cover-forza h-28 wz-card wz-card-hover reveal-slide flex items-end p-3"><span class="font-head text-base tracking-widest uppercase z-10">Forza</span></a>
+      <a href="pages/tournaments.html?game=Mortal%20Kombat" class="game-cover game-cover-mk h-28 wz-card wz-card-hover reveal-slide flex items-end p-3"><span class="font-head text-base tracking-widest uppercase z-10">Mortal Kombat</span></a>
+    </div>
+
+    <!-- 2 COL: Game Spotlight + Schedule Preview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+      <div>
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[var(--wz-border)]">
+          <h2 class="section-title">Game Spotlight</h2>
+          <a href="pages/tournaments.html" class="btn-ghost btn-sm">All Games →</a>
+        </div>
+        <div id="wz-host-spotlight" class="relative min-h-[5rem]">
+        <div class="wz-card overflow-hidden" id="game-spotlight">
+          <div class="wz-skel-row"><div class="wz-skeleton wz-skel-dot"></div><div class="flex-1 py-1 space-y-2"><div class="wz-skeleton wz-skel-line" style="width:72%"></div><div class="wz-skeleton wz-skel-line-sm w-full"></div></div><div class="text-right space-y-2 w-16"><div class="wz-skeleton h-5 w-full"></div><div class="wz-skeleton wz-skel-line-sm w-full"></div></div></div>
+          <div class="wz-skel-row"><div class="wz-skeleton wz-skel-dot"></div><div class="flex-1 py-1 space-y-2"><div class="wz-skeleton wz-skel-line" style="width:65%"></div><div class="wz-skeleton wz-skel-line-sm w-full"></div></div><div class="text-right space-y-2 w-16"><div class="wz-skeleton h-5 w-full"></div><div class="wz-skeleton wz-skel-line-sm w-full"></div></div></div>
+          <div class="wz-skel-row"><div class="wz-skeleton wz-skel-dot"></div><div class="flex-1 py-1 space-y-2"><div class="wz-skeleton wz-skel-line" style="width:80%"></div><div class="wz-skeleton wz-skel-line-sm w-full"></div></div><div class="text-right space-y-2 w-16"><div class="wz-skeleton h-5 w-full"></div><div class="wz-skeleton wz-skel-line-sm w-full"></div></div></div>
+        </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[var(--wz-border)]">
+          <h2 class="section-title">Today's Matches</h2>
+          <a href="pages/schedule.html" class="btn-ghost btn-sm">Full Schedule →</a>
+        </div>
+        <div id="wz-host-today" class="relative min-h-[5rem]">
+        <div id="today-matches" class="flex flex-col gap-3">
+          <div class="wz-card p-4"><div class="wz-skeleton h-14 w-full rounded-sm"></div></div>
+          <div class="wz-card p-4"><div class="wz-skeleton h-14 w-full rounded-sm"></div></div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tournament Activity -->
+    <div class="flex items-center justify-between mb-4 pb-3 border-b border-[var(--wz-border)]">
+      <h2 class="section-title">Tournament Activity</h2>
+      <a href="pages/schedule.html" class="btn-ghost btn-sm">View More →</a>
+    </div>
+    <div id="wz-host-activity" class="relative mb-10 min-h-[5rem]">
+    <div id="tournament-activity" class="flex flex-col gap-3">
+      <div class="wz-card p-4 flex gap-3 items-center"><div class="wz-skeleton w-10 h-10 rounded-sm flex-shrink-0"></div><div class="flex-1 space-y-2"><div class="wz-skeleton wz-skel-line" style="width:75%"></div><div class="wz-skeleton wz-skel-line-sm w-full"></div></div></div>
+      <div class="wz-card p-4 flex gap-3 items-center"><div class="wz-skeleton w-10 h-10 rounded-sm flex-shrink-0"></div><div class="flex-1 space-y-2"><div class="wz-skeleton wz-skel-line" style="width:68%"></div><div class="wz-skeleton wz-skel-line-sm w-full"></div></div></div>
+    </div>
+    </div>
+
+  </main>
+
+  <footer class="border-t border-[var(--wz-border)] mt-8 py-8 px-5">
+    <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+      <span class="font-head text-sm font-black tracking-widest text-[#e8c14a]">EVOLVE</span>
+      <span class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">© 2026 EVOLVE · South Africa · All Rights Reserved</span>
+      <div class="flex gap-4">
+        <a href="pages/rules.html" class="font-mono text-[10px] text-[var(--wz-muted)] hover:text-[#e8c14a]">Rules</a>
+        <a href="pages/register.html" class="font-mono text-[10px] text-[var(--wz-muted)] hover:text-[#e8c14a]">Register</a>
+        <a href="pages/privacy-policy.html" class="font-mono text-[10px] text-[var(--wz-muted)] hover:text-[#e8c14a]">Privacy</a>
+        <a href="pages/terms-of-service.html" class="font-mono text-[10px] text-[var(--wz-muted)] hover:text-[#e8c14a]">Terms</a>
+        <!-- <a href="pages/admin.html" class="font-mono text-[10px] text-[var(--wz-muted)] hover:text-[#e8c14a]">Admin</a> -->
+      </div>
+    </div>
+  </footer>
+
+  <script>
+  const bannerClass = { ranked:'banner-ranked', br:'banner-br', duos:'banner-duos', solo:'banner-solo' };
+  let _featuredGameFilter = 'all';
+  let _homeTournaments = [];
+  /** Tournament IDs (approved) for the signed-in user — shared with featured grid + activity. */
+  let _homeParticipatingIds = new Set();
+
+  function inferTournamentGame(t) {
+    const text = `${t?.game || ''} ${t?.title || ''} ${t?.name || ''} ${t?.mode || ''} ${t?.type || ''}`.toLowerCase();
+    if (text.includes('fifa')) return 'FIFA';
+    if (text.includes('mortal') || text.includes('kombat') || text.includes('mk')) return 'Mortal Kombat';
+    if (text.includes('forza')) return 'Forza';
+    if (text.includes('need for speed') || text.includes('nfs')) return 'Need for Speed';
+    if (text.includes('call of duty') || text.includes('codm') || text.includes('ranked') || text.includes('br')) return 'Call of Duty';
+    return 'Other';
+  }
+
+  function gameBadgeClass(game) {
+    const map = {
+      'Call of Duty': 'bg-amber-900/30 text-amber-400 border-amber-700',
+      'FIFA': 'bg-emerald-900/30 text-emerald-400 border-emerald-700',
+      'Mortal Kombat': 'bg-rose-900/30 text-rose-400 border-rose-700',
+      'Need for Speed': 'bg-sky-900/30 text-sky-400 border-sky-700',
+      'Forza': 'bg-violet-900/30 text-violet-400 border-violet-700',
+      'Other': 'wz-chip-game-other'
+    };
+    return map[game] || map.Other;
+  }
+
+  function gameCoverClass(game) {
+    const map = {
+      'Call of Duty': 'game-cover-codm',
+      'COD Mobile': 'game-cover-codm',
+      'COD Warzone': 'game-cover-warzone',
+      'COD Modern Warfare': 'game-cover-mw',
+      'FIFA': 'game-cover-fifa',
+      'Mortal Kombat': 'game-cover-mk',
+      'Need for Speed': 'game-cover-nfs',
+      'Forza': 'game-cover-forza',
+      'Other': 'game-cover-other'
+    };
+    return map[game] || map.Other;
+  }
+
+  async function loadHomeParticipations() {
+    _homeParticipatingIds = new Set();
+    const banner = document.getElementById('home-participant-banner');
+    if (banner) banner.classList.add('hidden');
+    if (typeof getCurrentUser === 'function' && getCurrentUser()) {
+      try {
+        const parts = await getMyTournamentParticipations();
+        (parts || []).forEach((p) => {
+          if (p.tournament_id) _homeParticipatingIds.add(String(p.tournament_id));
+        });
+        if (banner && _homeParticipatingIds.size > 0) banner.classList.remove('hidden');
+      } catch (_) {}
+    }
+  }
+
+  // ── Featured Tournaments ──────────────────────────────────
+  async function loadFeaturedTournaments() {
+    try {
+      const tournaments = await getTournaments();
+      const container   = document.getElementById('featured-tournaments');
+      _homeTournaments = tournaments || [];
+
+      // Hero stats
+      const active = tournaments.filter(t => t.status === 'live' || t.status === 'open');
+      const totalPrize = tournaments.reduce((s, t) => s + (t.prize_total || 0), 0);
+      document.getElementById('stat-tournaments').textContent = tournaments.length;
+      document.getElementById('stat-active').textContent = active.length;
+      document.getElementById('stat-prize').textContent = centsToRand(totalPrize);
+
+      // Live banner
+      const liveTourney = tournaments.find(t => t.status === 'live');
+      if (liveTourney) {
+        document.getElementById('live-banner').classList.remove('hidden');
+        document.getElementById('live-banner-text').textContent = `${liveTourney.name.toUpperCase()} IS LIVE NOW`;
+      }
+
+      if (!tournaments.length) {
+        container.className = 'grid grid-cols-1 md:grid-cols-3 gap-4 col-span-3';
+        container.innerHTML = '<div class="col-span-3 text-center py-8 font-mono text-[10px] text-[var(--wz-muted)]">NO TOURNAMENTS YET</div>';
+        return;
+      }
+
+      renderFeaturedGameFilters();
+      renderFeaturedTournaments();
+    } catch (err) {
+      document.getElementById('featured-tournaments').innerHTML =
+        `<div class="col-span-3 text-center py-8 font-mono text-[10px] text-red-400">${err.message}</div>`;
+    }
+  }
+
+  function renderFeaturedGameFilters() {
+    const games = ['all', ...Array.from(new Set(_homeTournaments.map(inferTournamentGame)))];
+    const filters = document.getElementById('featured-game-filters');
+    filters.innerHTML = games.map((game) => {
+      const active = _featuredGameFilter === game;
+      const label = game === 'all' ? 'All Games' : game;
+      return `<button type="button" onclick='setFeaturedGameFilter(${JSON.stringify(game)})' class="${active ? 'btn-primary' : 'btn-ghost'} btn-sm">${label}</button>`;
+    }).join('');
+  }
+
+  function setFeaturedGameFilter(game) {
+    _featuredGameFilter = game;
+    renderFeaturedGameFilters();
+    wzWithLoading('wz-host-featured', async () => {
+      renderFeaturedTournaments();
+    }, { minMs: 180, label: 'Updating' });
+  }
+
+  function renderFeaturedTournaments() {
+    const container = document.getElementById('featured-tournaments');
+    const filtered = _homeTournaments.filter(t => _featuredGameFilter === 'all' || inferTournamentGame(t) === _featuredGameFilter);
+
+    if (!filtered.length) {
+      container.className = 'grid grid-cols-1 md:grid-cols-3 gap-4 col-span-3';
+      container.innerHTML = '<div class="col-span-3 text-center py-8 font-mono text-[10px] text-[var(--wz-muted)]">NO TOURNAMENTS IN THIS GAME CATEGORY</div>';
+      return;
+    }
+
+    container.className = 'grid grid-cols-1 md:grid-cols-3 gap-4 col-span-3 reveal-stagger';
+    container.innerHTML = filtered.slice(0, 6).map(t => {
+      const game = inferTournamentGame(t);
+      const isParticipant = _homeParticipatingIds.has(String(t.id));
+      const cardHref = isParticipant ? `pages/tournament-hub.html?id=${t.id}` : `pages/tournaments.html?id=${t.id}`;
+      const statusLabel = t.status === 'live' ? 'Watch Live' : t.status === 'open' ? 'Register' : 'View';
+      const defaultCtaClass = `btn-${t.status === 'live' ? 'danger' : t.status === 'open' ? 'primary' : 'ghost'} btn-sm inline-flex items-center justify-center`;
+      const footerCta = isParticipant
+        ? `<span class="btn-ghost btn-sm border border-emerald-600/50 text-emerald-300 whitespace-nowrap">Teams & fixtures</span>`
+        : `<span class="${defaultCtaClass}">${statusLabel}</span>`;
+      return `
+        <a href="${cardHref}" class="wz-card wz-card-hover block overflow-hidden ${isParticipant ? 'ring-1 ring-emerald-500/35' : ''}">
+          <div class="h-16 game-cover ${gameCoverClass(game)} flex items-center px-4 gap-2 ${bannerClass[t.type] || 'banner-ranked'}">
+            ${statusBadge(t.status)}
+            <span class="font-mono text-[10px] tracking-widest px-2 py-1 rounded-sm border ${gameBadgeClass(game)} z-10">${game}</span>
+            ${isParticipant ? '<span class="font-mono text-[9px] text-emerald-300 border border-emerald-600/50 px-2 py-0.5 rounded-sm z-10 ml-auto">Your squad</span>' : ''}
+          </div>
+          <div class="p-4">
+            <div class="font-head text-sm font-bold tracking-wide uppercase text-[var(--wz-text)] mb-1">${t.name}</div>
+            <div class="flex gap-3 font-mono text-[10px] text-[var(--wz-muted)] mb-3 flex-wrap">
+              <span>🗓 ${t.start_date}</span><span>⚔ ${t.format || '—'}</span><span>🌍 ${t.region || 'ZA'}</span>
+            </div>
+            ${slotsBar(t.registered_count, t.max_slots)}
+          </div>
+          <div class="flex items-center justify-between px-4 py-3 bg-[var(--wz-surface2)] border-t border-[var(--wz-border)]">
+            <div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Prize Pool</div><div class="font-head text-lg font-bold text-[#e8c14a]">${centsToRand(t.prize_total)}</div></div>
+            ${footerCta}
+          </div>
+        </a>`;
+    }).join('');
+  }
+
+  // ── Game Spotlight ────────────────────────────────────────
+  async function loadGameSpotlight() {
+    try {
+      const [teams, tournaments, matches] = await Promise.all([getLeaderboard(), getTournaments(), getMatches()]);
+      const container = document.getElementById('game-spotlight');
+      document.getElementById('stat-teams').textContent = teams.length;
+
+      const gameSummary = {};
+      (tournaments || []).forEach(t => {
+        const game = inferTournamentGame(t);
+        if (!gameSummary[game]) gameSummary[game] = { tournaments: 0, liveMatches: 0 };
+        gameSummary[game].tournaments += 1;
+      });
+      (matches || []).forEach(m => {
+        const game = inferTournamentGame({ name: m.tournament_name, mode: m.mode, game_mode: m.game_mode });
+        if (!gameSummary[game]) gameSummary[game] = { tournaments: 0, liveMatches: 0 };
+        if (m.status === 'live') gameSummary[game].liveMatches += 1;
+      });
+
+      const rows = Object.entries(gameSummary).sort((a, b) => b[1].tournaments - a[1].tournaments).slice(0, 5);
+      if (!rows.length) {
+        container.className = 'wz-card overflow-hidden';
+        container.innerHTML = '<div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">No game categories yet</div>';
+        return;
+      }
+
+      container.className = 'wz-card overflow-hidden reveal-stagger';
+      container.innerHTML = rows.map(([game, summary]) => `
+        <a href="pages/tournaments.html" class="flex items-center gap-3 px-4 py-3 border-b border-[var(--wz-border)] last:border-0 hover:bg-[var(--wz-surface2)] transition-colors">
+          <div class="w-8 h-8 rounded-sm flex items-center justify-center font-head text-xs font-bold border ${gameBadgeClass(game)}">${game.slice(0,2).toUpperCase()}</div>
+          <div class="flex-1">
+            <div class="font-head text-sm font-bold tracking-wide">${game}</div>
+            <div class="font-mono text-[10px] text-[var(--wz-muted)]">${summary.tournaments} tournaments running</div>
+          </div>
+          <div class="text-right">
+            <div class="font-head text-sm font-bold text-[#e8c14a]">${summary.liveMatches}</div>
+            <div class="font-mono text-[10px] text-[var(--wz-muted)]">live now</div>
+          </div>
+        </a>`).join('');
+    } catch (_) {
+      document.getElementById('game-spotlight').innerHTML = '<div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">Could not load game spotlight</div>';
+      try {
+        const fallbackTeams = await getLeaderboard();
+        const n = Array.isArray(fallbackTeams) ? fallbackTeams.length : 0;
+        document.getElementById('stat-teams').textContent = n;
+      } catch (__) {
+        document.getElementById('stat-teams').textContent = '—';
+      }
+    }
+  }
+
+  // ── Today's Matches ───────────────────────────────────────
+  async function loadTodayMatches() {
+    const container = document.getElementById('today-matches');
+    try {
+      const data = await getSchedule();
+      // Find today's group
+      const today = new Date().toISOString().split('T')[0];
+      let todayMatches = [];
+      if (Array.isArray(data) && data[0]?.matches) {
+        const todayGroup = data.find(g => g.date === today) || data[0];
+        todayMatches = todayGroup?.matches || [];
+      } else if (Array.isArray(data)) {
+        todayMatches = data.filter(m => (m.scheduled_at || '').startsWith(today));
+        if (!todayMatches.length) todayMatches = data.slice(0, 3);
+      }
+
+      if (!todayMatches.length) {
+        container.innerHTML = '<div class="wz-card p-4 text-center font-mono text-[10px] text-[var(--wz-muted)]">No matches scheduled today</div>';
+        return;
+      }
+
+      container.innerHTML = todayMatches.slice(0, 4).map(m => {
+        const teamA   = m.teamA || m.team_a?.name || '—';
+        const teamB   = m.teamB || m.team_b?.name || 'TBD';
+        const timeStr = m.time  || (m.scheduled_at ? new Date(m.scheduled_at).toLocaleTimeString('en-ZA', { hour:'2-digit', minute:'2-digit' }) : '—');
+        const label   = m.label || (m.round || '').replace(/_/g,' ').toUpperCase() || '';
+        return `
+          <div class="wz-card p-4 flex items-center gap-4">
+            <div class="font-mono text-[11px] text-[#e8c14a] bg-[#e8c14a]/10 border border-[#e8c14a]/20 rounded px-3 py-2 text-center min-w-[90px]">
+              ${timeStr}<div class="text-[9px] text-[var(--wz-muted)] mt-1">${label}</div>
+            </div>
+            <div class="flex-1 font-head text-sm font-semibold tracking-wide">
+              <span class="${m.status==='live'?'text-[#e8c14a]':''}">${teamA}</span>
+              <span class="text-[var(--wz-muted)] font-mono text-[10px] mx-2">vs</span>
+              <span>${teamB}</span>
+            </div>
+            ${statusBadge(m.status || 'scheduled')}
+          </div>`; }).join('');
+    } catch (_) {
+      container.innerHTML = '<div class="wz-card p-4 text-center font-mono text-[10px] text-[var(--wz-muted)]">Could not load schedule</div>';
+    }
+  }
+
+  // ── Tournament Activity ────────────────────────────────────
+  async function loadTournamentActivity() {
+    const container = document.getElementById('tournament-activity');
+    try {
+      const [tournaments, matches] = await Promise.all([getTournaments(), getMatches()]);
+      const upcomingTournaments = (tournaments || [])
+        .filter(t => t.status === 'upcoming' || t.status === 'open')
+        .slice(0, 2)
+        .map(t => ({
+          kind: 'tournament',
+          tournamentId: t.id,
+          date: t.start_date || '',
+          title: t.name,
+          subtitle: `${inferTournamentGame(t)} · ${t.format || 'Format TBA'}`,
+          status: t.status,
+        }));
+      const completedMatches = (matches || [])
+        .filter(m => m.status === 'completed' || (m.score_a !== null && m.score_a !== undefined))
+        .slice(0, 3)
+        .map(m => ({
+          kind: 'match',
+          date: m.played_at || m.scheduled_at || '',
+          teamA: m.team_a?.name || m.teamA || '—',
+          teamB: m.team_b?.name || m.teamB || '—',
+          scoreA: m.score_a ?? m.scoreA ?? 0,
+          scoreB: m.score_b ?? m.scoreB ?? 0,
+          game: inferTournamentGame({ name: m.tournament_name, mode: m.mode, game_mode: m.game_mode }),
+          status: 'completed'
+        }));
+
+      const feed = [...upcomingTournaments, ...completedMatches]
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+        .slice(0, 5);
+
+      if (!feed.length) {
+        container.innerHTML = '<div class="wz-card p-4 text-center font-mono text-[10px] text-[var(--wz-muted)]">No activity yet</div>';
+        return;
+      }
+
+      container.innerHTML = feed.map(item => {
+        if (item.kind === 'tournament') {
+          const inThis = item.tournamentId && _homeParticipatingIds.has(String(item.tournamentId));
+          const hubLink = item.tournamentId ? `pages/tournament-hub.html?id=${item.tournamentId}` : 'pages/tournaments.html';
+          return `
+            <div class="wz-card accent-left p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${inThis ? 'ring-1 ring-emerald-500/30' : ''}">
+              <div>
+                <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest uppercase">Tournament</div>
+                <div class="font-head text-sm font-bold tracking-wide mt-1">${item.title}</div>
+                <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] mt-1">${item.subtitle}</div>
+                ${inThis ? '<div class="font-mono text-[9px] text-emerald-400 mt-2">Your squad is in this event</div>' : ''}
+              </div>
+              <div class="flex flex-col sm:items-end gap-2 shrink-0">
+                ${statusBadge(item.status)}
+                ${inThis ? `<a href="${hubLink}" class="btn-ghost btn-sm border border-emerald-600/50 text-emerald-300 text-center">Teams & fixtures</a>` : `<a href="pages/tournaments.html?id=${item.tournamentId}" class="btn-ghost btn-sm text-center">View tournament</a>`}
+              </div>
+            </div>
+          `;
+        }
+
+        const aWin = item.scoreA > item.scoreB;
+        return `
+          <div class="wz-card p-4 flex items-center gap-4">
+            <div class="flex-1">
+              <div class="font-head text-sm font-bold uppercase tracking-wide ${aWin?'text-[#e8c14a]':'text-[var(--wz-muted)]'}">${item.teamA}</div>
+              <div class="font-head text-2xl font-black ${aWin?'text-[#e8c14a]':'text-[var(--wz-muted)]'}">${item.scoreA}</div>
+            </div>
+            <div class="text-center">
+              <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest">RESULT</div>
+              <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] mt-1">${item.game}</div>
+            </div>
+            <div class="flex-1 text-right">
+              <div class="font-head text-sm font-bold uppercase tracking-wide ${!aWin?'text-[#e8c14a]':'text-[var(--wz-muted)]'}">${item.teamB}</div>
+              <div class="font-head text-2xl font-black ${!aWin?'text-[#e8c14a]':'text-[var(--wz-muted)]'}">${item.scoreB}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (_) {
+      container.innerHTML = '<div class="wz-card p-4 text-center font-mono text-[10px] text-[var(--wz-muted)]">Could not load activity</div>';
+    }
+  }
+
+  // ── Announcements ─────────────────────────────────────────
+  async function loadAnnouncements() {
+    const container = document.getElementById('announcements');
+    try {
+      const ann = await getPublicAnnouncements();
+      if (!ann.length) {
+        container.innerHTML = '<div class="wz-card p-4 text-center font-mono text-[10px] text-[var(--wz-muted)]">No announcements</div>';
+        return;
+      }
+      const typeColor = { live:'border-red-600 text-red-400', info:'border-[#e8c14a] text-[#e8c14a]', update:'border-blue-600 text-blue-400', warning:'border-amber-500 text-amber-400' };
+      container.innerHTML = ann.map(a => {
+        const [borderC, textC] = (typeColor[a.type] || 'border-[#e8c14a] text-[#e8c14a]').split(' ');
+        const dateStr = a.created_at ? new Date(a.created_at).toLocaleDateString('en-ZA') : a.date || '';
+        return `
+          <div class="wz-card border-l-2 ${borderC} p-4">
+            <div class="flex items-center gap-3 mb-1">
+              <span class="font-mono text-[10px] tracking-widest uppercase ${textC}">${a.type}</span>
+              <span class="font-mono text-[10px] text-[var(--wz-muted)]">${dateStr}</span>
+            </div>
+            <div class="font-head text-sm font-bold tracking-wide mb-1">${a.title}</div>
+            <div class="font-body text-sm text-[var(--wz-text-secondary)]">${a.body}</div>
+          </div>`; }).join('');
+    } catch (_) {
+      container.innerHTML = '<div class="wz-card p-4 text-center font-mono text-[10px] text-[var(--wz-muted)]">Could not load announcements</div>';
+    }
+  }
+
+// ── Init all sections in parallel ────────────────────────
+applyNavAuthState();
+
+(async function initHome() {
+  await loadHomeParticipations();
+  await Promise.all([
+    wzWithLoading('wz-host-featured', loadFeaturedTournaments, { label: 'Loading tournaments' }),
+    wzWithLoading('wz-host-spotlight', loadGameSpotlight, { label: 'Loading spotlight' }),
+    wzWithLoading('wz-host-today', loadTodayMatches, { label: 'Loading schedule' }),
+    wzWithLoading('wz-host-activity', loadTournamentActivity, { label: 'Loading activity' }),
+    wzWithLoading('wz-host-announcements', loadAnnouncements, { label: 'Loading announcements' })
+  ]);
+})();
+  </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rules — EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+<script src="../js/data.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/main.js"></script>
+<script>injectNav('rules.html')</script>
+<script>
+(function () {
+  var h = (window.location.hash || '').toLowerCase();
+  if (!h) return;
+  var legacy = ['#eligibility','#format','#conduct','#rosters','#prizes','#tech','#disputes'];
+  if (legacy.indexOf(h) !== -1) window.location.replace('rules-competition.html' + h);
+})();
+</script>
+
+<main class="max-w-4xl mx-auto px-5 py-8 fade-up">
+  <div class="flex items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)] flex-wrap gap-3">
+    <h1 class="section-title text-2xl">Rules &amp; eligibility</h1>
+    <span class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">Last updated: May 2026</span>
+  </div>
+
+  <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6 leading-relaxed">
+    EVOLVE splits guidance by <strong class="text-[var(--wz-text)]">who you are on the platform</strong>. Pick the page that matches you: visitors browsing without an account, team captains who own the squad record, rostered squad players, or the shared <strong class="text-[var(--wz-text)]">competition standards</strong> that apply once you are approved to play. Staff admin accounts are for running events only—they do not register or compete as teams.
+  </p>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+    <a href="rules-public.html" class="wz-card wz-card-hover p-5 block no-underline group">
+      <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-2">Browse only</div>
+      <div class="font-head text-lg font-bold text-[var(--wz-text)] group-hover:text-[#e8c14a] mb-2">Public &amp; guests</div>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] leading-relaxed">What you can view without signing in, when to create an account, and baseline eligibility before you join a roster.</p>
+      <div class="mt-4 font-mono text-[10px] text-[#e8c14a]">View →</div>
+    </a>
+    <a href="rules-captains.html" class="wz-card wz-card-hover p-5 block no-underline group">
+      <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-2">Team owner</div>
+      <div class="font-head text-lg font-bold text-[var(--wz-text)] group-hover:text-[#e8c14a] mb-2">Team captains</div>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] leading-relaxed">New squad registration, captain-only tournament requests on open events, admin approval, roster emails, and why admin logins cannot enter brackets.</p>
+      <div class="mt-4 font-mono text-[10px] text-[#e8c14a]">View →</div>
+    </a>
+    <a href="rules-players.html" class="wz-card wz-card-hover p-5 block no-underline group">
+      <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-2">Roster member</div>
+      <div class="font-head text-lg font-bold text-[var(--wz-text)] group-hover:text-[#e8c14a] mb-2">Squad players</div>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] leading-relaxed">Activation with your roster email, Player profile, why you cannot file a new team while rostered, and how the tournament hub unlocks after approval.</p>
+      <div class="mt-4 font-mono text-[10px] text-[#e8c14a]">View →</div>
+    </a>
+    <a href="rules-competition.html" class="wz-card wz-card-hover p-5 block no-underline group ring-1 ring-[#e8c14a]/25">
+      <div class="font-mono text-[10px] text-emerald-400 tracking-widest uppercase mb-2">Everyone competing</div>
+      <div class="font-head text-lg font-bold text-[var(--wz-text)] group-hover:text-[#e8c14a] mb-2">Competition standards</div>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] leading-relaxed">Eligibility, match format, conduct, rosters, prizes, technical issues, and disputes—read together with your audience page above.</p>
+      <div class="mt-4 font-mono text-[10px] text-[#e8c14a]">View →</div>
+    </a>
+  </div>
+
+  <div class="wz-card accent-left p-5">
+    <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-4">By registering or competing you agree to the sections that apply to you. Questions? Discord <span class="text-[#e8c14a]">discord.gg/warzoneza</span> or WhatsApp your tournament admin.</p>
+    <div class="flex flex-wrap gap-3">
+      <a href="register.html" class="btn-primary">Register your team</a>
+      <a href="tournaments.html" class="btn-ghost btn-sm">Browse tournaments</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>

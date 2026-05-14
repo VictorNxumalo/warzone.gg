@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Player Profile — EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+<script src="../js/config.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/main.js"></script>
+<script>injectNav('player-profile.html')</script>
+
+<main class="max-w-5xl mx-auto px-5 py-8 fade-up">
+  <div id="wz-host-player" class="relative min-h-[50vh]">
+  <div id="player-profile-root">
+  <div class="text-center py-16 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider animate-pulse">LOADING PLAYER PROFILE…</div>
+  </div>
+  </div>
+</main>
+
+<script>
+const roleLabels = {
+  igl:        'IGL / Captain',
+  fragger:    'Entry Fragger',
+  sniper:     'Sniper / AWP',
+  support:    'Support',
+  rusher:     'Rusher',
+  substitute: 'Substitute',
+  player:     'Player'
+};
+
+let _playerProfileBusy = false;
+
+/** Same signals as My Team “Linked” / enrich — finds this viewer’s row on the squad roster. */
+function findRosterSlotForViewer(team, viewer) {
+  if (!team?.players || !viewer?.id) return null;
+  const players = team.players;
+  const em = String(viewer.email || '').trim().toLowerCase();
+  let p = players.find((x) => x.user_id && String(x.user_id) === String(viewer.id));
+  if (p) return p;
+  p = players.find((x) => x.resolved_user_id && String(x.resolved_user_id) === String(viewer.id));
+  if (p) return p;
+  if (em) {
+    p = players.find((x) => String(x.email || '').trim().toLowerCase() === em);
+    if (p) return p;
+  }
+  return null;
+}
+
+async function loadPlayerProfileCore() {
+  const root = document.getElementById('player-profile-root');
+  const user = getCurrentUser();
+  if (user?.role === 'admin') {
+    root.innerHTML = `
+      <div class="text-center py-20">
+        <div class="font-head text-2xl font-black tracking-widest uppercase text-[var(--wz-muted)] mb-2">Access Restricted</div>
+        <div class="font-mono text-[10px] text-red-400 mb-6">Admin accounts do not have access to player profiles.</div>
+        <a href="admin.html" class="btn-primary">Go to Admin</a>
+      </div>`;
+    return;
+  }
+  try {
+    let data = await getMyPlayerProfile();
+    if (!data) {
+      root.innerHTML = emptyPlayerProfileHTML(getCurrentUser(), 'We couldn’t load your profile. Try signing in again.');
+      return;
+    }
+    /** When /players/me has no player row yet, reuse /teams/mine for registration gates + “on roster” hint. */
+    let mineTeamHint = null;
+    if (!data.awaiting_registration_approval && !data.player) {
+      try {
+        const mine = await getMyTeam();
+        const reg = mine?.registration;
+        if (
+          mine?.registration_pending ||
+          mine?.registration_rejected ||
+          (reg && reg.status && reg.status !== 'approved')
+        ) {
+          data = {
+            user: data.user,
+            player: null,
+            team: null,
+            stats: data.stats || { wins: 0, losses: 0, matches_played: 0 },
+            awaiting_registration_approval: true,
+            registration_status: reg?.status,
+            registration: reg
+          };
+        } else if (mine?.team?.id) {
+          const viewer = getCurrentUser();
+          const rosterSlot = findRosterSlotForViewer(mine.team, viewer);
+          mineTeamHint = {
+            team: mine.team,
+            isCaptain: mine.is_captain === true,
+            rosterSlot
+          };
+        }
+      } catch (_) {}
+    }
+    if (data.awaiting_registration_approval) {
+      root.innerHTML = awaitingRegistrationPlayerHTML(data);
+      return;
+    }
+    let leaveEligibility = null;
+    let incomingInvites = [];
+    const rosterMemberFallback =
+      mineTeamHint &&
+      mineTeamHint.isCaptain === false &&
+      mineTeamHint.rosterSlot;
+    if (!data.awaiting_registration_approval && data.player && data.team) {
+      try {
+        leaveEligibility = await getLeaveEligibility();
+      } catch (_) {}
+    } else if (!data.awaiting_registration_approval && rosterMemberFallback) {
+      try {
+        leaveEligibility = await getLeaveEligibility();
+      } catch (_) {}
+    }
+    if (!data.awaiting_registration_approval && data.player) {
+      try {
+        incomingInvites = await getIncomingTeamInvites();
+      } catch (_) {}
+    }
+    renderPlayerProfile(root, {
+      ...data,
+      leaveEligibility,
+      incomingInvites,
+      mineTeamHint,
+      rosterMemberFallback: !!rosterMemberFallback
+    });
+  } catch (err) {
+    root.innerHTML = emptyPlayerProfileHTML(getCurrentUser(), err.message || 'Something went wrong loading your profile.');
+  }
+}
+
+async function loadPlayerProfile() {
+  await wzWithLoading('wz-host-player', loadPlayerProfileCore, { label: 'Loading profile', minMs: 260 });
+}
+
+function awaitingRegistrationPlayerHTML(data) {
+  const user = getCurrentUser();
+  const name = user?.username ? `● ${user.username}` : '';
+  const st = data.registration_status || 'pending';
+  const tname = data.registration?.tournament?.name || 'your tournament';
+  const isRejected = st === 'rejected';
+  return `
+      <div class="flex items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)]">
+        <h1 class="section-title text-2xl">Player Profile</h1>
+        ${name ? `<span class="font-mono text-[11px] text-[#e8c14a] tracking-wider">${name}</span>` : ''}
+      </div>
+      <div class="wz-card accent-left p-8 text-center max-w-2xl mx-auto ${isRejected ? 'border-l-red-600/70' : ''}">
+        <div class="font-mono text-[10px] ${isRejected ? 'text-red-400' : 'text-[#e8c14a]'} tracking-widest uppercase mb-3">
+          ${isRejected ? '● Registration not approved' : '● AWAITING APPROVAL'}
+        </div>
+        <h2 class="font-head text-2xl font-black tracking-widest uppercase text-[var(--wz-text)] mb-3">
+          ${isRejected ? 'Profile locked' : 'Player profile — coming after approval'}
+        </h2>
+        <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6 leading-relaxed">
+          ${isRejected
+            ? `Your squad’s registration for <strong class="text-[var(--wz-text)]">${tname}</strong> was not approved. Your player profile will unlock if you join an approved roster.`
+            : `Your team’s signup for <strong class="text-[var(--wz-text)]">${tname}</strong> is still under review. You’ll see your full player profile here — in-game name, role, squad, and stats — as soon as an admin approves your registration.`}
+        </p>
+        <div class="flex gap-3 justify-center flex-wrap">
+          <a href="team-profile.html?mine=1" class="btn-ghost">Team status</a>
+          <a href="tournaments.html" class="btn-primary">Browse tournaments</a>
+        </div>
+      </div>`;
+}
+
+function emptyPlayerProfileHTML(user, detailText) {
+  const name = user?.username ? `● ${user.username}` : '';
+  return `
+      <div class="flex items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)]">
+        <h1 class="section-title text-2xl">Player Profile</h1>
+        ${name ? `<span class="font-mono text-[11px] text-[#e8c14a] tracking-wider">${name}</span>` : ''}
+      </div>
+      <div class="wz-card border-t-2 border-t-red-600/60 p-8 text-center max-w-2xl mx-auto">
+        <div class="font-head text-xl font-black tracking-widest uppercase text-[var(--wz-muted)] mb-2">Could Not Load Profile</div>
+        <p class="font-mono text-[11px] text-red-400/90 mb-6">${detailText}</p>
+        <a href="../index.html" class="btn-ghost">Back to Home</a>
+      </div>`;
+}
+
+function renderPlayerProfile(root, data) {
+  const {
+    user,
+    player,
+    team,
+    stats,
+    leaveEligibility,
+    incomingInvites = [],
+    mineTeamHint,
+    rosterMemberFallback
+  } = data;
+
+  const slot = mineTeamHint?.rosterSlot;
+  const teamFromMine = mineTeamHint?.team;
+  const captainSlot =
+    mineTeamHint?.isCaptain && teamFromMine?.players
+      ? teamFromMine.players.find((p) => String(p.id || '') === String(teamFromMine.captain_player_id || '')) || slot
+      : null;
+
+  if (!player && mineTeamHint?.isCaptain === true && teamFromMine) {
+    const st = stats || { wins: 0, losses: 0, matches_played: 0 };
+    const capName = captainSlot?.ign || user?.username || 'Captain';
+    const capRole = captainSlot?.role || 'igl';
+    const capDevice = captainSlot?.device || '—';
+    const canLeave = false;
+    const leaveBlockedReason =
+      'Captains cannot leave the team directly. Transfer captaincy first from My Team, then leave as a regular player if needed.';
+
+    root.innerHTML = `
+    <div class="flex items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)]">
+      <h1 class="section-title text-2xl">Player Profile</h1>
+      <span class="font-mono text-[11px] text-[#e8c14a] tracking-wider">● ${user?.username || 'Captain'}</span>
+    </div>
+
+    <div class="wz-card p-6 mb-5 border border-[var(--accent)]/40 bg-[var(--accent)]/5">
+      <div class="font-mono text-[10px] text-[var(--accent)] tracking-widest uppercase mb-2">● Team captain</div>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] leading-relaxed">
+        You are the current captain of this roster. Captain controls and transfer actions are available in <strong class="text-[var(--wz-text)]">My Team</strong>.
+      </p>
+    </div>
+
+    <div class="wz-card p-6 mb-5">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest uppercase mb-1">In-Game Name</div>
+          <h2 class="font-head text-3xl font-black tracking-widest uppercase">${capName}</h2>
+          <div class="font-mono text-[11px] text-[var(--wz-text-secondary)] mt-1">${roleLabels[capRole] || 'IGL / Captain'} · ${capDevice}</div>
+        </div>
+        <div class="text-right">
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest uppercase mb-1">Team</div>
+          <div class="font-head text-lg font-bold">${teamFromMine.name || '—'} (#${teamFromMine.tag || '—'})</div>
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] mt-1">${teamFromMine.region || '—'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+      <div class="stat-block text-center">
+        <div class="font-head text-2xl font-black text-[#e8c14a]">${st.wins || 0}</div>
+        <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Wins</div>
+      </div>
+      <div class="stat-block text-center">
+        <div class="font-head text-2xl font-black">${st.losses || 0}</div>
+        <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Losses</div>
+      </div>
+      <div class="stat-block text-center">
+        <div class="font-head text-2xl font-black text-blue-400">${st.matches_played || 0}</div>
+        <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Matches</div>
+      </div>
+      <div class="stat-block text-center">
+        <div class="font-head text-2xl font-black text-green-400">${(st.wins || 0) + (st.losses || 0) ? Math.round(((st.wins || 0) / ((st.wins || 0) + (st.losses || 0))) * 100) : 0}%</div>
+        <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Win Rate</div>
+      </div>
+    </div>
+
+    <div class="wz-card p-5 border border-red-900/40">
+      <div class="font-head text-lg font-bold tracking-widest uppercase text-red-400 mb-2">Leave Team</div>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] leading-relaxed mb-4">
+        Captains cannot leave directly. Transfer captaincy first from My Team, then your account becomes eligible to leave as a normal roster member.
+      </p>
+      <p class="font-mono text-[11px] text-red-400/95 mb-2">${leaveBlockedReason}</p>
+      <div class="flex gap-3 flex-wrap">
+        <button id="leave-team-btn" class="btn-danger opacity-60 cursor-not-allowed" ${canLeave ? '' : 'disabled'}>Leave Team</button>
+        <a href="team-profile.html?mine=1" class="btn-ghost">Open My Team</a>
+      </div>
+    </div>
+  `;
+    return;
+  }
+
+  if (!player && rosterMemberFallback && slot && teamFromMine && mineTeamHint?.isCaptain === false) {
+    const synTeam = {
+      id: teamFromMine.id,
+      name: teamFromMine.name,
+      tag: teamFromMine.tag,
+      region: teamFromMine.region
+    };
+    const synPlayer = {
+      ign: slot.ign,
+      role: slot.role,
+      device: slot.device,
+      is_substitute: slot.is_substitute,
+      join_cooldown_ms_remaining: 0
+    };
+    const st = stats || { wins: 0, losses: 0, matches_played: 0 };
+    const elig = leaveEligibility || {};
+    const canLeave = !!synTeam && elig.can_leave === true;
+    const leaveBlockedReason =
+      synTeam && !elig.can_leave ? (elig.reasons && elig.reasons[0]) || 'Leaving is not available right now.' : '';
+    const competitionHint =
+      elig.competition_lock && elig.competition_lock.message
+        ? `<p class="font-mono text-[11px] text-amber-400/95 mt-2">${elig.competition_lock.message}</p>`
+        : '';
+
+    root.innerHTML = `
+    <div class="flex items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)]">
+      <h1 class="section-title text-2xl">Player Profile</h1>
+      <span class="font-mono text-[11px] text-[#e8c14a] tracking-wider">● ${user?.username || 'Player'}</span>
+    </div>
+
+    <div class="wz-card p-6 mb-5 border border-emerald-800/40 bg-emerald-950/15">
+      <div class="font-mono text-[10px] text-emerald-400/95 tracking-widest uppercase mb-2">● Squad member</div>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] leading-relaxed">
+        You transferred captaincy and remain on this roster as a player. Your stats and leave actions use the same rules as any teammate.
+      </p>
+    </div>
+
+    <div class="wz-card p-6 mb-5">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest uppercase mb-1">In-Game Name</div>
+          <h2 class="font-head text-3xl font-black tracking-widest uppercase">${slot.ign || '—'}</h2>
+          <div class="font-mono text-[11px] text-[var(--wz-text-secondary)] mt-1">${roleLabels[slot.role] || slot.role || 'Player'} · ${slot.device || '—'}</div>
+        </div>
+        <div class="text-right">
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest uppercase mb-1">Team</div>
+          <div class="font-head text-lg font-bold">${synTeam.name} (#${synTeam.tag})</div>
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] mt-1">${synTeam.region || '—'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+      <div class="stat-block text-center">
+        <div class="font-head text-2xl font-black text-[#e8c14a]">${st.wins || 0}</div>
+        <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Wins</div>
+      </div>
+      <div class="stat-block text-center">
+        <div class="font-head text-2xl font-black">${st.losses || 0}</div>
+        <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Losses</div>
+      </div>
+      <div class="stat-block text-center">
+        <div class="font-head text-2xl font-black text-blue-400">${st.matches_played || 0}</div>
+        <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Matches</div>
+      </div>
+      <div class="stat-block text-center">
+        <div class="font-head text-2xl font-black text-green-400">${(st.wins || 0) + (st.losses || 0) ? Math.round(((st.wins || 0) / ((st.wins || 0) + (st.losses || 0))) * 100) : 0}%</div>
+        <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Win Rate</div>
+      </div>
+    </div>
+
+    <div class="wz-card p-5 border border-red-900/40">
+      <div class="font-head text-lg font-bold tracking-widest uppercase text-red-400 mb-2">Leave Team</div>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] leading-relaxed mb-4">
+        You may not leave while your squad is in an active tournament or has scheduled/live matches.
+        After leaving, a ${elig?.cooldown_hours_after_leave || 168}-hour cooldown applies before you can join another squad or register a new team.
+      </p>
+      ${synTeam && !canLeave && leaveBlockedReason ? `<p class="font-mono text-[11px] text-red-400/95 mb-2">${leaveBlockedReason}</p>` : ''}
+      ${competitionHint}
+      <button id="leave-team-btn" class="btn-danger ${canLeave ? '' : 'opacity-60 cursor-not-allowed'}" ${canLeave ? '' : 'disabled'}>
+        Leave Team
+      </button>
+    </div>
+  `;
+
+    const leaveBtn = document.getElementById('leave-team-btn');
+    if (leaveBtn && canLeave) {
+      leaveBtn.addEventListener('click', handleLeaveTeam);
+    }
+    return;
+  }
+
+  if (!player) {
+    const hint = mineTeamHint?.team;
+    const onRosterSyncHtml = hint
+      ? `
+    <div class="wz-card accent-left p-8 text-center max-w-2xl mx-auto border-l-amber-600/60">
+      <div class="font-mono text-[10px] text-amber-400 tracking-widest uppercase mb-3">● ROSTER LINK PENDING</div>
+      <h2 class="font-head text-2xl font-black tracking-widest uppercase text-[var(--wz-text)] mb-3">${hint.name || 'Your team'} <span class="font-mono text-lg text-[var(--wz-muted)]">(#${hint.tag || '—'})</span></h2>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6 leading-relaxed">
+        My Team shows you on this squad, but your <strong class="text-[var(--wz-text)]">player profile</strong> is not linked to your roster row yet. That usually means your signup email doesn’t match the email on the roster, or the link wasn’t saved — ask your captain to confirm the email on your slot matches this account, then refresh. You can still open <strong class="text-[var(--wz-text)]">My Team</strong> for roster context.
+      </p>
+      <div class="flex gap-3 justify-center flex-wrap">
+        <a href="team-profile.html?mine=1" class="btn-primary">Open My Team</a>
+        <a href="tournaments.html" class="btn-ghost">Browse tournaments</a>
+      </div>
+    </div>`
+      : `
+    <div class="wz-card accent-left p-8 text-center max-w-2xl mx-auto">
+      <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-3">● NOT ON A ROSTER</div>
+      <h2 class="font-head text-2xl font-black tracking-widest uppercase text-[var(--wz-text)] mb-3">No squad linked to this account</h2>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6 leading-relaxed">
+        Your account isn’t tied to a player profile on any squad yet. Finish team registration as captain, or ask your captain to add you to the roster using <strong class="text-[var(--wz-text)]">this same email address</strong> (or complete player activation when you’re invited).
+      </p>
+      <div class="flex gap-3 justify-center flex-wrap">
+        <a href="find-squad.html" class="btn-primary">Find a squad</a>
+        <a href="register.html" class="btn-ghost">Register a team</a>
+        <a href="tournaments.html" class="btn-ghost">Browse tournaments</a>
+      </div>
+    </div>`;
+
+    root.innerHTML = `
+    <div class="flex items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)]">
+      <h1 class="section-title text-2xl">Player Profile</h1>
+      <span class="font-mono text-[11px] text-[#e8c14a] tracking-wider">● ${user?.username || 'Player'}</span>
+    </div>
+    ${onRosterSyncHtml}`;
+    return;
+  }
+
+  const elig = leaveEligibility || {};
+  const canLeave = !!team && elig.can_leave === true;
+  const leaveBlockedReason = team && !elig.can_leave ? (elig.reasons && elig.reasons[0]) || 'Leaving is not available right now.' : '';
+  const competitionHint =
+    elig.competition_lock && elig.competition_lock.message
+      ? `<p class="font-mono text-[11px] text-amber-400/95 mt-2">${elig.competition_lock.message}</p>`
+      : '';
+  const cooldownHint =
+    (player.join_cooldown_ms_remaining || 0) > 0
+      ? `<p class="font-mono text-[11px] text-amber-400/95 mt-2">Transfer cooldown: about ${Math.ceil(
+          player.join_cooldown_ms_remaining / (60 * 60 * 1000)
+        )} hour(s) remaining before you can accept an invite or register a new squad.</p>`
+      : '';
+
+  const invitesBlock =
+    incomingInvites.length > 0
+      ? `
+    <div class="wz-card p-5 mb-5 border border-[var(--accent)]/35">
+      <div class="font-head text-lg font-bold tracking-widest uppercase text-[var(--accent)] mb-2">Team invites</div>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-3">A captain invited you to join their roster.</p>
+      <div class="flex flex-col gap-2">
+        ${incomingInvites
+          .map(
+            (inv) => `
+          <div class="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-[var(--wz-border)] last:border-0">
+            <div>
+              <div class="font-head text-sm font-bold">${inv.team?.name || 'Team'} <span class="font-mono text-[10px] text-[var(--wz-muted)]">(#${inv.team?.tag || '—'})</span></div>
+              <div class="font-mono text-[10px] text-[var(--wz-muted)]">${inv.team?.region || ''}</div>
+            </div>
+            <div class="flex gap-2">
+              <button type="button" class="btn-primary btn-sm" data-acc-inv="${inv.id}">Accept</button>
+              <button type="button" class="btn-ghost btn-sm" data-dec-inv="${inv.id}">Decline</button>
+            </div>
+          </div>`
+          )
+          .join('')}
+      </div>
+    </div>`
+      : '';
+
+  const st = stats || {};
+
+  root.innerHTML = `
+    <div class="flex items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)]">
+      <h1 class="section-title text-2xl">Player Profile</h1>
+      <span class="font-mono text-[11px] text-[#e8c14a] tracking-wider">● ${user?.username || 'Player'}</span>
+    </div>
+
+    <div class="wz-card p-6 mb-5">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest uppercase mb-1">In-Game Name</div>
+          <h2 class="font-head text-3xl font-black tracking-widest uppercase">${player.ign || '—'}</h2>
+          <div class="font-mono text-[11px] text-[var(--wz-text-secondary)] mt-1">${roleLabels[player.role] || player.role || 'Player'} · ${player.device || '—'}</div>
+        </div>
+        <div class="text-right">
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-widest uppercase mb-1">Team</div>
+          <div class="font-head text-lg font-bold">${team ? `${team.name} (#${team.tag})` : 'No Team'}</div>
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] mt-1">${team?.region || 'Not currently rostered'}</div>
+        </div>
+      </div>
+    </div>
+
+    ${invitesBlock}
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+      <div class="stat-block text-center">
+        <div class="font-head text-2xl font-black text-[#e8c14a]">${st.wins || 0}</div>
+        <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Wins</div>
+      </div>
+      <div class="stat-block text-center">
+        <div class="font-head text-2xl font-black">${st.losses || 0}</div>
+        <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Losses</div>
+      </div>
+      <div class="stat-block text-center">
+        <div class="font-head text-2xl font-black text-blue-400">${st.matches_played || 0}</div>
+        <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Matches</div>
+      </div>
+      <div class="stat-block text-center">
+        <div class="font-head text-2xl font-black text-green-400">${(st.wins || 0) + (st.losses || 0) ? Math.round(((st.wins || 0) / ((st.wins || 0) + (st.losses || 0))) * 100) : 0}%</div>
+        <div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Win Rate</div>
+      </div>
+    </div>
+
+    <div class="wz-card p-5 border border-red-900/40">
+      <div class="font-head text-lg font-bold tracking-widest uppercase text-red-400 mb-2">Leave Team</div>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] leading-relaxed mb-4">
+        You may not leave while your squad is in an active tournament or has scheduled/live matches. Captains must transfer captaincy first (My Team).
+        After leaving, a ${elig?.cooldown_hours_after_leave || 168}-hour cooldown applies before you can join another squad or register a new team.
+      </p>
+      ${
+        team && !canLeave && leaveBlockedReason
+          ? `<p class="font-mono text-[11px] text-red-400/95 mb-2">${leaveBlockedReason}</p>`
+          : ''
+      }
+      ${competitionHint}
+      ${cooldownHint}
+      <button id="leave-team-btn" class="btn-danger ${canLeave ? '' : 'opacity-60 cursor-not-allowed'}" ${canLeave ? '' : 'disabled'}>
+        Leave Team
+      </button>
+    </div>
+  `;
+
+  const leaveBtn = document.getElementById('leave-team-btn');
+  if (leaveBtn && canLeave) {
+    leaveBtn.addEventListener('click', handleLeaveTeam);
+  }
+
+  document.querySelectorAll('[data-acc-inv]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      const id = btn.getAttribute('data-acc-inv');
+      try {
+        btn.disabled = true;
+        await acceptTeamInvite(id);
+        showToast('You joined the team.', 'success');
+        await loadPlayerProfile();
+      } catch (e) {
+        showToast(e.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+  document.querySelectorAll('[data-dec-inv]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      const id = btn.getAttribute('data-dec-inv');
+      try {
+        btn.disabled = true;
+        await declineTeamInvite(id);
+        showToast('Invite declined.', 'info');
+        await loadPlayerProfile();
+      } catch (e) {
+        showToast(e.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+async function handleLeaveTeam() {
+  if (_playerProfileBusy) return;
+  const confirmed = await showConfirmDialog({
+    title: 'Leave your squad?',
+    message:
+      'You will leave this team immediately if tournament rules allow. Captains must transfer captaincy first.',
+    confirmLabel: 'Leave team',
+    cancelLabel: 'Stay',
+    variant: 'danger'
+  });
+  if (!confirmed) return;
+
+  try {
+    _playerProfileBusy = true;
+    const leaveBtn = document.getElementById('leave-team-btn');
+    if (leaveBtn) leaveBtn.disabled = true;
+    await leaveMyTeam();
+    showToast('You left your team successfully.', 'success');
+    if (typeof applyNavAuthState === 'function') applyNavAuthState();
+    await loadPlayerProfile();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    _playerProfileBusy = false;
+    const leaveBtn = document.getElementById('leave-team-btn');
+    if (leaveBtn) leaveBtn.disabled = false;
+  }
+}
+
+requireSignIn(loadPlayerProfile, 'your player profile');
+</script>
+</body>
+</html>

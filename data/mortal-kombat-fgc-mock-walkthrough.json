@@ -1,0 +1,171 @@
+{
+  "_title": "Mortal Kombat tournament — FGC engine mock (sets / games / rounds)",
+  "_engine_notes": {
+    "detection": "tournamentLooksLikeFgc() triggers when name/mode/type matches 'mortal kombat' OR tournaments.fgc_config is non-empty.",
+    "scores": "For each GAME row, score_a and score_b are ROUND WINS in that game (e.g. 2–1 = first to 2 rounds). Set = best-of games (like COD best-of maps).",
+    "sql_first": "Run warzongg-api/sql/fgc_tournament_engine.sql in Supabase before POST /api/matches with create_fgc_set."
+  },
+  "prerequisites": [
+    "Supabase: apply fgc_tournament_engine.sql.",
+    "API running; admin JWT for write routes.",
+    "Two team UUIDs with approved registrations on this tournament.",
+    "Replace all PLACEHOLDER_* values with real UUIDs from your project."
+  ],
+  "step_1_create_tournament_admin_ui": {
+    "navigate": "pages/admin.html → Create New Tournament",
+    "critical_fields": {
+      "Tournament Name": "Mortal Kombat — Pit Championship 2026 (Mock)",
+      "Game Title": "Mortal Kombat",
+      "Division / Queue Label": "1v1 · PS5 · FT2 rounds · Bo3 games",
+      "mode_sent_to_api": "Will become mode = \"Mortal Kombat · 1v1 · PS5 · FT2 rounds · Bo3 games\" — contains mortal kombat → FGC engine."
+    }
+  },
+  "step_1b_create_tournament_rest": {
+    "method": "POST",
+    "url": "{{API_URL}}/api/tournaments",
+    "headers": {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer {{ADMIN_JWT}}"
+    },
+    "body": {
+      "name": "Mortal Kombat — Pit Championship 2026 (Mock)",
+      "tag": "MKPC",
+      "mode": "Mortal Kombat · 1v1 · PS5 · FT2 rounds per game, Bo3 per set",
+      "type": "solo",
+      "format": "Double elimination (bracket TBD) — sets are Bo3 games",
+      "region": "ZA",
+      "start_date": "2026-08-01",
+      "reg_deadline": "2026-07-25",
+      "max_slots": 16,
+      "prize_total": 15000,
+      "entry_fee": 0,
+      "prize_1st": 8000,
+      "prize_2nd": 5000,
+      "prize_3rd": 2000,
+      "prize_mvp": 0,
+      "description": "Mock MK event for FGC engine tests. Rounds in score_a/score_b; sets via create_fgc_set."
+    },
+    "capture": "Save id as TOURNAMENT_ID"
+  },
+  "step_1c_optional_fgc_config_patch": {
+    "method": "PATCH",
+    "url": "{{API_URL}}/api/tournaments/TOURNAMENT_ID",
+    "body": {
+      "fgc_config": {
+        "rounds_to_win_game": 2,
+        "games_best_of": 3,
+        "grand_finals_reset": true
+      }
+    },
+    "note": "Optional; create_fgc_set can still pass games_best_of and rounds on the set row. Empty fgc_config still works if name includes Mortal Kombat."
+  },
+  "step_2_approve_two_teams": "Same as other mocks: captains register; admin approves in Participants so match dropdowns work.",
+  "step_3_create_set_and_first_game": {
+    "description": "One POST creates fgc_match_sets + first game row (fgc_game_number 1).",
+    "method": "POST",
+    "url": "{{API_URL}}/api/matches",
+    "headers": {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer {{ADMIN_JWT}}"
+    },
+    "body": {
+      "tournament_id": "TOURNAMENT_ID",
+      "team_a_id": "PLACEHOLDER_TEAM_SCORPION_UUID",
+      "team_b_id": "PLACEHOLDER_TEAM_SUBZERO_UUID",
+      "round": "quarter_final",
+      "map_name": "The Pit",
+      "game_mode": "FT2 rounds · Game 1",
+      "status": "scheduled",
+      "scheduled_at": "2026-08-10T19:00:00.000Z",
+      "create_fgc_set": {
+        "games_best_of": 3,
+        "rounds_to_win_game": 2,
+        "round": "quarter_final"
+      }
+    },
+    "response_capture": "match.id = MATCH_GAME_1_ID, and response data should include fgc_set_id (or read back GET /api/matches?tournament_id=...). Save FGC_SET_ID = match.fgc_set_id"
+  },
+  "step_4a_complete_game_1": {
+    "story": "Scorpion wins the first game 2–1 in rounds.",
+    "method": "PATCH",
+    "url": "{{API_URL}}/api/matches/MATCH_GAME_1_ID",
+    "body": {
+      "score_a": 2,
+      "score_b": 1,
+      "status": "completed",
+      "round": "quarter_final"
+    }
+  },
+  "step_4b_create_game_2_scheduled": {
+    "method": "POST",
+    "url": "{{API_URL}}/api/matches",
+    "body": {
+      "tournament_id": "TOURNAMENT_ID",
+      "team_a_id": "PLACEHOLDER_TEAM_SCORPION_UUID",
+      "team_b_id": "PLACEHOLDER_TEAM_SUBZERO_UUID",
+      "round": "quarter_final",
+      "fgc_set_id": "FGC_SET_ID",
+      "map_name": "Living Forest",
+      "game_mode": "FT2 rounds · Game 2",
+      "status": "scheduled",
+      "scheduled_at": "2026-08-10T19:20:00.000Z"
+    },
+    "note": "fgc_game_number auto-increments (2) when fgc_set_id is set and number omitted."
+  },
+  "step_4c_complete_game_2_sub_wins": {
+    "story": "Sub-Zero evens the set: wins game 2 with 2–0 rounds.",
+    "method": "PATCH",
+    "url": "{{API_URL}}/api/matches/MATCH_GAME_2_ID",
+    "body": {
+      "score_a": 0,
+      "score_b": 2,
+      "status": "completed"
+    }
+  },
+  "step_4d_decider_game_3": {
+    "create": {
+      "method": "POST",
+      "url": "{{API_URL}}/api/matches",
+      "body": {
+        "tournament_id": "TOURNAMENT_ID",
+        "team_a_id": "PLACEHOLDER_TEAM_SCORPION_UUID",
+        "team_b_id": "PLACEHOLDER_TEAM_SUBZERO_UUID",
+        "round": "quarter_final",
+        "fgc_set_id": "FGC_SET_ID",
+        "map_name": "The Pit (decider)",
+        "game_mode": "FT2 rounds · Game 3",
+        "status": "scheduled"
+      }
+    },
+    "complete_scorpion_wins_set": {
+      "method": "PATCH",
+      "url": "{{API_URL}}/api/matches/MATCH_GAME_3_ID",
+      "body": {
+        "score_a": 2,
+        "score_b": 0,
+        "status": "completed"
+      }
+    },
+    "expected_set_outcome": "2–1 games → Scorpion wins the set; fgc_match_sets.status = complete, winner_team_id = Scorpion. Global teams W/L updated once for the set (same pattern as COD series)."
+  },
+  "negative_tests": {
+    "tied_rounds_rejected": {
+      "PATCH_body": { "score_a": 1, "score_b": 1, "status": "completed" },
+      "expect": "400 — FGC tie / incomplete"
+    },
+    "unfinished_round_line": {
+      "PATCH_body": { "score_a": 1, "score_b": 0, "status": "completed", "rounds_to_win": 2 },
+      "expect": "400 — neither player reached rounds_to_win_game (2)"
+    }
+  },
+  "verification": {
+    "list_matches": "GET {{API_URL}}/api/matches?tournament_id=TOURNAMENT_ID",
+    "check_set_in_db": "Table Editor → fgc_match_sets: one row with winner_team_id and status complete after game 3.",
+    "engine_self_test": "From repo: node warzongg-api/engine/fgc/selfTest.js"
+  },
+  "powershell": [
+    "$API='http://localhost:3000'",
+    "$T='TOURNAMENT_ID'",
+    "Invoke-RestMethod -Uri \"$API/api/matches?tournament_id=$T\" | ConvertTo-Json -Depth 8"
+  ]
+}

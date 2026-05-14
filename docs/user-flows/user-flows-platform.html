@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WARZONE.GG — Interactive platform user flows</title>
+  <style>
+    :root {
+      --c-entry: #b3d9f2;
+      --c-decision: #f5c9a3;
+      --c-auth: #c8e6c9;
+      --c-success: #a5d6a7;
+      --c-action: #f8bbd0;
+      --c-admin-auth: #ffcdd2;
+      --c-admin-hub: #ffebee;
+      --c-logout: #455a64;
+      --guest: #039be5;
+      --member: #2e7d32;
+      --admin: #c62828;
+      --bg: #eceff1;
+      --card: #fff;
+      --text: #1a1a1a;
+      --muted: #546e7a;
+      --line: #cfd8dc;
+      --radius: 12px;
+      --shadow: 0 2px 14px rgba(0,0,0,.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .page-header {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 20px 16px;
+    }
+    .page-header h1 {
+      font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    .page-header .lede {
+      font-size: 0.95rem;
+      color: var(--muted);
+      max-width: 52rem;
+      margin: 0;
+    }
+    .page-header .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,.7);
+      border-radius: 8px;
+      border: 1px solid var(--line);
+    }
+
+    .toc {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 20px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .toc span { font-size: 0.75rem; color: var(--muted); margin-right: 4px; }
+    .toc a {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--text);
+      transition: background .15s, border-color .15s;
+    }
+    .toc a:hover { border-color: var(--muted); background: #fafafa; }
+    .toc a[data-persona="guest"] { border-color: #81d4fa; }
+    .toc a[data-persona="member"] { border-color: #a5d6a7; }
+    .toc a[data-persona="admin"] { border-color: #ef9a9a; }
+
+    .layout {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 20px 48px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (min-width: 1024px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 28px;
+      }
+    }
+
+    .flows-main { min-width: 0; }
+
+    .legend-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      font-size: 0.72rem;
+      margin-bottom: 20px;
+      padding: 12px 14px;
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .legend-strip span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+    .sw { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+    .persona-block {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 28px;
+      overflow: hidden;
+      scroll-margin-top: 16px;
+    }
+    .persona-block.guest { border-top: 4px solid var(--guest); }
+    .persona-block.member { border-top: 4px solid var(--member); }
+    .persona-block.admin { border-top: 4px solid var(--admin); }
+    .persona-block.entry { border-top: 4px solid #78909c; }
+
+    .persona-head {
+      padding: 18px 20px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .persona-head h2 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .persona-head p {
+      margin: 8px 0 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .flow-timeline {
+      padding: 8px 16px 20px 12px;
+    }
+    .step-row {
+      display: flex;
+      gap: 0;
+      position: relative;
+    }
+    .step-rail {
+      width: 36px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .step-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--line);
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 2px var(--line);
+      z-index: 1;
+      flex-shrink: 0;
+    }
+    .step-row.is-active .step-dot {
+      box-shadow: 0 0 0 3px rgba(33,150,243,.35);
+      background: #2196f3;
+    }
+    .step-line {
+      width: 2px;
+      flex: 1;
+      min-height: 12px;
+      background: var(--line);
+      margin: 2px 0;
+    }
+    .step-row:last-child .step-line { display: none; }
+
+    .step-card {
+      flex: 1;
+      min-width: 0;
+      margin: 4px 0 4px 0;
+      padding: 0 0 12px 8px;
+    }
+    .step-btn {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: start;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fafafa;
+      cursor: pointer;
+      font: inherit;
+      color: inherit;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+    }
+    .step-btn:hover {
+      background: #fff;
+      border-color: #b0bec5;
+    }
+    .step-row.is-active .step-btn {
+      background: #fff;
+      border-color: #2196f3;
+      box-shadow: 0 2px 10px rgba(33,150,243,.12);
+    }
+    .step-kind {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: 4px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      align-self: start;
+    }
+    .step-kind.entry { background: var(--c-entry); color: #1565c0; }
+    .step-kind.decision { background: var(--c-decision); color: #bf360c; }
+    .step-kind.auth { background: var(--c-auth); color: #1b5e20; }
+    .step-kind.success { background: var(--c-success); color: #1b5e20; }
+    .step-kind.action { background: var(--c-action); color: #880e4f; }
+    .step-kind.admin { background: var(--c-admin-auth); color: #b71c1c; }
+    .step-kind.hub { background: var(--c-admin-hub); color: #b71c1c; }
+    .step-kind.ops { background: #ffe0b2; color: #e65100; }
+    .step-kind.exit { background: var(--c-logout); color: #fff; }
+    .step-kind.note { background: #eceff1; color: #455a64; }
+
+    .step-btn h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .step-btn .micro {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 400;
+      margin-top: 4px;
+    }
+    .step-btn .chev {
+      color: var(--muted);
+      font-size: 1.1rem;
+      line-height: 1;
+      align-self: center;
+    }
+    .step-row.is-active .step-btn .chev { color: #2196f3; }
+
+    .detail-panel {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--line);
+      padding: 18px 18px 22px;
+      position: static;
+    }
+    @media (min-width: 1024px) {
+      .detail-panel {
+        position: sticky;
+        top: 16px;
+        max-height: calc(100vh - 32px);
+        overflow: auto;
+      }
+    }
+    .detail-panel.empty .detail-inner { display: none; }
+    .detail-panel.empty::after {
+      content: "Select any step in the flows to see how that user interacts with the platform — UI, navigation, and backend behavior.";
+      display: block;
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .detail-panel:not(.empty)::after { display: none; }
+
+    .detail-kicker {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin: 0 0 6px;
+    }
+    .detail-panel h3 {
+      margin: 0 0 10px;
+      font-size: 1.15rem;
+      line-height: 1.3;
+    }
+    .detail-summary {
+      font-size: 0.9rem;
+      margin: 0 0 14px;
+      color: #37474f;
+    }
+    .detail-panel h4 {
+      margin: 14px 0 6px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+    .detail-panel ul {
+      margin: 0;
+      padding-left: 1.15rem;
+      font-size: 0.86rem;
+      color: #37474f;
+    }
+    .detail-panel li { margin-bottom: 6px; }
+    .detail-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+    .detail-meta code {
+      font-size: 0.75rem;
+      background: #eceff1;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .mini-schematic {
+      padding: 12px 20px 16px;
+      background: #f5f5f5;
+      border-top: 1px dashed var(--line);
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .mini-schematic strong { color: #37474f; }
+  </style>
+</head>
+<body>
+
+  <header class="page-header">
+    <h1>Interactive platform user flows</h1>
+    <p class="lede">
+      Click a step to open the detail panel. Information reflects how WARZONE.GG navigation, pages, and roles behave today (public browsing, authenticated participants, and non-competing admins).
+    </p>
+    <p class="hint" role="note">
+      <strong>Tip:</strong> On desktop, the detail panel stays visible on the right while you browse steps. Keyboard users: Tab to a step and press Enter or Space to select.
+    </p>
+  </header>
+
+  <nav class="toc" aria-label="Skip to persona">
+    <span>Jump to</span>
+    <a href="#entry" data-persona="guest">Entry &amp; routing</a>
+    <a href="#guest" data-persona="guest">Guest</a>
+    <a href="#member" data-persona="member">Team member</a>
+    <a href="#admin" data-persona="admin">Admin</a>
+  </nav>
+
+  <div class="layout">
+    <div class="flows-main">
+
+      <div class="legend-strip" aria-label="Color key">
+        <span><i class="sw" style="background:var(--c-entry)"></i> Browse / explore</span>
+        <span><i class="sw" style="background:var(--c-decision)"></i> Decision</span>
+        <span><i class="sw" style="background:var(--c-auth)"></i> Auth</span>
+        <span><i class="sw" style="background:var(--c-success)"></i> Success</span>
+        <span><i class="sw" style="background:var(--c-action)"></i> Register / approve</span>
+        <span><i class="sw" style="background:var(--c-admin-auth)"></i> Admin auth</span>
+        <span><i class="sw" style="background:#ffe0b2"></i> Admin edit / create</span>
+        <span><i class="sw" style="background:var(--c-logout)"></i> Log out</span>
+      </div>
+
+      <!-- ENTRY -->
+      <section class="persona-block entry" id="entry" aria-labelledby="title-entry">
+        <div class="persona-head">
+          <h2 id="title-entry">Entry &amp; user type</h2>
+          <p>Everyone lands on the same front end; role and session determine what appears next.</p>
+        </div>
+        <div class="mini-schematic">
+          <strong>Routing logic:</strong> Guests see Login + Sign Up. Signed-in users see username, Logout, Team, Player Profile, and Admin (only if <code>role === 'admin'</code>). The flows below assume the three personas you defined.
+        </div>
+        <div class="flow-timeline" data-persona="Entry">
+          <div class="step-row" data-detail="entry_land">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind entry">Entry</span>
+                <span>
+                  <h3>Application entry</h3>
+                  <span class="micro">index.html, deep links, or shared tournament URLs</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="entry_split">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind decision">Split</span>
+                <span>
+                  <h3>Which persona applies?</h3>
+                  <span class="micro">Guest · signed-in competitor · admin staff</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="entry_impl">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind note">Impl.</span>
+                <span>
+                  <h3>How the app decides</h3>
+                  <span class="micro">JWT session in localStorage · user.role from API</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GUEST -->
+      <section class="persona-block guest" id="guest" aria-labelledby="title-guest">
+        <div class="persona-head">
+          <h2 id="title-guest">Guest — no account · not on a team</h2>
+          <p>Read-only discovery and rules; auth controls promote Sign Up / Login. Team and Player nav links stay hidden until a session exists.</p>
+        </div>
+        <div class="flow-timeline" data-persona="Guest">
+          <div class="step-row" data-detail="guest_explore">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind entry">Explore</span><span><h3>Explore the app</h3><span class="micro">Hero, featured tournaments, announcements</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="guest_browse">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind entry">Browse</span><span><h3>Browse tournaments &amp; schedule</h3><span class="micro">Filter by game · bracket · leaderboard</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="guest_read">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind entry">Read</span><span><h3>View details &amp; rules</h3><span class="micro">Tournament cards, rules.html, public schedules</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="guest_auth_choice">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind decision">Choice</span><span><h3>Stay guest or authenticate</h3><span class="micro">Sign Up · Login modal · optional Activate link</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="guest_signup">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind auth">Sign up</span><span><h3>Create an account</h3><span class="micro">register.html — often paired with forming / joining a team</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="guest_compete_path">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind action">Compete</span><span><h3>Path to participation</h3><span class="micro">Team registration flow; captain-led roster</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="guest_leave">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind exit">Exit</span><span><h3>Leave</h3><span class="micro">No server session to clear as a pure guest</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MEMBER -->
+      <section class="persona-block member" id="member" aria-labelledby="title-member">
+        <div class="persona-head">
+          <h2 id="title-member">User with account · part of a team</h2>
+          <p>After login, Team and Player Profile appear. Captains drive tournament registration; everyone sees status as registrations move through pending → approved.</p>
+        </div>
+        <div class="flow-timeline" data-persona="Member">
+          <div class="step-row" data-detail="mem_login">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind auth">Sign in</span><span><h3>Login</h3><span class="micro">Modal or dedicated flow · token stored locally</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="mem_session">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind success">Session</span><span><h3>Signed in</h3><span class="micro">Nav swaps to participant mode</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="mem_hub">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind entry">Hub</span><span><h3>Participant hub</h3><span class="micro">Home shows “your events” when you have approved regs</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="mem_team">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind entry">Team</span><span><h3>My Team</h3><span class="micro">Roster, captain actions, team identity</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="mem_player">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind entry">Profile</span><span><h3>Player profile</h3><span class="micro">Linked player record &amp; stats surface here</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="mem_tournaments">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind entry">Events</span><span><h3>Browse &amp; drill into tournaments</h3><span class="micro">Approved entries highlighted on listings</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="mem_register_t">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind action">Register</span><span><h3>Register team for tournament</h3><span class="micro">API creates pending registration</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="mem_pending">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind success">Pipeline</span><span><h3>Pending → approved / rejected</h3><span class="micro">Admin reviews; notifications inform the team</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="mem_logout">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind exit">Logout</span><span><h3>Log out</h3><span class="micro">Clears local session; nav returns to guest</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ADMIN -->
+      <section class="persona-block admin" id="admin" aria-labelledby="title-admin">
+        <div class="persona-head">
+          <h2 id="title-admin">Admin</h2>
+          <p>Staff accounts use the same login surface but unlock the Admin panel. They do not use My Team or player competition UIs—those routes show a redirect message.</p>
+        </div>
+        <div class="flow-timeline" data-persona="Admin">
+          <div class="step-row" data-detail="adm_login">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind admin">Admin auth</span><span><h3>Sign in as admin</h3><span class="micro">Same auth; role flag gates APIs</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="adm_ok">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind success">OK</span><span><h3>Admin session</h3><span class="micro">ADMIN badge in nav · admin routes enabled</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="adm_dashboard">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind hub">Hub</span><span><h3>Admin dashboard</h3><span class="micro">Overview stats · game strip · quick actions</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="adm_tournaments">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind ops">Tournaments</span><span><h3>Create &amp; edit tournaments</h3><span class="micro">Status open/live · prize · game metadata</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="adm_regs">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind action">Registrations</span><span><h3>Approve / reject teams</h3><span class="micro">Queue of pending registrations</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="adm_matches">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind ops">Matches</span><span><h3>Build &amp; update matches</h3><span class="micro">Pair teams · results · bracket inputs</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="adm_announce">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind entry">Comms</span><span><h3>Announcements &amp; live banner</h3><span class="micro">Broadcast to home / bracket viewers</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="adm_blocked">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind note">Blocked</span><span><h3>What admins do not use</h3><span class="micro">Team profile &amp; player profile competition views</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="adm_logout">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind exit">Logout</span><span><h3>Admin log out</h3><span class="micro">Same Logout control; clears admin session</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <aside id="detail-panel" class="detail-panel empty" aria-label="Step details">
+      <div class="detail-inner" id="detail-inner" hidden></div>
+    </aside>
+  </div>
+
+  <script>
+(function () {
+  const DETAILS = {
+    entry_land: {
+      persona: 'Everyone',
+      title: 'Application entry',
+      summary: 'Users arrive via the marketing home page, direct tournament links, or secondary pages (bracket, rules). No login is required to read public content.',
+      bullets: [
+        'Typical first screen: index.html with hero, featured tournaments, and stats pulled from the API.',
+        'Deep links can land on tournaments.html, bracket.html, or a specific tournament card.',
+        'Session state (if any) is restored from localStorage on subsequent visits.'
+      ],
+      pages: ['index.html', 'pages/tournaments.html', 'pages/bracket.html'],
+      api: 'Public tournament and stats endpoints; no bearer token needed for browse.'
+    },
+    entry_split: {
+      persona: 'Everyone',
+      title: 'Which persona applies?',
+      summary: 'The experience splits based on whether a JWT-backed session exists and on user.role from the auth API.',
+      bullets: [
+        'Guest: no token — Login and Sign Up visible; Team and Player links hidden.',
+        'Participant: token with role "user" (or non-admin) — full participant nav.',
+        'Admin: token with role "admin" — Admin link appears; competition profile views are intentionally blocked in the UI.'
+      ],
+      pages: ['js/nav.js — applyNavAuthState()'],
+      api: 'Login/register responses include user.role used for nav and route guards.'
+    },
+    entry_impl: {
+      persona: 'Everyone',
+      title: 'How the app decides',
+      summary: 'The front end stores the session in localStorage (wz_session) and re-applies navigation whenever the page loads or auth changes.',
+      bullets: [
+        'getCurrentUser() reads username, role, and related fields for display.',
+        'Logout clears storage and re-runs applyNavAuthState() so the UI returns to guest mode.',
+        'API calls attach the bearer token from the same session object where required.'
+      ],
+      pages: ['js/nav.js', 'js/api.js'],
+      api: 'Protected routes use Authorization: Bearer <token>; admin APIs require role admin server-side.'
+    },
+    guest_explore: {
+      persona: 'Guest',
+      title: 'Explore the app',
+      summary: 'Guests consume public marketing and discovery surfaces without identifying themselves.',
+      bullets: [
+        'See global layout: WARZONE.GG brand, tournaments entry points, rules, schedule, leaderboard.',
+        'Live announcement banner may show when admins publish live events.',
+        'Cannot open Team or Player Profile from the main nav — those items are not rendered for signed-out users.'
+      ],
+      pages: ['index.html'],
+      api: 'Public reads only; no personalisation beyond optional cookies/local preferences.'
+    },
+    guest_browse: {
+      persona: 'Guest',
+      title: 'Browse tournaments & schedule',
+      summary: 'Guests filter and compare events the same way signed-in users do for discovery, but without “my team” highlights.',
+      bullets: [
+        'Tournaments list: filter by game, read status (open, live, etc.).',
+        'Bracket and schedule pages show structure and timing for public events.',
+        'Leaderboard is read-only.'
+      ],
+      pages: ['pages/tournaments.html', 'pages/bracket.html', 'pages/schedule.html', 'pages/leaderboard.html'],
+      api: 'Tournament list and public bracket data.'
+    },
+    guest_read: {
+      persona: 'Guest',
+      title: 'View details & rules',
+      summary: 'Before registering, guests validate format, rules, and eligibility on static and dynamic pages.',
+      bullets: [
+        'rules.html explains format and dispute handling.',
+        'Tournament cards link into detail views where implemented.',
+        'Guests may use “Activate your account” if they were invited as roster players (nav link visible when logged out).'
+      ],
+      pages: ['pages/rules.html', 'pages/tournaments.html', 'pages/activate.html'],
+      api: 'N/A for pure reading; activate may call auth endpoints when used.'
+    },
+    guest_auth_choice: {
+      persona: 'Guest',
+      title: 'Stay guest or authenticate',
+      summary: 'The primary conversion points are Sign Up (register.html) and Login (modal).',
+      bullets: [
+        'Login opens a modal from any page with injectNav; successful login refreshes nav without full reload in many flows.',
+        'Sign Up routes to registration where teams and captains are created.',
+        'Guests can continue browsing without logging in indefinitely.'
+      ],
+      pages: ['index.html (login modal)', 'pages/register.html'],
+      api: 'POST login/register; errors surfaced via toast or inline messages.'
+    },
+    guest_signup: {
+      persona: 'Guest',
+      title: 'Create an account',
+      summary: 'Registration establishes a user record and typically ties the captain to a new team and roster for competition.',
+      bullets: [
+        'Form captures team identity, game, and player slots depending on product rules.',
+        'After success, the user is usually signed in automatically and gains Team / Player nav items.',
+        'Admins cannot use team registration — API returns a reason if an admin attempts participant registration.'
+      ],
+      pages: ['pages/register.html'],
+      api: 'Auth + teams + players endpoints; see warzongg-api auth/teams controllers.'
+    },
+    guest_compete_path: {
+      persona: 'Guest',
+      title: 'Path to participation',
+      summary: 'To enter events, a guest must become a participant with a team; the Register page is the main onboarding rail.',
+      bullets: [
+        'Captain-led flow: create team, add players, then register for specific tournaments when signed in.',
+        'Invited players may use activate.html to link an account to an existing player slot.',
+        'Until approved by admins, registrations remain pending and do not grant “approved” highlights.'
+      ],
+      pages: ['pages/register.html', 'pages/activate.html'],
+      api: 'registrations table via API; status pending until admin patch.'
+    },
+    guest_leave: {
+      persona: 'Guest',
+      title: 'Leave',
+      summary: 'A pure guest has no server session; “exit” is closing the browser or navigating away.',
+      bullets: [
+        'No Logout button semantics — nothing to revoke locally except any partial form state.',
+        'Marketing attribution or return visits behave like a normal static site.'
+      ],
+      pages: ['—'],
+      api: '—'
+    },
+    mem_login: {
+      persona: 'Team member',
+      title: 'Login',
+      summary: 'Participants authenticate with email/password; the client stores the JWT and user payload.',
+      bullets: [
+        'Login modal is available from the header on most pages.',
+        'On success, applyNavAuthState reveals Team, Player Profile, and username.',
+        'Mobile menu mirrors the same visibility rules.'
+      ],
+      pages: ['Modal in pages using injectNav', 'pages/register.html after signup'],
+      api: 'POST /auth/login — returns token + user.'
+    },
+    mem_session: {
+      persona: 'Team member',
+      title: 'Signed in',
+      summary: 'Session state drives which columns of the product are reachable from navigation.',
+      bullets: [
+        'Team link: team-profile.html?mine=1 for “my team”.',
+        'Player Profile: individual competitive identity.',
+        'Activate link hides once logged in (not needed for established accounts).'
+      ],
+      pages: ['js/nav.js'],
+      api: 'Token sent on authenticated requests.'
+    },
+    mem_hub: {
+      persona: 'Team member',
+      title: 'Participant hub',
+      summary: 'Home emphasises tournaments where the user’s team already has approved registrations.',
+      bullets: [
+        'Emerald banner / copy on index when the squad has approved entries.',
+        'Cross-links to tournaments, bracket, and schedule for those events.',
+        'Same global nav as other signed-in users.'
+      ],
+      pages: ['index.html', 'pages/tournaments.html'],
+      api: 'Fetches registrations and tournaments scoped to the user’s team/player.'
+    },
+    mem_team: {
+      persona: 'Team member',
+      title: 'My Team',
+      summary: 'Central place for roster, tags, and captain responsibilities.',
+      bullets: [
+        'Shows team metadata and membership.',
+        'Captain flows (e.g. inviting, registering the team for events) anchor here conceptually.',
+        'Distinct from Admin’s “all teams” list — this is scoped to the signed-in user’s team.'
+      ],
+      pages: ['pages/team-profile.html?mine=1'],
+      api: 'teams + players endpoints with auth.'
+    },
+    mem_player: {
+      persona: 'Team member',
+      title: 'Player profile',
+      summary: 'Individual stats and identity for the linked player record.',
+      bullets: [
+        'Requires the user to be linked to a player row in the backend.',
+        'Contrasts with admin: admins hitting player profile get redirected / blocked from competition UX.'
+      ],
+      pages: ['pages/player-profile.html'],
+      api: 'playersController — authenticated read/update within policy.'
+    },
+    mem_tournaments: {
+      persona: 'Team member',
+      title: 'Browse & drill into tournaments',
+      summary: 'Same discovery as guests, plus contextual highlights for teams already competing.',
+      bullets: [
+        'Approved registrations may show emerald styling on cards.',
+        'Drill-down to match schedule and rules for that event.',
+        'Schedule and bracket become “my” context when the team is entered.'
+      ],
+      pages: ['pages/tournaments.html', 'pages/schedule.html', 'pages/bracket.html'],
+      api: 'Tournament + registration joins for highlighting.'
+    },
+    mem_register_t: {
+      persona: 'Team member',
+      title: 'Register team for tournament',
+      summary: 'Captain (or authorised flow) submits the team into a specific open tournament.',
+      bullets: [
+        'Creates a registration row — usually pending until staff approves.',
+        'May fail if tournament full, wrong game, or duplicate entry depending on API rules.',
+        'Uses authenticated POST from the front end.'
+      ],
+      pages: ['pages/tournaments.html', 'pages/register.html context'],
+      api: 'registrationsController — create + status pending.'
+    },
+    mem_pending: {
+      persona: 'Team member',
+      title: 'Pending → approved / rejected',
+      summary: 'Participants wait for admin review; UI and banners update when status changes.',
+      bullets: [
+        'Admins use Admin panel to approve or reject.',
+        'Notifications or polling may inform the user (implementation-dependent).',
+        'Approved state unlocks full fixture visibility for that event where designed.'
+      ],
+      pages: ['index.html banners', 'pages/tournaments.html'],
+      api: 'PATCH registration status — admin-only.'
+    },
+    mem_logout: {
+      persona: 'Team member',
+      title: 'Log out',
+      summary: 'Clears local session and returns the UI to guest navigation.',
+      bullets: [
+        '_handleNavLogout in nav.js clears storage.',
+        'Team and Player links hide again; Login/Sign Up return.',
+        'Does not delete the account server-side — only ends the browser session.'
+      ],
+      pages: ['All pages with nav'],
+      api: 'Optional token invalidation if implemented server-side.'
+    },
+    adm_login: {
+      persona: 'Admin',
+      title: 'Sign in as admin',
+      summary: 'Admins use the same authentication endpoint; privilege is carried in user.role.',
+      bullets: [
+        'No separate “admin login page” required — often same modal, then redirect to admin.html.',
+        'Server must mark user as admin in metadata/database for requireAdmin middleware.'
+      ],
+      pages: ['pages/admin.html (session check)', 'Login modal'],
+      api: 'requireAdmin on warzongg-api routes.'
+    },
+    adm_ok: {
+      persona: 'Admin',
+      title: 'Admin session',
+      summary: 'Nav shows ADMIN badge and exposes the Admin link in desktop and mobile menus.',
+      bullets: [
+        'Admin sees the same Logout control as participants.',
+        'Participant-only links may still render but pages block misuse (team profile, player profile).'
+      ],
+      pages: ['js/nav.js'],
+      api: 'Bearer token must pass admin checks on each protected route.'
+    },
+    adm_dashboard: {
+      persona: 'Admin',
+      title: 'Admin dashboard',
+      summary: 'Operational overview: counts, filters, and entry into deeper tools.',
+      bullets: [
+        'Game strip filters tournaments and matches by title (COD, FIFA, etc.).',
+        'Dashboard stats aggregate registrations, teams, and live tournaments.',
+        'Launch point for announcements and match management UIs embedded in admin.html.'
+      ],
+      pages: ['pages/admin.html'],
+      api: 'GET /admin/dashboard and related admin routes.'
+    },
+    adm_tournaments: {
+      persona: 'Admin',
+      title: 'Create & edit tournaments',
+      summary: 'Staff controls lifecycle: draft → open → live → completed, prize and rules fields.',
+      bullets: [
+        'Creating sets up events players can register for when open.',
+        'Editing updates schedule text, status, and visibility.',
+        'Deleting cascades related matches/registrations per API design.'
+      ],
+      pages: ['pages/admin.html — tournament forms'],
+      api: 'POST/PATCH/DELETE tournaments — requireAdmin.'
+    },
+    adm_regs: {
+      persona: 'Admin',
+      title: 'Approve / reject registrations',
+      summary: 'Queue of team applications per tournament; staff decisions unblock competition entry.',
+      bullets: [
+        'Approving moves registration to accepted state and may notify participants.',
+        'Rejecting frees capacity for other teams.',
+        'This is the counterpart to “Registration submitted” on the member flow.'
+      ],
+      pages: ['pages/admin.html — registrations UI'],
+      api: 'GET registrations, PATCH status — admin only.'
+    },
+    adm_matches: {
+      persona: 'Admin',
+      title: 'Build & update matches',
+      summary: 'Staff seeds bracket / round data and records results for public bracket views.',
+      bullets: [
+        'Select tournament, paste or pick team IDs, set scores.',
+        'Feeds bracket.html and schedule for spectators and players.'
+      ],
+      pages: ['pages/admin.html — matches section'],
+      api: 'POST/PATCH matches — requireAdmin.'
+    },
+    adm_announce: {
+      persona: 'Admin',
+      title: 'Announcements & live banner',
+      summary: 'Broadcast messaging to the whole site — especially during live events.',
+      bullets: [
+        'Home page banner pulls latest “live” messaging.',
+        'Supports watch links into bracket for spectators.'
+      ],
+      pages: ['index.html live banner', 'admin announcements form'],
+      api: 'POST /admin/announcements.'
+    },
+    adm_blocked: {
+      persona: 'Admin',
+      title: 'What admins do not use',
+      summary: 'Product policy: admins operate the league; they do not compete through participant screens.',
+      bullets: [
+        'team-profile.html (mine) shows a message directing to Admin for admin users.',
+        'player-profile.html similarly blocks admin competition UX.',
+        'API may reject admin from registering teams as participants.'
+      ],
+      pages: ['pages/team-profile.html', 'pages/player-profile.html'],
+      api: 'authController checks for non-participating admin on registration flows.'
+    },
+    adm_logout: {
+      persona: 'Admin',
+      title: 'Admin log out',
+      summary: 'Same logout behaviour — clears token and returns to public nav without Admin link.',
+      bullets: [
+        'Encouraged after operating on shared machines.',
+        'Next login requires full credentials again.'
+      ],
+      pages: ['Header Logout'],
+      api: 'Session ends client-side; optional server revoke if added.'
+    }
+  };
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  const panel = document.getElementById('detail-panel');
+  const inner = document.getElementById('detail-inner');
+  let activeBtn = null;
+
+  function renderDetail(key) {
+    const d = DETAILS[key];
+    if (!d) return;
+    inner.innerHTML =
+      '<p class="detail-kicker">' + escapeHtml(d.persona) + '</p>' +
+      '<h3>' + escapeHtml(d.title) + '</h3>' +
+      '<p class="detail-summary">' + escapeHtml(d.summary) + '</p>' +
+      '<h4>Behaviour</h4><ul>' + d.bullets.map(function (b) { return '<li>' + escapeHtml(b) + '</li>'; }).join('') + '</ul>' +
+      '<div class="detail-meta"><strong>Primary pages</strong><br>' +
+      d.pages.map(function (p) { return '<code>' + escapeHtml(p) + '</code>'; }).join(' · ') +
+      '<br><br><strong>API / server</strong><br>' + escapeHtml(d.api) + '</div>';
+    inner.hidden = false;
+    panel.classList.remove('empty');
+  }
+
+  document.querySelectorAll('.step-row[data-detail]').forEach(function (row) {
+    const key = row.getAttribute('data-detail');
+    const btn = row.querySelector('.step-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.step-row.is-active').forEach(function (r) {
+        r.classList.remove('is-active');
+        var b = r.querySelector('.step-btn');
+        if (b) b.setAttribute('aria-expanded', 'false');
+      });
+      row.classList.add('is-active');
+      btn.setAttribute('aria-expanded', 'true');
+      activeBtn = btn;
+      renderDetail(key);
+      panel.scrollTop = 0;
+      if (window.matchMedia('(max-width: 1023px)').matches) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && activeBtn) {
+      var row = activeBtn.closest('.step-row');
+      if (row) row.classList.remove('is-active');
+      activeBtn.setAttribute('aria-expanded', 'false');
+      activeBtn = null;
+      inner.hidden = true;
+      inner.innerHTML = '';
+      panel.classList.add('empty');
+    }
+  });
+})();
+  </script>
+</body>
+</html>

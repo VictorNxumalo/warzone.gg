@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WARZONE.GG — Home page flow (signed-in · on a team)</title>
+  <style>
+    :root {
+      --c-entry: #b3d9f2;
+      --c-decision: #f5c9a3;
+      --c-auth: #c8e6c9;
+      --c-success: #a5d6a7;
+      --c-action: #f8bbd0;
+      --c-api: #e1bee7;
+      --c-static: #eceff1;
+      --member: #2e7d32;
+      --bg: #eceff1;
+      --card: #fff;
+      --text: #1a1a1a;
+      --muted: #546e7a;
+      --line: #cfd8dc;
+      --radius: 12px;
+      --shadow: 0 2px 14px rgba(0,0,0,.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .page-header { max-width: 1280px; margin: 0 auto; padding: 24px 20px 16px; }
+    .page-header h1 { font-size: clamp(1.25rem, 2.5vw, 1.45rem); font-weight: 700; margin: 0 0 8px; }
+    .page-header .lede { font-size: 0.95rem; color: var(--muted); max-width: 54rem; margin: 0; }
+    .page-header .hint {
+      font-size: 0.8rem; color: var(--muted); margin-top: 12px; padding: 10px 14px;
+      background: rgba(255,255,255,.75); border-radius: 8px; border: 1px solid var(--line);
+    }
+    .toc { max-width: 1280px; margin: 0 auto; padding: 0 20px 20px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .toc span { font-size: 0.75rem; color: var(--muted); margin-right: 4px; }
+    .toc a {
+      font-size: 0.8rem; font-weight: 600; text-decoration: none; padding: 6px 12px; border-radius: 999px;
+      background: #fff; border: 1px solid var(--line); color: var(--text); transition: background .15s, border-color .15s;
+    }
+    .toc a:hover { border-color: var(--muted); background: #fafafa; }
+    .toc a[data-zone="load"] { border-color: #ce93d8; }
+    .toc a[data-zone="chrome"] { border-color: #81d4fa; }
+    .toc a[data-zone="content"] { border-color: #a5d6a7; }
+
+    .layout {
+      max-width: 1280px; margin: 0 auto; padding: 0 20px 48px;
+      display: grid; grid-template-columns: 1fr; gap: 24px; align-items: start;
+    }
+    @media (min-width: 1024px) {
+      .layout { grid-template-columns: minmax(0, 1fr) 360px; gap: 28px; }
+    }
+    .flows-main { min-width: 0; }
+
+    .legend-strip {
+      display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 0.72rem; margin-bottom: 20px;
+      padding: 12px 14px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .legend-strip span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+    .sw { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+    .persona-block {
+      background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+      margin-bottom: 28px; overflow: hidden; scroll-margin-top: 16px;
+    }
+    .persona-block.member { border-top: 4px solid var(--member); }
+    .persona-head { padding: 18px 20px 12px; border-bottom: 1px solid var(--line); }
+    .persona-head h2 { margin: 0; font-size: 1rem; letter-spacing: 0.04em; text-transform: uppercase; }
+    .persona-head p { margin: 8px 0 0; font-size: 0.85rem; color: var(--muted); }
+
+    .flow-timeline { padding: 8px 16px 20px 12px; }
+    .step-row { display: flex; gap: 0; position: relative; }
+    .step-rail { width: 36px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+    .step-dot {
+      width: 14px; height: 14px; border-radius: 50%; background: var(--line); border: 2px solid #fff;
+      box-shadow: 0 0 0 2px var(--line); z-index: 1; flex-shrink: 0;
+    }
+    .step-row.is-active .step-dot {
+      box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.35); background: #43a047;
+    }
+    .step-line { width: 2px; flex: 1; min-height: 12px; background: var(--line); margin: 2px 0; }
+    .step-row:last-child .step-line { display: none; }
+
+    .step-card { flex: 1; min-width: 0; margin: 4px 0; padding: 0 0 12px 8px; }
+    .step-btn {
+      width: 100%; text-align: left; display: grid; grid-template-columns: auto 1fr auto; gap: 12px;
+      align-items: start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
+      background: #fafafa; cursor: pointer; font: inherit; color: inherit;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+    }
+    .step-btn:hover { background: #fff; border-color: #b0bec5; }
+    .step-row.is-active .step-btn {
+      background: #fff; border-color: #43a047; box-shadow: 0 2px 10px rgba(46, 125, 50, 0.12);
+    }
+    .step-kind {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+      padding: 4px 8px; border-radius: 6px; white-space: nowrap; align-self: start;
+    }
+    .step-kind.load { background: var(--c-api); color: #4a148c; }
+    .step-kind.chrome { background: var(--c-entry); color: #1565c0; }
+    .step-kind.ui { background: var(--c-success); color: #1b5e20; }
+    .step-kind.nav { background: var(--c-decision); color: #bf360c; }
+    .step-kind.api { background: #fff3e0; color: #e65100; }
+    .step-kind.note { background: var(--c-static); color: #455a64; }
+
+    .step-btn h3 { margin: 0; font-size: 0.95rem; font-weight: 700; }
+    .step-btn .micro { display: block; font-size: 0.78rem; color: var(--muted); font-weight: 400; margin-top: 4px; }
+    .step-btn .chev { color: var(--muted); font-size: 1.1rem; line-height: 1; align-self: center; }
+    .step-row.is-active .step-btn .chev { color: #2e7d32; }
+
+    .detail-panel {
+      background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+      border: 1px solid var(--line); padding: 18px 18px 22px; position: static;
+    }
+    @media (min-width: 1024px) {
+      .detail-panel { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+    }
+    .detail-panel.empty .detail-inner { display: none; }
+    .detail-panel.empty::after {
+      content: "Select a step to see the interaction, what the UI does on index.html, and which API calls apply for a signed-in user on a team.";
+      display: block; font-size: 0.88rem; color: var(--muted); line-height: 1.55;
+    }
+    .detail-panel:not(.empty)::after { display: none; }
+
+    .detail-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 6px; }
+    .detail-panel h3 { margin: 0 0 10px; font-size: 1.1rem; line-height: 1.3; }
+    .detail-summary { font-size: 0.9rem; margin: 0 0 14px; color: #37474f; }
+    .detail-panel h4 { margin: 14px 0 6px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .detail-panel ul { margin: 0; padding-left: 1.15rem; font-size: 0.86rem; color: #37474f; }
+    .detail-panel li { margin-bottom: 6px; }
+    .detail-meta { font-size: 0.8rem; color: var(--muted); margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+    .detail-meta code { font-size: 0.75rem; background: #eceff1; padding: 2px 6px; border-radius: 4px; }
+
+    .mini-schematic {
+      padding: 12px 20px 16px; background: #f5f5f5; border-top: 1px dashed var(--line);
+      font-size: 0.75rem; color: var(--muted); line-height: 1.65;
+    }
+    .mini-schematic strong { color: #37474f; }
+    .mini-schematic pre {
+      margin: 8px 0 0; font-size: 0.7rem; background: #eceff1; padding: 10px 12px; border-radius: 8px; overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="page-header">
+    <h1>Home page — user with account · on a team</h1>
+    <p class="lede">
+      Interactive map of <strong>index.html</strong> for a <strong>signed-in competitor</strong> whose squad has (or will have)
+      <strong>approved tournament registrations</strong>. Each step explains what the user does, how the front end reacts, and which
+      backend endpoints power the data. Scope is the home page only (not a full product walkthrough).
+    </p>
+    <p class="hint" role="note">
+      <strong>Prerequisite:</strong> Valid JWT in <code>localStorage</code> (<code>wz_session</code>) from <code>POST /api/auth/login</code>.
+      Participant highlights require <code>GET /api/players/me/participations</code> to return at least one row with <code>status: approved</code>
+      (via team captaincy or linked player roster).
+    </p>
+  </header>
+
+  <nav class="toc" aria-label="On this page">
+    <span>Jump to</span>
+    <a href="#load" data-zone="load">Load sequence</a>
+    <a href="#chrome" data-zone="chrome">Nav &amp; theme</a>
+    <a href="#live" data-zone="content">Live strip</a>
+    <a href="#hero" data-zone="content">Hero &amp; stats</a>
+    <a href="#featured" data-zone="content">Featured &amp; “Your events”</a>
+    <a href="#universe" data-zone="content">Game Universe</a>
+    <a href="#spotlight" data-zone="content">Spotlight &amp; today</a>
+    <a href="#activity" data-zone="content">Activity &amp; news</a>
+  </nav>
+
+  <div class="layout">
+    <div class="flows-main">
+
+      <div class="legend-strip" aria-label="Color key">
+        <span><i class="sw" style="background:var(--c-api)"></i> Init / API timing</span>
+        <span><i class="sw" style="background:var(--c-entry)"></i> Global chrome</span>
+        <span><i class="sw" style="background:var(--c-success)"></i> Home content block</span>
+        <span><i class="sw" style="background:var(--c-decision)"></i> Navigation outcome</span>
+        <span><i class="sw" style="background:#fff3e0"></i> Public GET endpoints</span>
+      </div>
+
+      <!-- LOAD -->
+      <section class="persona-block member" id="load" aria-labelledby="title-load">
+        <div class="persona-head">
+          <h2 id="title-load">Page load &amp; data pipeline</h2>
+          <p>Order matters: participations load first so featured cards and activity can mark “your” tournaments.</p>
+        </div>
+        <div class="mini-schematic">
+          <strong>initHome()</strong> in <code>index.html</code> (inline script):
+          <pre>await loadHomeParticipations();
+await Promise.all([
+  loadFeaturedTournaments(),
+  loadGameSpotlight(),
+  loadTodayMatches(),
+  loadTournamentActivity(),
+  loadAnnouncements()
+]);</pre>
+          <strong>Also on parse:</strong> <code>injectNav('index.html')</code> → <code>applyNavAuthState()</code> reads session and shows Team / Player / username / Logout.
+        </div>
+        <div class="flow-timeline">
+          <div class="step-row" data-detail="hm_participations">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind load">1 · API</span>
+                <span>
+                  <h3>loadHomeParticipations()</h3>
+                  <span class="micro">Runs first · builds <code>_homeParticipatingIds</code> · toggles “Your events” banner</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="hm_parallel">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind load">2 · API</span>
+                <span>
+                  <h3>Parallel section loaders</h3>
+                  <span class="micro">Five async functions populate grids; each failure is isolated to its container</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="hm_session">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind note">Session</span>
+                <span>
+                  <h3>What “on a team” changes here</h3>
+                  <span class="micro">Without login, participations are skipped; with login + approved regs, emerald UI paths unlock</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CHROME -->
+      <section class="persona-block member" id="chrome" aria-labelledby="title-chrome">
+        <div class="persona-head">
+          <h2 id="title-chrome">Global chrome (injected nav)</h2>
+          <p>Same header as every page; behaviour comes from <code>js/nav.js</code> + <code>js/theme.js</code>.</p>
+        </div>
+        <div class="flow-timeline">
+          <div class="step-row" data-detail="hm_nav">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind chrome">Nav</span>
+                <span>
+                  <h3>injectNav + auth affordances</h3>
+                  <span class="micro">Home link · Tournaments · Bracket · Leaderboard · Schedule · Register · Rules · Team · Player · Logout</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="hm_theme">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind chrome">Theme</span>
+                <span>
+                  <h3>Light / dark toggle</h3>
+                  <span class="micro"><code>wzToggleTheme()</code> · <code>data-theme</code> on <code>&lt;html&gt;</code> · CSS variables in style.css</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="hm_register_guard">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind nav">Guard</span>
+                <span>
+                  <h3>Register link (signed-in)</h3>
+                  <span class="micro">Click handler may block duplicate team registration via <code>getRegistrationAccessState()</code></span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LIVE -->
+      <section class="persona-block member" id="live" aria-labelledby="title-live">
+        <div class="persona-head">
+          <h2 id="title-live">Live announcement strip</h2>
+          <p>Not auth-specific — driven purely by tournament list.</p>
+        </div>
+        <div class="flow-timeline">
+          <div class="step-row" data-detail="hm_live_banner">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind ui">#live-banner</span>
+                <span>
+                  <h3>“EVENT IS LIVE NOW” strip</h3>
+                  <span class="micro">Visible if any tournament has <code>status === 'live'</code> · WATCH → bracket</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HERO -->
+      <section class="persona-block member" id="hero" aria-labelledby="title-hero">
+        <div class="persona-head">
+          <h2 id="title-hero">Hero &amp; headline stats</h2>
+          <p>Marketing + CTAs are static; numeric stats are filled from API responses.</p>
+        </div>
+        <div class="flow-timeline">
+          <div class="step-row" data-detail="hm_hero_cta">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind nav">CTA</span>
+                <span>
+                  <h3>Register · View Tournaments · Live Bracket</h3>
+                  <span class="micro">Plain links to register.html, tournaments.html, bracket.html — no home script</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="hm_hero_stats">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind ui">#hero-stats</span>
+                <span>
+                  <h3>Tournaments · Prize pool · Active · Teams count</h3>
+                  <span class="micro">Tournaments/prize/active from getTournaments; Teams from getLeaderboard (spotlight loader)</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FEATURED -->
+      <section class="persona-block member" id="featured" aria-labelledby="title-featured">
+        <div class="persona-head">
+          <h2 id="title-featured">Featured tournaments &amp; participant UI</h2>
+          <p>This is where “on a team + approved registration” changes cards and destinations.</p>
+        </div>
+        <div class="flow-timeline">
+          <div class="step-row" data-detail="hm_your_events">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind ui">Banner</span>
+                <span>
+                  <h3>“Your events” explainer</h3>
+                  <span class="micro">Shown when <code>_homeParticipatingIds.size &gt; 0</code></span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="hm_filters">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind ui">Filter</span>
+                <span>
+                  <h3>Browse by game chips</h3>
+                  <span class="micro">Client-only filter on cached <code>_homeTournaments</code> · re-renders grid</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="hm_featured_cards">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind ui">Cards</span>
+                <span>
+                  <h3>Featured tournament cards (up to 6)</h3>
+                  <span class="micro">Participant: emerald ring, “Your squad”, hub link + Teams &amp; fixtures · else tournaments?id</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="hm_view_all">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind nav">Link</span>
+                <span>
+                  <h3>View All →</h3>
+                  <span class="micro">Navigates to full tournaments list</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- UNIVERSE -->
+      <section class="persona-block member" id="universe" aria-labelledby="title-universe">
+        <div class="persona-head">
+          <h2 id="title-universe">Game Universe grid</h2>
+          <p>Six large tiles — static navigation shortcuts.</p>
+        </div>
+        <div class="flow-timeline">
+          <div class="step-row" data-detail="hm_universe">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind ui">Grid</span>
+                <span>
+                  <h3>COD / FIFA / Forza / MK tiles</h3>
+                  <span class="micro">Each link → pages/tournaments.html (no query) · game-cover CSS backgrounds</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPOTLIGHT -->
+      <section class="persona-block member" id="spotlight" aria-labelledby="title-spotlight">
+        <div class="persona-head">
+          <h2 id="title-spotlight">Game Spotlight · Today’s matches</h2>
+          <p>Aggregated public data; member sees same rows as guest unless you extend filters later.</p>
+        </div>
+        <div class="flow-timeline">
+          <div class="step-row" data-detail="hm_spotlight">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind ui">Spotlight</span>
+                <span>
+                  <h3>Top 5 game categories</h3>
+                  <span class="micro">Derives counts from getLeaderboard + getTournaments + getMatches · links to tournaments</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="hm_today">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind ui">Schedule</span>
+                <span>
+                  <h3>Today’s matches (up to 4)</h3>
+                  <span class="micro">getSchedule() · date match or fallback rows · “Full Schedule” → schedule.html</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="hm_spotlight_teams">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind note">Stat</span>
+                <span>
+                  <h3>Hero “Teams” number</h3>
+                  <span class="micro">Set here from <code>getLeaderboard()</code> array length (not participations)</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ACTIVITY -->
+      <section class="persona-block member" id="activity" aria-labelledby="title-activity">
+        <div class="persona-head">
+          <h2 id="title-activity">Tournament activity · Announcements · Footer</h2>
+          <p>Activity mixes upcoming tournaments and completed scores; member tournaments get emerald actions.</p>
+        </div>
+        <div class="flow-timeline">
+          <div class="step-row" data-detail="hm_activity">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind ui">Feed</span>
+                <span>
+                  <h3>Tournament activity list</h3>
+                  <span class="micro">getTournaments + getMatches · “your squad” rows link to tournament-hub when participating</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="hm_announce">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind api">Public</span>
+                <span>
+                  <h3>Announcements</h3>
+                  <span class="micro">getPublicAnnouncements() — no auth · admin-authored content</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="hm_footer">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn" aria-expanded="false">
+                <span class="step-kind nav">Footer</span>
+                <span>
+                  <h3>Rules · Register links</h3>
+                  <span class="micro">Static · Register still subject to nav guard when signed in</span>
+                </span>
+                <span class="chev" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <aside class="detail-panel empty" id="detail-panel" aria-live="polite">
+      <div class="detail-inner" id="detail-inner" hidden></div>
+    </aside>
+  </div>
+
+  <script>
+(function () {
+  const DETAILS = {
+    hm_participations: {
+      persona: 'Team member · home',
+      title: 'loadHomeParticipations()',
+      summary: 'If getCurrentUser() returns a user, the client calls the participations API and records approved tournament IDs for UI gating.',
+      bullets: [
+        'Fills _homeParticipatingIds with String(p.tournament_id) for each participation row returned.',
+        'Unhides #home-participant-banner when the set is non-empty (explains emerald “Your events” treatment).',
+        'Failure is swallowed (empty set) so the rest of the page still loads for logged-in users.',
+        'This is the main home-page differentiator between “signed in on a team” vs guest for featured + activity.'
+      ],
+      pages: ['index.html — inline script'],
+      api: 'GET /api/players/me/participations — Authorization: Bearer <JWT>. Backend: teams where user is captain or linked player, registrations status approved.'
+    },
+    hm_parallel: {
+      persona: 'Team member · home',
+      title: 'Parallel loaders after participations',
+      summary: 'Five independent fetches populate sections; they do not block each other except they all start after participations resolve.',
+      bullets: [
+        'loadFeaturedTournaments: getTournaments, hero stats, live banner, featured grid + filters.',
+        'loadGameSpotlight: getLeaderboard, getTournaments, getMatches — builds top game rows; sets #stat-teams.',
+        'loadTodayMatches: getSchedule — today’s rows or fallback.',
+        'loadTournamentActivity: getTournaments, getMatches — uses _homeParticipatingIds for emerald CTAs.',
+        'loadAnnouncements: getPublicAnnouncements — public endpoint.'
+      ],
+      pages: ['index.html'],
+      api: 'See per-section steps for GET /api/tournaments, /api/leaderboard, /api/matches, /api/schedule, /api/announcements (public).'
+    },
+    hm_session: {
+      persona: 'Team member · home',
+      title: 'Session vs participant highlights',
+      summary: 'Being logged in enables the participations call; being “on a team” in the product sense means that call returns rows.',
+      bullets: [
+        'Guest: loadHomeParticipations exits early — no Bearer token path in getCurrentUser().',
+        'Logged in but no approved registration: participations may be empty — home looks like guest for emerald features.',
+        'Logged in with approved registration: tournament IDs match featured cards → hub links and “Your squad” labels.',
+        'Team/Player nav items come from applyNavAuthState(), not from participations.'
+      ],
+      pages: ['index.html', 'js/nav.js', 'js/data.js session'],
+      api: 'Participations endpoint ties UI to registration approvals; nav ties to any valid session.'
+    },
+    hm_nav: {
+      persona: 'Team member · home',
+      title: 'Navigation bar',
+      summary: 'injectNav builds the sticky header; applyNavAuthState shows Team, Player Profile, username, Logout and hides Login/Sign Up.',
+      bullets: [
+        'Home is active for index.html; other routes use _pathPrefix() for pages/ vs root.',
+        'Team → team-profile.html?mine=1; Player → player-profile.html.',
+        'Mobile menu duplicates links; theme toggle and hamburger are always available.',
+        'Leaving the page keeps session — same nav on next visit until logout.'
+      ],
+      pages: ['index.html (injectNav)', 'js/nav.js'],
+      api: 'No API on paint; optional POST /api/auth/logout on Logout.'
+    },
+    hm_theme: {
+      persona: 'Team member · home',
+      title: 'Theme (light / dark)',
+      summary: 'theme.js runs in <head>; wzToggleTheme sets data-theme on <html> and persists wz_theme in localStorage.',
+      bullets: [
+        'CSS variables in css/style.css swap surfaces, borders, hero veils, and game-cover overlays.',
+        'Does not call the backend — purely client state.',
+        'wzSyncThemeUI runs after nav injection so the toggle reflects aria state.'
+      ],
+      pages: ['js/theme.js', 'css/style.css'],
+      api: '—'
+    },
+    hm_register_guard: {
+      persona: 'Team member · home',
+      title: 'Register links while signed in',
+      summary: '_bindRegisterAccessGuard in nav.js intercepts clicks on register.html when a user is logged in.',
+      bullets: [
+        'getRegistrationAccessState() runs client-side: admin role check; then GET /api/teams/mine; then GET /api/players/me for pending profile / roster rules.',
+        'If blocked, preventDefault and showToast with the returned reason string.',
+        'Applies to footer Register and any nav link containing register.html (not when already on register page).'
+      ],
+      pages: ['js/nav.js', 'js/api.js — getRegistrationAccessState'],
+      api: 'GET /api/teams/mine and GET /api/players/me (Bearer); no single dedicated “access” route — composed checks.'
+    },
+    hm_live_banner: {
+      persona: 'Team member · home',
+      title: 'Live top strip',
+      summary: 'Inside loadFeaturedTournaments, if any tournament has status live, the red strip is shown with that tournament’s name.',
+      bullets: [
+        'Uses the same getTournaments response as featured cards — no second request.',
+        'WATCH → pages/bracket.html for everyone.',
+        'Hidden if no live tournament exists.'
+      ],
+      pages: ['index.html — #live-banner'],
+      api: 'GET /api/tournaments — public.'
+    },
+    hm_hero_cta: {
+      persona: 'Team member · home',
+      title: 'Hero buttons',
+      summary: 'Three anchor tags: primary registration, ghost links to tournaments and bracket. No JavaScript handler on the home page.',
+      bullets: [
+        'Register Your Team still hits register.html — may trigger the signed-in guard from nav.',
+        'View Tournaments and Live Bracket are unconditional navigation.',
+        'Hero imagery and gradients are static + CSS variables (wz-hero-grad-*).'
+      ],
+      pages: ['index.html — hero section'],
+      api: '—'
+    },
+    hm_hero_stats: {
+      persona: 'Team member · home',
+      title: 'Hero stat counters',
+      summary: 'Mixed sources: tournament aggregate updates stat-tournaments, stat-prize, stat-active in loadFeaturedTournaments; stat-teams is set in loadGameSpotlight from leaderboard length.',
+      bullets: [
+        'stat-tournaments = tournaments.length; stat-prize = sum of prize_total (formatted via centsToRand); stat-active = count status live or open.',
+        'stat-teams = teams.length from getLeaderboard() — platform-wide team count, not “my team” only.',
+        'Order of parallel loads means hero numbers may pop in at slightly different times.'
+      ],
+      pages: ['index.html — #hero-stats'],
+      api: 'GET /api/tournaments, GET /api/leaderboard — public.'
+    },
+    hm_your_events: {
+      persona: 'Team member · home',
+      title: '“Your events” card',
+      summary: 'Explains emerald treatment when the user has at least one approved participation on the home page.',
+      bullets: [
+        'Requires successful loadHomeParticipations + non-empty _homeParticipatingIds.',
+        'Purely informational — no click action on the banner itself.',
+        'Aligns copy with tournaments page behaviour for consistency.'
+      ],
+      pages: ['index.html — #home-participant-banner'],
+      api: 'Driven by GET /api/players/me/participations.'
+    },
+    hm_filters: {
+      persona: 'Team member · home',
+      title: 'Game filter chips',
+      summary: 'renderFeaturedGameFilters builds buttons from inferTournamentGame() on _homeTournaments; clicking re-renders the grid client-side.',
+      bullets: [
+        'No API round-trip when switching All Games vs a category.',
+        'onclick uses setFeaturedGameFilter(JSON.stringify(game)) so labels like Call of Duty or names containing quotes cannot break the handler.',
+        'If filter yields zero tournaments, shows “NO TOURNAMENTS IN THIS GAME CATEGORY”.',
+        'Participant styling recomputes on each render from _homeParticipatingIds.'
+      ],
+      pages: ['index.html — #featured-game-filters'],
+      api: '— (uses cached getTournaments data)'
+    },
+    hm_featured_cards: {
+      persona: 'Team member · home',
+      title: 'Featured tournament cards',
+      summary: 'Each card is an <a>. For tournaments where id is in _homeParticipatingIds, href is tournament-hub.html?id=…, emerald ring, “Your squad”, footer “Teams & fixtures”. Otherwise href is tournaments.html?id=… with status-based CTA label.',
+      bullets: [
+        'inferTournamentGame drives badge and game-cover class; banner-ranked/br/etc. for strip styling.',
+        'slotsBar() shows registration fill from tournament registered_count / max_slots.',
+        'Click navigates away — no SPA.'
+      ],
+      pages: ['index.html — #featured-tournaments'],
+      api: 'GET /api/tournaments; participations from GET /api/players/me/participations. Hub page may call GET /api/tournaments/:id/approved-teams.'
+    },
+    hm_view_all: {
+      persona: 'Team member · home',
+      title: 'View All tournaments',
+      summary: 'Ghost button in the Featured section header linking to the full tournaments listing.',
+      bullets: [
+        'No query string — user lands on default tournaments view.',
+        'Same destination as many Game Universe tiles but with full filters on that page.'
+      ],
+      pages: ['pages/tournaments.html'],
+      api: 'That page performs its own getTournaments + participations as implemented there.'
+    },
+    hm_universe: {
+      persona: 'Team member · home',
+      title: 'Game Universe',
+      summary: 'Six static cards with game-cover backgrounds linking to tournaments.html.',
+      bullets: [
+        'No per-game query parameter — discovery happens on the tournaments page.',
+        'Visuals from css/style.css game-cover-* classes and --wz-game-cover-shade overlay.',
+        'Identical for guest and member.'
+      ],
+      pages: ['index.html — Game Universe grid'],
+      api: '—'
+    },
+    hm_spotlight: {
+      persona: 'Team member · home',
+      title: 'Game Spotlight',
+      summary: 'Aggregates tournament count per inferred game and live match count; shows top 5 games by tournament count.',
+      bullets: [
+        'Each row links to pages/tournaments.html.',
+        'Failures show a muted error string inside the card.',
+        'Does not filter to “my” games — optional future enhancement.'
+      ],
+      pages: ['index.html — #game-spotlight'],
+      api: 'GET /api/leaderboard, GET /api/tournaments, GET /api/matches — public.'
+    },
+    hm_today: {
+      persona: 'Team member · home',
+      title: 'Today’s matches',
+      summary: 'getSchedule() returns either grouped by date or a flat list; home picks today’s ISO date or falls back.',
+      bullets: [
+        'Up to four match rows with time, label, team names, status badge.',
+        'Full Schedule → schedule.html.',
+        'If empty, shows “No matches scheduled today”.'
+      ],
+      pages: ['index.html — #today-matches'],
+      api: 'GET /api/schedule — public.'
+    },
+    hm_spotlight_teams: {
+      persona: 'Team member · home',
+      title: 'Teams count in hero',
+      summary: '#stat-teams is set in loadGameSpotlight from getLeaderboard() on success; if the whole spotlight loader throws, a second getLeaderboard() attempt still fills the stat (fallback) so the hero does not stay on “—”.',
+      bullets: [
+        'Value is leaderboard array length — platform scope, not “my team”.',
+        'Featured game filter buttons use JSON.stringify(game) in onclick so game names with quotes cannot break the handler.'
+      ],
+      pages: ['index.html — #stat-teams', 'loadGameSpotlight catch fallback'],
+      api: 'GET /api/leaderboard (may run twice only when spotlight UI fails — rare).'
+    },
+    hm_activity: {
+      persona: 'Team member · home',
+      title: 'Tournament activity',
+      summary: 'Merges up to 2 upcoming/open tournaments and up to 3 completed matches, sorts by date string, shows 5 items.',
+      bullets: [
+        'Tournament rows: if tournamentId is in _homeParticipatingIds, show emerald ring, copy, and Teams & fixtures → tournament-hub.',
+        'Otherwise “View tournament” with tournaments.html?id=.',
+        'Match rows show scores and inferred game label — no auth-specific styling.'
+      ],
+      pages: ['index.html — #tournament-activity'],
+      api: 'GET /api/tournaments, GET /api/matches; participations set from earlier GET /api/players/me/participations.'
+    },
+    hm_announce: {
+      persona: 'Team member · home',
+      title: 'Announcements',
+      summary: 'Public cards with type-coloured border; body text from API.',
+      bullets: [
+        'Empty list shows “No announcements”.',
+        'Same content for all users; live vs info vs warning styles by type field.'
+      ],
+      pages: ['index.html — #announcements'],
+      api: 'GET /api/announcements — no Authorization header required (getPublicAnnouncements in api.js).'
+    },
+    hm_footer: {
+      persona: 'Team member · home',
+      title: 'Footer',
+      summary: 'Rules and Register links; branding and copyright static.',
+      bullets: [
+        'Register triggers the same signed-in guard as nav register links.',
+        'Does not load data from API on the home page itself.'
+      ],
+      pages: ['index.html — footer'],
+      api: '—'
+    }
+  };
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  const panel = document.getElementById('detail-panel');
+  const inner = document.getElementById('detail-inner');
+
+  function renderDetail(key) {
+    const d = DETAILS[key];
+    if (!d) return;
+    inner.innerHTML =
+      '<p class="detail-kicker">' + escapeHtml(d.persona) + '</p>' +
+      '<h3>' + escapeHtml(d.title) + '</h3>' +
+      '<p class="detail-summary">' + escapeHtml(d.summary) + '</p>' +
+      '<h4>What happens (behaviour)</h4><ul>' + d.bullets.map(function (b) { return '<li>' + escapeHtml(b) + '</li>'; }).join('') + '</ul>' +
+      '<div class="detail-meta"><strong>Primary pages / scripts</strong><br>' +
+      d.pages.map(function (p) { return '<code>' + escapeHtml(p) + '</code>'; }).join(' · ') +
+      '<br><br><strong>API / server</strong><br>' + escapeHtml(d.api) + '</div>';
+    inner.hidden = false;
+    panel.classList.remove('empty');
+  }
+
+  let activeBtn = null;
+  document.querySelectorAll('.step-row[data-detail]').forEach(function (row) {
+    const key = row.getAttribute('data-detail');
+    const btn = row.querySelector('.step-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.step-row.is-active').forEach(function (r) {
+        r.classList.remove('is-active');
+        var b = r.querySelector('.step-btn');
+        if (b) b.setAttribute('aria-expanded', 'false');
+      });
+      row.classList.add('is-active');
+      btn.setAttribute('aria-expanded', 'true');
+      activeBtn = btn;
+      renderDetail(key);
+      panel.scrollTop = 0;
+      if (window.matchMedia('(max-width: 1023px)').matches) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && activeBtn) {
+      var row = activeBtn.closest('.step-row');
+      if (row) row.classList.remove('is-active');
+      activeBtn.setAttribute('aria-expanded', 'false');
+      activeBtn = null;
+      inner.hidden = true;
+      inner.innerHTML = '';
+      panel.classList.add('empty');
+    }
+  });
+})();
+  </script>
+</body>
+</html>

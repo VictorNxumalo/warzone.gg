@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Schedule — EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+<script src="../js/config.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/main.js"></script>
+<script>injectNav('schedule.html')</script>
+
+<main class="max-w-6xl mx-auto px-5 py-8 fade-up">
+  <div class="wz-mobile-header-row flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-3 border-b border-[var(--wz-border)] gap-3">
+    <h1 class="section-title text-2xl">Schedule</h1>
+    <div class="wz-mobile-filter-row flex gap-2 flex-wrap">
+      <select id="game-filter" onchange="renderSchedule()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+        <option value="">All Games</option>
+        <option value="COD Mobile">COD Mobile</option>
+        <option value="COD Warzone">COD Warzone</option>
+        <option value="COD Modern Warfare">COD Modern Warfare</option>
+        <option value="FIFA">FIFA</option>
+        <option value="Need for Speed">Need for Speed</option>
+        <option value="Forza">Forza</option>
+        <option value="Mortal Kombat">Mortal Kombat</option>
+      </select>
+      <button id="view-tournaments" onclick="switchView('tournaments')" class="btn-primary btn-sm">Tournaments</button>
+      <button id="view-matches" onclick="switchView('matches')" class="btn-ghost btn-sm">Matches</button>
+    </div>
+  </div>
+
+  <div id="public-cta" class="hidden wz-card accent-left p-4 mb-6">
+    <div class="flex flex-col md:flex-row md:items-center gap-3 md:justify-between">
+      <div>
+        <div class="font-head text-sm font-bold tracking-wide uppercase">Stay in the loop</div>
+        <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] mt-1">Create an account to register, follow your team, and receive tournament updates.</div>
+      </div>
+      <a href="register.html" class="btn-primary btn-sm w-fit">Create Account</a>
+    </div>
+  </div>
+
+  <div id="schedule-visual" class="wz-card game-cover game-cover-other h-24 mb-6 flex items-end p-4">
+    <div class="z-10 font-head text-lg font-black tracking-widest uppercase">All Games Schedule</div>
+  </div>
+
+  <div id="wz-host-schedule" class="relative min-h-[14rem]">
+  <div id="schedule-container">
+    <div class="text-center py-16 font-mono text-[10px] text-[var(--wz-muted)] animate-pulse tracking-wider">LOADING SCHEDULE…</div>
+  </div>
+  </div>
+</main>
+
+<script>
+let _activeView = 'tournaments';
+let _allTournaments = [];
+let _upcomingMatches = [];
+
+function inferTournamentGame(t) {
+  const text = `${t?.game || ''} ${t?.title || ''} ${t?.name || ''} ${t?.mode || ''} ${t?.type || ''} ${t?.tournament_name || ''} ${t?.tournament?.name || ''}`.toLowerCase();
+  if (text.includes('cod mobile') || text.includes('codm')) return 'COD Mobile';
+  if (text.includes('warzone')) return 'COD Warzone';
+  if (text.includes('modern warfare') || text.includes('morden warfare')) return 'COD Modern Warfare';
+  if (text.includes('fifa')) return 'FIFA';
+  if (text.includes('need for speed') || text.includes('nfs')) return 'Need for Speed';
+  if (text.includes('forza')) return 'Forza';
+  if (text.includes('mortal kombat') || text.includes('mortal kombak') || text.includes('mk')) return 'Mortal Kombat';
+  return 'Other';
+}
+
+function gameCoverClass(game) {
+  const map = {
+    'COD Mobile': 'game-cover-codm',
+    'COD Warzone': 'game-cover-warzone',
+    'COD Modern Warfare': 'game-cover-mw',
+    'FIFA': 'game-cover-fifa',
+    'Mortal Kombat': 'game-cover-mk',
+    'Need for Speed': 'game-cover-nfs',
+    'Forza': 'game-cover-forza',
+    'Other': 'game-cover-other'
+  };
+  return map[game] || map.Other;
+}
+
+function switchView(view) {
+  _activeView = view;
+  document.getElementById('view-tournaments')?.classList.toggle('btn-primary', view === 'tournaments');
+  document.getElementById('view-tournaments')?.classList.toggle('btn-ghost', view !== 'tournaments');
+  document.getElementById('view-matches')?.classList.toggle('btn-primary', view === 'matches');
+  document.getElementById('view-matches')?.classList.toggle('btn-ghost', view !== 'matches');
+  renderSchedule();
+}
+
+function renderSchedule() {
+  const container = document.getElementById('schedule-container');
+  const gameFilter = document.getElementById('game-filter')?.value || '';
+  const scheduleVisual = document.getElementById('schedule-visual');
+  const contextGame = gameFilter || 'Other';
+  scheduleVisual.className = `wz-card game-cover ${gameCoverClass(contextGame)} h-24 mb-6 flex items-end p-4`;
+  scheduleVisual.innerHTML = `<div class="z-10 font-head text-lg font-black tracking-widest uppercase">${gameFilter || 'All Games'} Schedule</div>`;
+  if (_activeView === 'tournaments') {
+    const tournaments = gameFilter ? _allTournaments.filter(t => inferTournamentGame(t) === gameFilter) : _allTournaments;
+    if (!tournaments.length) {
+      container.innerHTML = '<div class="text-center py-16 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">NO UPCOMING TOURNAMENTS</div>';
+      return;
+    }
+    container.innerHTML = tournaments.map(t => `
+      <div class="wz-card accent-left p-5 mb-3 reveal-slide">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="font-head text-lg font-bold tracking-wide uppercase">${t.name}</div>
+            <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] mt-1">${inferTournamentGame(t)} · ${t.mode || 'Mode TBA'} · ${t.format || 'Format TBA'}</div>
+          </div>
+          ${statusBadge(t.status)}
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 pt-4 border-t border-[var(--wz-border)]">
+          <div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Starts</div><div class="font-head text-sm font-bold">${t.start_date || 'TBA'}</div></div>
+          <div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Slots</div><div class="font-head text-sm font-bold">${t.registered_count || 0} / ${t.max_slots || 0}</div></div>
+          <div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Prize Pool</div><div class="font-head text-sm font-bold text-[#e8c14a]">${centsToRand(t.prize_total || 0)}</div></div>
+          <div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Status</div><div class="font-head text-sm font-bold capitalize">${t.status || 'scheduled'}</div></div>
+        </div>
+      </div>
+    `).join('');
+    return;
+  }
+
+  const matches = gameFilter ? _upcomingMatches.filter(m => inferTournamentGame(m) === gameFilter) : _upcomingMatches;
+  if (!matches.length) {
+    container.innerHTML = '<div class="text-center py-16 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">NO UPCOMING MATCHES</div>';
+    return;
+  }
+
+  container.innerHTML = matches.map(m => {
+    const teamA = m.teamA || m.team_a?.name || 'TBD';
+    const teamB = m.teamB || m.team_b?.name || 'TBD';
+    const timeStr = m.time || (m.scheduled_at ? new Date(m.scheduled_at).toLocaleString('en-ZA') : 'Time TBA');
+    const roundLabel = m.label || (m.round || 'scheduled').replace(/_/g, ' ').toUpperCase();
+    const tournament = m.tournament || m.tournament_name || 'Tournament TBA';
+    const status = m.status || 'scheduled';
+    return `
+      <div class="wz-card ${status === 'live' ? 'red-left' : 'accent-left'} p-4 flex flex-wrap md:flex-nowrap items-center gap-4 mb-3 reveal-slide">
+        <div class="font-mono text-[11px] text-[#e8c14a] bg-[#e8c14a]/10 border border-[#e8c14a]/20 rounded px-3 py-2 text-center min-w-[120px]">
+          ${timeStr}
+          <div class="font-mono text-[9px] text-[var(--wz-muted)] mt-1">${roundLabel}</div>
+        </div>
+        <div class="flex-1">
+          <div class="font-head text-sm font-bold tracking-wide ${status === 'live' ? 'text-red-400' : ''}">
+            ${teamA} <span class="font-mono text-[10px] text-[var(--wz-muted)] mx-2">vs</span> ${teamB}
+          </div>
+          <div class="font-mono text-[10px] text-[var(--wz-muted)] mt-1">${inferTournamentGame(m)} · ${tournament}</div>
+        </div>
+        <div>
+          <button onclick="showToast('Reminder set ✓', 'info')" class="btn-ghost btn-sm">Notify Me</button>
+        </div>
+        ${statusBadge(status)}
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadSchedule() {
+  await wzWithLoading(
+    'wz-host-schedule',
+    async () => {
+      try {
+        const [scheduleData, tournaments] = await Promise.all([
+          getSchedule(),
+          getTournaments()
+        ]);
+
+        _allTournaments = (tournaments || []).filter(t => t.status === 'upcoming' || t.status === 'open' || t.status === 'live')
+          .sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
+
+        const scheduleItems = Array.isArray(scheduleData)
+          ? (scheduleData[0]?.matches ? scheduleData.flatMap(group => group.matches || []) : scheduleData)
+          : [];
+
+        _upcomingMatches = scheduleItems
+          .filter(m => (m.status || 'scheduled') !== 'completed')
+          .sort((a, b) => (a.scheduled_at || '').localeCompare(b.scheduled_at || ''));
+
+        renderSchedule();
+      } catch (err) {
+        document.getElementById('schedule-container').innerHTML =
+          `<div class="text-center py-16 font-mono text-[10px] text-red-400">${err.message}</div>`;
+      }
+    },
+    { label: 'Loading schedule', minMs: 260 }
+  );
+}
+
+if (!getCurrentUser()) {
+  document.getElementById('public-cta')?.classList.remove('hidden');
+}
+loadSchedule();
+</script>
+</body>
+</html>

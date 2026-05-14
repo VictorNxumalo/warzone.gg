@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WARZONE.GG — Tournaments page flow (signed-in · on a team)</title>
+  <style>
+    :root {
+      --c-api: #e1bee7;
+      --c-entry: #b3d9f2;
+      --c-success: #a5d6a7;
+      --c-decision: #f5c9a3;
+      --member: #2e7d32;
+      --bg: #eceff1;
+      --card: #fff;
+      --text: #1a1a1a;
+      --muted: #546e7a;
+      --line: #cfd8dc;
+      --radius: 12px;
+      --shadow: 0 2px 14px rgba(0,0,0,.08);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    .page-header { max-width: 1280px; margin: 0 auto; padding: 24px 20px 16px; }
+    .page-header h1 { font-size: clamp(1.2rem, 2.5vw, 1.45rem); font-weight: 700; margin: 0 0 8px; }
+    .page-header .lede { font-size: 0.95rem; color: var(--muted); max-width: 54rem; margin: 0; }
+    .page-header .hint { font-size: 0.8rem; color: var(--muted); margin-top: 12px; padding: 10px 14px; background: rgba(255,255,255,.75); border-radius: 8px; border: 1px solid var(--line); }
+    .toc { max-width: 1280px; margin: 0 auto; padding: 0 20px 20px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .toc span { font-size: 0.75rem; color: var(--muted); margin-right: 4px; }
+    .toc a { font-size: 0.8rem; font-weight: 600; text-decoration: none; padding: 6px 12px; border-radius: 999px; background: #fff; border: 1px solid var(--line); color: var(--text); }
+    .layout { max-width: 1280px; margin: 0 auto; padding: 0 20px 48px; display: grid; grid-template-columns: 1fr; gap: 24px; }
+    @media (min-width: 1024px) { .layout { grid-template-columns: minmax(0, 1fr) 360px; gap: 28px; } }
+    .flows-main { min-width: 0; }
+    .legend-strip { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 0.72rem; margin-bottom: 20px; padding: 12px 14px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .legend-strip span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+    .sw { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .persona-block { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 28px; overflow: hidden; scroll-margin-top: 16px; border-top: 4px solid var(--member); }
+    .persona-head { padding: 18px 20px 12px; border-bottom: 1px solid var(--line); }
+    .persona-head h2 { margin: 0; font-size: 1rem; letter-spacing: 0.04em; text-transform: uppercase; }
+    .persona-head p { margin: 8px 0 0; font-size: 0.85rem; color: var(--muted); }
+    .mini-schematic { padding: 12px 20px 16px; background: #f5f5f5; border-top: 1px dashed var(--line); font-size: 0.75rem; color: var(--muted); line-height: 1.65; }
+    .mini-schematic strong { color: #37474f; }
+    .mini-schematic pre { margin: 8px 0 0; font-size: 0.7rem; background: #eceff1; padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
+    .flow-timeline { padding: 8px 16px 20px 12px; }
+    .step-row { display: flex; gap: 0; position: relative; }
+    .step-rail { width: 36px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+    .step-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--line); border: 2px solid #fff; box-shadow: 0 0 0 2px var(--line); z-index: 1; flex-shrink: 0; }
+    .step-row.is-active .step-dot { box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.35); background: #43a047; }
+    .step-line { width: 2px; flex: 1; min-height: 12px; background: var(--line); margin: 2px 0; }
+    .step-row:last-child .step-line { display: none; }
+    .step-card { flex: 1; min-width: 0; margin: 4px 0; padding: 0 0 12px 8px; }
+    .step-btn { width: 100%; text-align: left; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fafafa; cursor: pointer; font: inherit; color: inherit; transition: border-color .15s, background .15s, box-shadow .15s; }
+    .step-btn:hover { background: #fff; border-color: #b0bec5; }
+    .step-row.is-active .step-btn { background: #fff; border-color: #43a047; box-shadow: 0 2px 10px rgba(46, 125, 50, 0.12); }
+    .step-kind { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 4px 8px; border-radius: 6px; white-space: nowrap; align-self: start; }
+    .step-kind.load { background: var(--c-api); color: #4a148c; }
+    .step-kind.ui { background: var(--c-success); color: #1b5e20; }
+    .step-kind.nav { background: var(--c-decision); color: #bf360c; }
+    .step-kind.note { background: #eceff1; color: #455a64; }
+    .step-btn h3 { margin: 0; font-size: 0.95rem; font-weight: 700; }
+    .step-btn .micro { display: block; font-size: 0.78rem; color: var(--muted); font-weight: 400; margin-top: 4px; }
+    .step-btn .chev { color: var(--muted); font-size: 1.1rem; align-self: center; }
+    .step-row.is-active .step-btn .chev { color: #2e7d32; }
+    .detail-panel { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--line); padding: 18px 18px 22px; }
+    @media (min-width: 1024px) { .detail-panel { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; } }
+    .detail-panel.empty .detail-inner { display: none; }
+    .detail-panel.empty::after { content: "Select a step for UI behaviour and API mapping on pages/tournaments.html."; display: block; font-size: 0.88rem; color: var(--muted); line-height: 1.55; }
+    .detail-panel:not(.empty)::after { display: none; }
+    .detail-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 6px; }
+    .detail-panel h3 { margin: 0 0 10px; font-size: 1.1rem; line-height: 1.3; }
+    .detail-summary { font-size: 0.9rem; margin: 0 0 14px; color: #37474f; }
+    .detail-panel h4 { margin: 14px 0 6px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .detail-panel ul { margin: 0; padding-left: 1.15rem; font-size: 0.86rem; color: #37474f; }
+    .detail-panel li { margin-bottom: 6px; }
+    .detail-meta { font-size: 0.8rem; color: var(--muted); margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+    .detail-meta code { font-size: 0.75rem; background: #eceff1; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <header class="page-header">
+    <h1>Tournaments page — signed-in · on a team</h1>
+    <p class="lede">
+      Maps <strong>pages/tournaments.html</strong>: filters, grid cards, match previews, and participant (emerald) behaviour.
+      Assumes JWT session; <strong>approved participations</strong> drive “Your squad” and hub links.
+    </p>
+    <p class="hint" role="note">
+      <strong>Fixes applied:</strong> game filters now use the same buckets as <code>inferTournamentGame()</code> (e.g. Call of Duty, not “COD Mobile”).
+      Non-participant CTAs and titles link to this page with <code>?id=</code> or hub when applicable; <code>?id=</code> scrolls/highlights the card. Match rows use safe JSON for result modal.
+    </p>
+  </header>
+
+  <nav class="toc" aria-label="On this page">
+    <span>Jump to</span>
+    <a href="#load">Load</a>
+    <a href="#filters">Filters</a>
+    <a href="#grid">Grid &amp; links</a>
+    <a href="#preview">Match preview</a>
+  </nav>
+
+  <div class="layout">
+    <div class="flows-main">
+      <div class="legend-strip" aria-label="Key">
+        <span><i class="sw" style="background:var(--c-api)"></i> Data load</span>
+        <span><i class="sw" style="background:var(--c-success)"></i> UI</span>
+        <span><i class="sw" style="background:var(--c-decision)"></i> Navigation</span>
+      </div>
+
+      <section class="persona-block" id="load" aria-labelledby="t-load">
+        <div class="persona-head">
+          <h2 id="t-load">Load sequence</h2>
+          <p>Single entry: loadTournaments() after nav injection.</p>
+        </div>
+        <div class="mini-schematic">
+          <strong>Order:</strong>
+          <pre>getTournaments() + getMatches()  // parallel
+resolveViewerTeam()               // getMyPlayerProfile → getMyTeam
+getMyTournamentParticipations()   // if signed in
+readFiltersFromQuery()             // ?game= &amp; ?status=
+renderGameFilters() → applyFilters()</pre>
+        </div>
+        <div class="flow-timeline">
+          <div class="step-row" data-detail="tm_load">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind load">API</span><span><h3>loadTournaments()</h3><span class="micro">Fetches list + matches; resolves team id for “your upcoming match” hints</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="tm_part">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind load">API</span><span><h3>Participations</h3><span class="micro">Sets _participatingTournamentIds for emerald UI</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="persona-block" id="filters" aria-labelledby="t-filters">
+        <div class="persona-head">
+          <h2 id="t-filters">Filters &amp; query string</h2>
+          <p>Game options are derived from loaded tournaments so labels always match inferTournamentGame().</p>
+        </div>
+        <div class="flow-timeline">
+          <div class="step-row" data-detail="tm_filters">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind ui">Filters</span><span><h3>Dropdown + quick chips</h3><span class="micro">applyFilters syncs both; chips use JSON.stringify(game)</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="tm_query">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind note">URL</span><span><h3>?game= &amp; ?status=</h3><span class="micro">Optional deep-link before first render; invalid game value resets to All</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="persona-block" id="grid" aria-labelledby="t-grid">
+        <div class="persona-head">
+          <h2 id="t-grid">Cards &amp; deep link</h2>
+        </div>
+        <div class="flow-timeline">
+          <div class="step-row" data-detail="tm_card">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind ui">Card</span><span><h3>Participant vs browser</h3><span class="micro">Hub + Teams &amp; fixtures vs tournaments.html?id= for title + CTA</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="tm_id">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind nav">?id=</span><span><h3>Highlight tournament</h3><span class="micro">Scroll + brief ring when ?id matches a card</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="persona-block" id="preview" aria-labelledby="t-preview">
+        <div class="persona-head">
+          <h2 id="t-preview">Match preview &amp; modal</h2>
+        </div>
+        <div class="flow-timeline">
+          <div class="step-row" data-detail="tm_matches">
+            <div class="step-rail"><div class="step-dot"></div><div class="step-line"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind ui">Details</span><span><h3>&lt;details&gt; per card</h3><span class="micro">Matches filtered by tournament_id; open by default if participant</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+          <div class="step-row" data-detail="tm_modal">
+            <div class="step-rail"><div class="step-dot"></div></div>
+            <div class="step-card">
+              <button type="button" class="step-btn"><span class="step-kind note">Modal</span><span><h3>Completed result</h3><span class="micro">showCompletedResult uses JSON.stringify; overlay click / Escape / timeout close</span></span><span class="chev">→</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="detail-panel empty" id="detail-panel" aria-live="polite">
+      <div class="detail-inner" id="detail-inner" hidden></div>
+    </aside>
+  </div>
+
+  <script>
+(function () {
+  const DETAILS = {
+    tm_load: {
+      persona: 'Tournaments page',
+      title: 'loadTournaments()',
+      summary: 'Promise.all([getTournaments(), getMatches()]) fills _allTournaments and _allMatches. resolveViewerTeam() sets _viewerTeamId from getMyPlayerProfile().team.id or getMyTeam().team.id.',
+      bullets: [
+        'Errors replace the grid with a red message; participations failure is non-fatal (empty participant set).',
+        'getMatches returns rows with tournament_id; filtering uses String() equality so UUID/number mismatch does not drop matches.'
+      ],
+      pages: ['pages/tournaments.html'],
+      api: 'GET /api/tournaments, GET /api/matches (public). GET /api/players/me, GET /api/teams/mine, GET /api/players/me/participations (Bearer).'
+    },
+    tm_part: {
+      persona: 'Tournaments page',
+      title: 'Participant set',
+      summary: 'getMyTournamentParticipations() populates _participatingTournamentIds from p.tournament_id for each approved registration row.',
+      bullets: [
+        'Cards with t.id in the set get emerald ring, “Your squad”, open details, Teams & fixtures → tournament-hub.html?id=.',
+        'Same endpoint semantics as index.html home featured grid.'
+      ],
+      pages: ['pages/tournaments.html'],
+      api: 'GET /api/players/me/participations'
+    },
+    tm_filters: {
+      persona: 'Tournaments page',
+      title: 'Game + status filters',
+      summary: 'gameFilterOptions() builds unique inferTournamentGame() values from current data — fixes the old bug where “COD Mobile” never matched “Call of Duty”.',
+      bullets: [
+        'Status select: live, open, upcoming, completed — compared to t.status.',
+        'Quick chips call setGameFilter with JSON.stringify so special characters in labels cannot break onclick.',
+        'If _activeGameFilter is not in the valid set after data load, it resets to All Games.'
+      ],
+      pages: ['pages/tournaments.html'],
+      api: '—'
+    },
+    tm_query: {
+      persona: 'Tournaments page',
+      title: 'Query parameters',
+      summary: 'readFiltersFromQuery() reads game and status from the URL so shared links like tournaments.html?game=FIFA&status=open work.',
+      bullets: [
+        'Runs after data load, before renderGameFilters; invalid game label is cleared when options are rebuilt.',
+        'Combine with ?id= for deep-linked highlight from home page cards.'
+      ],
+      pages: ['pages/tournaments.html'],
+      api: '—'
+    },
+    tm_card: {
+      persona: 'Tournaments page',
+      title: 'Card links',
+      summary: 'Tournament name and footer CTA are anchors: participants → tournament-hub; others → tournaments.html?id= (same page, enables highlight). Previously the footer was a non-clickable span for guests.',
+      bullets: [
+        'Teams & fixtures remains the primary action for approved roster members.',
+        'Non-participants get a real navigation target instead of a dead label.'
+      ],
+      pages: ['pages/tournaments.html'],
+      api: '—'
+    },
+    tm_id: {
+      persona: 'Tournaments page',
+      title: '?id= highlight',
+      summary: 'After applyFilters renders the grid, if URL has ?id= matching data-tournament-id, the card scrolls into view and gets a short gold ring.',
+      bullets: [
+        'Supports links from index.html that use tournaments.html?id= for non-participant paths.',
+        'Safe id charset check avoids odd selectors.'
+      ],
+      pages: ['pages/tournaments.html'],
+      api: '—'
+    },
+    tm_matches: {
+      persona: 'Tournaments page',
+      title: 'Quick preview rows',
+      summary: 'Matches for the card are those where tournament_id (or nested tournament.id) equals the tournament id.',
+      bullets: [
+        'Upcoming match involving _viewerTeamId shows “Your team has an upcoming match.”',
+        'Completed rows open showCompletedResult; live/upcoming use toasts / placeholder actions.'
+      ],
+      pages: ['pages/tournaments.html'],
+      api: 'Uses cached GET /api/matches data only.'
+    },
+    tm_modal: {
+      persona: 'Tournaments page',
+      title: 'Result modal',
+      summary: 'Team names and scores are passed via JSON.stringify in onclick to handle apostrophes in team names. Modal closes on backdrop click, Escape, or 4s timer.',
+      bullets: [
+        'Inner card uses stopPropagation so clicking the dialog does not dismiss immediately.',
+        'modal-overlay class uses theme-aware backdrop from css/style.css.'
+      ],
+      pages: ['pages/tournaments.html', 'css/style.css .modal-overlay'],
+      api: '—'
+    }
+  };
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  const panel = document.getElementById('detail-panel');
+  const inner = document.getElementById('detail-inner');
+
+  function renderDetail(key) {
+    const d = DETAILS[key];
+    if (!d) return;
+    inner.innerHTML =
+      '<p class="detail-kicker">' + escapeHtml(d.persona) + '</p>' +
+      '<h3>' + escapeHtml(d.title) + '</h3>' +
+      '<p class="detail-summary">' + escapeHtml(d.summary) + '</p>' +
+      '<h4>Behaviour</h4><ul>' + d.bullets.map(function (b) { return '<li>' + escapeHtml(b) + '</li>'; }).join('') + '</ul>' +
+      '<div class="detail-meta"><strong>Pages / scripts</strong><br>' +
+      d.pages.map(function (p) { return '<code>' + escapeHtml(p) + '</code>'; }).join(' · ') +
+      '<br><br><strong>API</strong><br>' + escapeHtml(d.api) + '</div>';
+    inner.hidden = false;
+    panel.classList.remove('empty');
+  }
+
+  let activeBtn = null;
+  document.querySelectorAll('.step-row[data-detail]').forEach(function (row) {
+    const key = row.getAttribute('data-detail');
+    const btn = row.querySelector('.step-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.step-row.is-active').forEach(function (r) {
+        r.classList.remove('is-active');
+        var b = r.querySelector('.step-btn');
+        if (b) b.setAttribute('aria-expanded', 'false');
+      });
+      row.classList.add('is-active');
+      btn.setAttribute('aria-expanded', 'true');
+      activeBtn = btn;
+      renderDetail(key);
+      panel.scrollTop = 0;
+      if (window.matchMedia('(max-width: 1023px)').matches) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && activeBtn) {
+      var row = activeBtn.closest('.step-row');
+      if (row) row.classList.remove('is-active');
+      activeBtn.setAttribute('aria-expanded', 'false');
+      activeBtn = null;
+      inner.hidden = true;
+      inner.innerHTML = '';
+      panel.classList.add('empty');
+    }
+  });
+})();
+  </script>
+</body>
+</html>

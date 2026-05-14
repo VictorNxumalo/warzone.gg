@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Team — EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+<script src="../js/config.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/main.js"></script>
+<script>injectNav('team-profile.html')</script>
+
+<main class="max-w-5xl mx-auto px-5 py-8 fade-up">
+  <div id="wz-host-team-profile" class="relative min-h-[50vh]">
+  <div id="profile-root">
+  <div class="text-center py-16 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider animate-pulse">LOADING PROFILE…</div>
+  </div>
+  </div>
+</main>
+
+<script>
+const avColors = ['av-red','av-amber','av-blue','av-green','av-orange'];
+
+// Role labels for display
+const roleLabels = {
+  igl:        'IGL / Captain',
+  fragger:    'Entry Fragger',
+  sniper:     'Sniper / AWP',
+  support:    'Support',
+  rusher:     'Rusher',
+  substitute: 'Substitute',
+  player:     'Player'
+};
+
+function _tpEsc(s) {
+  if (s == null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function renderProfile() {
+  const urlId = new URLSearchParams(window.location.search).get('id');
+  const mine = new URLSearchParams(window.location.search).get('mine') === '1';
+  const viewer = getCurrentUser();
+  const root  = document.getElementById('profile-root');
+
+  if ((mine || (!urlId && viewer)) && viewer?.role === 'admin') {
+    root.innerHTML = notFoundHTML('Admin accounts do not have access to My Team view.');
+    return;
+  }
+
+  try {
+    let team;
+    let registration = null;
+    let teamMatches = [];
+    /** Logged-in user viewing their squad (captain or roster player). */
+    let isMineTeamPage = false;
+    /** Captain-only tools (governance, saved lineups). */
+    let isCaptainView = false;
+    let mineData = null;
+    let savedRostersList = [];
+
+    if (mine || (!urlId && viewer)) {
+      mineData = await getMyTeam();
+      team = mineData.team;
+      savedRostersList = mineData.saved_rosters || [];
+      registration = mineData.registration || null;
+      teamMatches = mineData.matches || [];
+      isMineTeamPage = true;
+      isCaptainView = mineData.is_captain === true;
+
+      if (mineData.registration_rejected) {
+        const tname = registration?.tournament?.name || 'the tournament';
+        root.innerHTML = `
+          <div class="wz-card accent-left p-8 text-center max-w-lg mx-auto border-l-red-600/80">
+            <div class="font-mono text-[10px] text-red-400 tracking-widest uppercase mb-3">● Registration not approved</div>
+            <h2 class="font-head text-2xl font-black tracking-widest uppercase text-[var(--wz-text)] mb-3">Application declined</h2>
+            <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6">Your team’s registration for <strong class="text-[var(--wz-text)]">${tname}</strong> was not approved. Contact admins for details.</p>
+            <a href="tournaments.html" class="btn-ghost">Browse tournaments</a>
+          </div>`;
+        return;
+      }
+
+      if (mineData.registration_pending || registration?.status === 'pending') {
+        const tname = registration?.tournament?.name || 'your tournament';
+        root.innerHTML = `
+          <div class="wz-card accent-left p-8 text-center max-w-lg mx-auto">
+            <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-3">● AWAITING APPROVAL</div>
+            <h2 class="font-head text-2xl font-black tracking-widest uppercase text-[var(--wz-text)] mb-3">Application under review</h2>
+            <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-4 leading-relaxed">Your team is registered for <strong class="text-[var(--wz-text)]">${tname}</strong>. Full roster and team details are available only after an admin approves your request.</p>
+            <p class="font-mono text-[11px] text-[var(--wz-muted)] mb-6">Payment details and next steps are shared after approval (e.g. via WhatsApp).</p>
+            <a href="tournaments.html" class="btn-ghost">Browse tournaments</a>
+          </div>`;
+        return;
+      }
+
+      if (!team) {
+        try {
+          const pdata = await getMyPlayerProfile();
+          if (pdata?.awaiting_registration_approval) {
+            const tname = pdata.registration?.tournament?.name || 'your tournament';
+            root.innerHTML = `
+          <div class="wz-card accent-left p-8 text-center max-w-lg mx-auto">
+            <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-3">● AWAITING APPROVAL</div>
+            <h2 class="font-head text-2xl font-black tracking-widest uppercase text-[var(--wz-text)] mb-3">Application under review</h2>
+            <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-4 leading-relaxed">Your squad’s signup for <strong class="text-[var(--wz-text)]">${_tpEsc(tname)}</strong> is still pending. My Team (full roster) unlocks for captains after approval — use Player profile for your slot.</p>
+            <div class="flex gap-3 justify-center flex-wrap">
+              <a href="player-profile.html" class="btn-primary">Player profile →</a>
+              <a href="tournaments.html" class="btn-ghost">Tournaments</a>
+            </div>
+          </div>`;
+            return;
+          }
+          if (pdata?.player && pdata?.team) {
+            const tn = pdata.team.name || 'your team';
+            const tg = pdata.team.tag || '—';
+            root.innerHTML = `
+          <div class="wz-card accent-left p-8 text-center max-w-lg mx-auto">
+            <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-3">● SQUAD DATA OUT OF SYNC</div>
+            <h2 class="font-head text-2xl font-black tracking-widest uppercase text-[var(--wz-text)] mb-3">${_tpEsc(tn)} <span class="font-mono text-lg text-[var(--wz-muted)]">(#${_tpEsc(tg)})</span></h2>
+            <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6 leading-relaxed">
+              Your profile shows a team, but My Team did not load it. Refresh the page, or open <strong class="text-[var(--wz-text)]">Player profile</strong>. If this persists, confirm your player row has <strong class="text-[var(--wz-text)]">team_id</strong> set and matches your login email.
+            </p>
+            <div class="flex gap-3 justify-center flex-wrap">
+              <a href="team-profile.html?mine=1" class="btn-primary">Retry My Team</a>
+              <a href="player-profile.html" class="btn-ghost">Player profile →</a>
+            </div>
+          </div>`;
+            return;
+          }
+        } catch (_) {}
+
+        root.innerHTML = `
+          <div class="wz-card accent-left p-8 text-center max-w-lg mx-auto">
+            <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-3">● NO TEAM YET</div>
+            <h2 class="font-head text-2xl font-black tracking-widest uppercase text-[var(--wz-text)] mb-3">Create your roster</h2>
+            <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6">You don’t have a team on file. Register your squad to compete in tournaments.</p>
+            <a href="register.html" class="btn-primary">Register Your Team →</a>
+          </div>`;
+        return;
+      }
+    } else if (urlId) {
+      team = await getTeam(urlId);
+      teamMatches = team.matches || team.match_history || [];
+    } else {
+      root.innerHTML = notFoundHTML('No team selected.');
+      return;
+    }
+
+    const av   = avColors[Math.abs(hashStr(team.id)) % avColors.length];
+
+    document.title = `${team.name} — EVOLVE`;
+
+    // Players: API returns objects { ign, player_id(codm_uid), role, device, is_substitute }
+    const starters  = (team.players || []).filter(p => !p.is_substitute);
+    const sub       = (team.players || []).find(p => p.is_substitute);
+
+    /** Mine page: badges for roster row (linked account + captain row). Captains see everyone; roster players see the same. */
+    function rosterMetaBadges(p) {
+      if (!isMineTeamPage || !viewer) return '';
+      const isCaptainRow =
+        (team.captain_player_id && String(team.captain_player_id) === String(p.id)) ||
+        (!team.captain_player_id &&
+          ((p.user_id && String(p.user_id) === String(viewer.id)) ||
+            (p.resolved_user_id && String(p.resolved_user_id) === String(viewer.id))));
+      const capBadge = isCaptainRow
+        ? '<span class="font-mono text-[9px] px-2 py-0.5 rounded-sm border border-[var(--accent)] text-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] whitespace-nowrap">Captain</span>'
+        : '';
+      const accBadge = p.account_linked
+        ? '<span class="font-mono text-[9px] px-2 py-0.5 rounded-sm bg-emerald-900/25 text-emerald-400 border border-emerald-700 whitespace-nowrap">Linked</span>'
+        : '<span class="font-mono text-[9px] px-2 py-0.5 rounded-sm bg-[var(--wz-surface2)] text-[var(--wz-muted)] border border-[var(--wz-border)] whitespace-nowrap">No login</span>';
+      return `<div class="flex flex-wrap gap-1 items-center justify-end">${capBadge}${accBadge}</div>`;
+    }
+
+    root.innerHTML = `
+      <!-- Breadcrumb -->
+      <div class="flex items-center gap-2 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider mb-5">
+        <a href="../index.html" class="hover:text-[#e8c14a]">Home</a>
+        <span>›</span>
+        <a href="leaderboard.html" class="hover:text-[#e8c14a]">Leaderboard</a>
+        <span>›</span>
+        <span class="text-[var(--wz-text)]">${isMineTeamPage ? 'My Team' : team.name}</span>
+      </div>
+
+      <!-- Profile Header -->
+      <div class="wz-card p-6 mb-6 flex flex-col md:flex-row items-start gap-5">
+        <div class="w-20 h-20 rounded flex items-center justify-center font-head text-2xl font-black flex-shrink-0 border-2 ${av}" style="border-color:currentColor">${team.tag}</div>
+        <div class="flex-1">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 class="font-head text-3xl font-black tracking-widest uppercase text-[var(--wz-text)]">${team.name}</h1>
+              <div class="font-mono text-[11px] text-[#e8c14a] mt-0.5 tracking-wider">#${team.tag} · ${team.region || 'ZA'}</div>
+            </div>
+            ${isMineTeamPage ? (isCaptainView ? `<span class="font-mono text-[10px] tracking-widest px-3 py-1.5 rounded-sm border bg-emerald-900/20 text-emerald-400 border-emerald-700">CAPTAIN</span>` : `<span class="font-mono text-[10px] tracking-widest px-3 py-1.5 rounded-sm border bg-blue-900/25 text-blue-300 border-blue-700">ROSTER</span>`) : ''}
+          </div>
+          <div class="flex flex-wrap gap-6 mt-4 pt-4 border-t border-[var(--wz-border)]">
+            <div class="text-center"><div class="font-head text-xl font-black text-[#e8c14a]">${team.wins || 0}</div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Wins</div></div>
+            <div class="text-center"><div class="font-head text-xl font-black">${team.losses || 0}</div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Losses</div></div>
+            <div class="text-center"><div class="font-head text-xl font-black text-[#e8c14a]">${(team.points || 0).toLocaleString()}</div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Points</div></div>
+            <div class="text-center"><div class="font-head text-xl font-black text-green-400">${centsToRand(team.earnings || 0)}</div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Earned</div></div>
+            <div class="text-center"><div class="font-head text-xl font-black">${(team.players || []).length}</div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider">Players</div></div>
+          </div>
+        </div>
+      </div>
+
+      ${isMineTeamPage && registration ? `
+      <div class="wz-card overflow-hidden mb-6">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase">
+          Tournament Registration
+        </div>
+        <div class="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider mb-1">Tournament</div><div class="font-head text-sm font-bold">${registration.tournament?.name || '—'}</div></div>
+          <div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider mb-1">Status</div><div class="font-head text-sm font-bold capitalize">${registration.status || 'pending'}</div></div>
+          <div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider mb-1">Start Date</div><div class="font-head text-sm font-bold">${registration.tournament?.start_date || '—'}</div></div>
+          <div><div class="font-mono text-[9px] text-[var(--wz-muted)] uppercase tracking-wider mb-1">Prize Pool</div><div class="font-head text-sm font-bold text-[#e8c14a]">${centsToRand(registration.tournament?.prize_total || 0)}</div></div>
+        </div>
+      </div>` : ''}
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+        <!-- Roster -->
+        <div>
+          <div class="section-title text-base mb-2">Roster</div>
+          ${isCaptainView ? `<p class="font-mono text-[10px] text-[var(--wz-text-secondary)] mb-4 leading-relaxed"><span class="text-emerald-400/90">Linked</span> = teammate has a platform login tied to this roster row (email match). <span class="text-[var(--wz-muted)]">No login</span> = not linked yet.</p>` : `<p class="font-mono text-[10px] text-[var(--wz-text-secondary)] mb-4 leading-relaxed"><span class="text-emerald-400/90">Linked</span> / <span class="text-[var(--wz-muted)]">No login</span> shows whether each slot matches a platform account.</p>`}
+          <div class="wz-card overflow-hidden">
+            ${starters.map((p, i) => `
+              <div class="flex items-center gap-3 px-4 py-3 border-b border-[var(--wz-border)] last:border-0">
+                <div class="w-9 h-9 rounded-sm flex items-center justify-center font-head text-sm font-bold ${avColors[i % avColors.length]}">${(p.ign || '?').slice(0,2).toUpperCase()}</div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-head text-sm font-bold tracking-wide">${p.ign}</div>
+                  <div class="font-mono text-[10px] text-[var(--wz-muted)]">${roleLabels[p.role] || p.role || 'Player'}</div>
+                </div>
+                <div class="flex flex-col items-end gap-1 shrink-0">
+                  ${rosterMetaBadges(p)}
+                  <span class="font-mono text-[9px] px-2 py-1 rounded-sm bg-blue-900/30 text-blue-400 border border-blue-700">${(p.role || 'PLR').toUpperCase().slice(0,3)}</span>
+                </div>
+              </div>`).join('')}
+            ${sub ? `
+              <div class="flex items-center gap-3 px-4 py-3 border-t border-dashed border-[var(--wz-border)]">
+                <div class="w-9 h-9 rounded-sm flex items-center justify-center font-head text-sm font-bold wz-avatar-sub">${(sub.ign || '?').slice(0,2).toUpperCase()}</div>
+                <div class="flex-1 min-w-0"><div class="font-head text-sm font-bold tracking-wide text-[var(--wz-text-secondary)]">${sub.ign}</div><div class="font-mono text-[10px] text-[var(--wz-muted)]">Substitute</div></div>
+                <div class="flex flex-col items-end gap-1 shrink-0">
+                  ${rosterMetaBadges(sub)}
+                  <span class="font-mono text-[9px] px-2 py-1 rounded-sm wz-badge-sub">SUB</span>
+                </div>
+              </div>` : ''}
+            ${!starters.length ? '<div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">No roster data</div>' : ''}
+          </div>
+        </div>
+
+        <!-- Match History -->
+        <div>
+          <div class="section-title text-base mb-4">Match History</div>
+          <div class="flex flex-col gap-3">
+            ${teamMatches.length ? teamMatches.map(m => {
+              const isA     = m.team_a_id === team.id || m.teamA === team.name;
+              const myScore = isA ? (m.score_a ?? m.scoreA) : (m.score_b ?? m.scoreB);
+              const oppScore= isA ? (m.score_b ?? m.scoreB) : (m.score_a ?? m.scoreA);
+              const oppName = isA ? (m.team_b?.name || m.teamB || 'TBD') : (m.team_a?.name || m.teamA || '—');
+              const round   = (m.round || '').replace(/_/g,' ').toUpperCase();
+              const mapName = m.map_name || m.map || '—';
+              const won     = myScore !== null && myScore !== undefined && myScore > oppScore;
+              const pending = myScore === null || myScore === undefined;
+              return `
+                <div class="wz-card p-3 flex items-center gap-3">
+                  <div class="w-2 h-2 rounded-full ${pending ? 'bg-[var(--wz-muted)]' : won ? 'bg-green-400' : 'bg-red-400'} flex-shrink-0"></div>
+                  <div class="flex-1">
+                    <div class="font-head text-sm font-bold">${pending ? '—' : myScore} <span class="font-mono text-[10px] text-[var(--wz-muted)]">vs</span> ${pending ? '—' : oppScore}</div>
+                    <div class="font-mono text-[10px] text-[var(--wz-muted)]">${oppName} · ${round}</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="font-mono text-[9px] text-[var(--wz-muted)]">${mapName}</div>
+                    <div class="font-mono text-[9px] ${pending ? 'text-red-400 blink' : won ? 'text-green-400' : 'text-red-400'}">${pending ? '● LIVE' : won ? 'WIN' : 'LOSS'}</div>
+                  </div>
+                </div>`; }).join('')
+              : '<div class="wz-card p-4 text-center font-mono text-[10px] text-[var(--wz-muted)]">NO MATCHES PLAYED</div>'}
+          </div>
+        </div>
+      </div>
+
+      ${isCaptainView && team ? `<div id="captain-governance-host" class="mb-6"></div>` : ''}
+      ${isCaptainView && team ? `<div id="captain-roster-host" class="mb-6"></div>` : ''}
+
+      <!-- Back -->
+      <div class="flex gap-3">
+        <a href="leaderboard.html" class="btn-ghost">← Back to Leaderboard</a>
+        <a href="tournaments.html" class="btn-ghost">View Tournaments</a>
+        ${!viewer ? '<a href="register.html" class="btn-primary">Create Account</a>' : ''}
+      </div>`;
+
+    if (isCaptainView && team) {
+      initCaptainGovernance(team);
+      initCaptainSavedRosters(team, savedRostersList);
+    }
+
+  } catch (err) {
+    root.innerHTML = notFoundHTML(err.message);
+  }
+}
+
+async function initCaptainGovernance(team) {
+  const host = document.getElementById('captain-governance-host');
+  if (!host || !team) return;
+  const viewer = getCurrentUser();
+  let outgoing = [];
+  let incomingJoin = [];
+  try {
+    outgoing = await getOutgoingTeamInvites();
+  } catch (_) {}
+
+  const capPid = team.captain_player_id;
+  const eligible = (team.players || []).filter((p) => {
+    const uid = p.resolved_user_id || p.user_id;
+    if (!uid || !p.account_linked) return false;
+    if (capPid && String(p.id) === String(capPid)) return false;
+    if (String(uid) === String(viewer?.id)) return false;
+    return true;
+  });
+  let _govBusy = false;
+
+  async function paint() {
+    try {
+      incomingJoin = await getCaptainIncomingJoinRequests();
+    } catch (_) {
+      incomingJoin = [];
+    }
+    const pending = (outgoing || []).filter((x) => x.status === 'pending');
+    const joinPending = incomingJoin || [];
+    host.innerHTML = `
+      <div class="wz-card overflow-hidden">
+        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase">
+          Captain · roster governance
+        </div>
+        <div class="p-5 grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div>
+            <div class="section-title text-sm mb-2">Transfer captaincy</div>
+            <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-3">Choose a teammate who shows <strong class="text-[var(--wz-text)]">Linked</strong> on the roster (platform login matched by email). After transferring, you can use Player profile to leave if allowed.</p>
+            <label class="wz-label">New captain</label>
+            <select id="cap-transfer-select" class="wz-input mb-3">
+              <option value="">— Select player —</option>
+              ${eligible
+                .map((p) => `<option value="${p.id}">${_tpEsc(p.ign || p.id)}</option>`)
+                .join('')}
+            </select>
+            <button type="button" class="btn-primary btn-sm" id="cap-transfer-btn">Transfer captaincy</button>
+            ${
+              eligible.length === 0
+                ? '<p class="font-mono text-[10px] text-amber-400 mt-2">No eligible teammates: each candidate must show <strong>Linked</strong> on the roster (same email as their account). If someone logged in but still shows No login, their roster email may not match their signup email.</p>'
+                : ''
+            }
+          </div>
+          <div>
+            <div class="section-title text-sm mb-2">Invite a free agent</div>
+            <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-3">Send an invite to the email on a player’s account (they must have left their previous team and completed any cooldown).</p>
+            <label class="wz-label">Player email</label>
+            <input type="email" id="cap-invite-email" class="wz-input mb-3" placeholder="player@email.com" autocomplete="email"/>
+            <button type="button" class="btn-primary btn-sm" id="cap-invite-send">Send invite</button>
+            <div class="mt-4">
+              <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase mb-2">Pending invites</div>
+              ${
+                pending.length
+                  ? pending
+                      .map(
+                        (inv) => `
+                <div class="flex items-center justify-between gap-2 py-2 border-b border-[var(--wz-border)] text-sm">
+                  <span>${_tpEsc(inv.invitee?.ign || inv.invitee?.email || 'Player')}</span>
+                  <button type="button" class="btn-ghost btn-sm text-red-400" data-can-inv="${inv.id}">Cancel</button>
+                </div>`
+                      )
+                      .join('')
+                  : '<p class="font-mono text-[10px] text-[var(--wz-muted)]">No pending invites.</p>'
+              }
+            </div>
+            <p class="font-mono text-[10px] text-[var(--wz-muted)] mt-3 leading-relaxed">
+              Reference: <a href="find-squad.html" class="wz-link-accent">Find squad</a> lists open rosters; browse teamless players (captains only) via API — invites still use the player’s roster email.
+            </p>
+          </div>
+        </div>
+        <div class="px-5 pb-5 border-t border-[var(--wz-border)]">
+          <div class="section-title text-sm mb-2">Incoming join requests</div>
+          <p class="font-body text-xs text-[var(--wz-text-secondary)] mb-3">Players without a team requested to join yours (roster must have an open slot).</p>
+          ${
+            joinPending.length
+              ? joinPending
+                  .map(
+                    (jr) => `
+            <div class="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-[var(--wz-border)] text-sm">
+              <span>${_tpEsc(jr.requester?.ign || 'Player')}</span>
+              <div class="flex gap-2">
+                <button type="button" class="btn-primary btn-sm" data-jr-acc="${jr.id}">Accept</button>
+                <button type="button" class="btn-ghost btn-sm text-red-400" data-jr-dec="${jr.id}">Decline</button>
+              </div>
+            </div>`
+                  )
+                  .join('')
+              : '<p class="font-mono text-[10px] text-[var(--wz-muted)]">No pending join requests.</p>'
+          }
+        </div>
+      </div>`;
+
+    const tb = host.querySelector('#cap-transfer-btn');
+    if (tb) {
+      tb.onclick = async () => {
+        if (_govBusy) return;
+        const sid = host.querySelector('#cap-transfer-select')?.value;
+        if (!sid) {
+          showToast('Select a teammate', 'error');
+          return;
+        }
+        const okTransfer = await showConfirmDialog({
+          title: 'Transfer captaincy?',
+          message:
+            'You will lose captain controls on My Team. The selected teammate becomes captain immediately.',
+          confirmLabel: 'Transfer captaincy',
+          cancelLabel: 'Cancel',
+          variant: 'warning'
+        });
+        if (!okTransfer) return;
+        try {
+          _govBusy = true;
+          tb.disabled = true;
+          await transferCaptainMine(sid);
+          showToast('Captaincy transferred.', 'success');
+          await renderProfile();
+        } catch (e) {
+          showToast(e.message, 'error');
+        } finally {
+          _govBusy = false;
+          tb.disabled = false;
+        }
+      };
+    }
+    const ib = host.querySelector('#cap-invite-send');
+    if (ib) {
+      ib.onclick = async () => {
+        if (_govBusy) return;
+        const em = host.querySelector('#cap-invite-email')?.value?.trim();
+        if (!em) {
+          showToast('Enter an email', 'error');
+          return;
+        }
+        try {
+          _govBusy = true;
+          ib.disabled = true;
+          await sendTeamInvite(em);
+          showToast('Invite sent', 'success');
+          outgoing = await getOutgoingTeamInvites();
+          await paint();
+        } catch (e) {
+          showToast(e.message, 'error');
+        } finally {
+          _govBusy = false;
+          ib.disabled = false;
+        }
+      };
+    }
+    host.querySelectorAll('[data-can-inv]').forEach((b) => {
+      b.onclick = async () => {
+        if (_govBusy || b.disabled) return;
+        const id = b.getAttribute('data-can-inv');
+        try {
+          _govBusy = true;
+          b.disabled = true;
+          await cancelTeamInvite(id);
+          showToast('Invite cancelled', 'info');
+          outgoing = await getOutgoingTeamInvites();
+          await paint();
+        } catch (e) {
+          showToast(e.message, 'error');
+        } finally {
+          _govBusy = false;
+          b.disabled = false;
+        }
+      };
+    });
+    host.querySelectorAll('[data-jr-acc]').forEach((b) => {
+      b.onclick = async () => {
+        if (_govBusy || b.disabled) return;
+        const id = b.getAttribute('data-jr-acc');
+        try {
+          _govBusy = true;
+          b.disabled = true;
+          await acceptTeamJoinRequest(id);
+          showToast('Player added to roster', 'success');
+          await renderProfile();
+        } catch (e) {
+          showToast(e.message, 'error');
+        } finally {
+          _govBusy = false;
+          b.disabled = false;
+        }
+      };
+    });
+    host.querySelectorAll('[data-jr-dec]').forEach((b) => {
+      b.onclick = async () => {
+        if (_govBusy || b.disabled) return;
+        const id = b.getAttribute('data-jr-dec');
+        try {
+          _govBusy = true;
+          b.disabled = true;
+          await declineTeamJoinRequest(id);
+          showToast('Request declined', 'info');
+          await paint();
+        } catch (e) {
+          showToast(e.message, 'error');
+        } finally {
+          _govBusy = false;
+          b.disabled = false;
+        }
+      };
+    });
+  }
+
+  await paint();
+}
+
+function initCaptainSavedRosters(team, initialSaved) {
+  const host = document.getElementById('captain-roster-host');
+  if (!host) return;
+
+  let savedRosters = initialSaved || [];
+
+  const players = team.players || [];
+  const starters = players.filter((p) => !p.is_substitute);
+  const sub = players.find((p) => p.is_substitute);
+  const defaultOrder = [...starters, sub].filter(Boolean).map((p) => String(p.id));
+
+  let editorOrder = defaultOrder.slice();
+  let editingId = null;
+
+  function byId(pid) {
+    return players.find((p) => String(p.id) === String(pid));
+  }
+
+  function move(idx, dir) {
+    const j = idx + dir;
+    if (j < 0 || j >= editorOrder.length) return;
+    const t = editorOrder[idx];
+    editorOrder[idx] = editorOrder[j];
+    editorOrder[j] = t;
+    paint();
+  }
+
+  async function refreshList() {
+    try {
+      const list = await getTeamSavedRosters();
+      savedRosters = list || [];
+    } catch (_) {
+      savedRosters = savedRosters || [];
+    }
+    paint();
+  }
+
+  async function saveNew() {
+    const name = document.getElementById('cap-sr-name')?.value?.trim();
+    if (!name) {
+      showToast('Enter a lineup name', 'error');
+      return;
+    }
+    try {
+      await createTeamSavedRoster({ name, lineup: editorOrder });
+      showToast('Lineup saved', 'success');
+      document.getElementById('cap-sr-name').value = '';
+      editingId = null;
+      await refreshList();
+    } catch (e) {
+      showToast(e.message || 'Save failed', 'error');
+    }
+  }
+
+  async function updateExisting() {
+    if (!editingId) return saveNew();
+    try {
+      await updateTeamSavedRoster(editingId, { lineup: editorOrder });
+      showToast('Lineup updated', 'success');
+      await refreshList();
+    } catch (e) {
+      showToast(e.message || 'Update failed', 'error');
+    }
+  }
+
+  async function delRoster(id) {
+    const okDel = await showConfirmDialog({
+      title: 'Delete saved lineup?',
+      message: 'This lineup preset will be removed. You can create a new one anytime.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger'
+    });
+    if (!okDel) return;
+    try {
+      await deleteTeamSavedRoster(id);
+      showToast('Deleted', 'info');
+      if (editingId === id) editingId = null;
+      await refreshList();
+    } catch (e) {
+      showToast(e.message || 'Delete failed', 'error');
+    }
+  }
+
+  function loadRosterIntoEditor(r) {
+    editingId = r.id;
+    if (Array.isArray(r.lineup) && r.lineup.length) {
+      editorOrder = r.lineup.map((x) => String(x));
+    }
+    paint();
+  }
+
+  function paint() {
+    const rows = editorOrder
+      .map((pid, idx) => {
+        const p = byId(pid);
+        const ign = p?.ign || pid.slice(0, 8);
+        const role = p ? (roleLabels[p.role] || p.role || '') : '';
+        const badge = p?.is_substitute ? 'SUB' : String(idx + 1);
+        return `
+          <div class="flex items-center gap-2 px-3 py-2 border-b border-[var(--wz-border)] last:border-0">
+            <span class="font-mono text-[10px] text-[#e8c14a] w-6">${badge}</span>
+            <div class="flex-1 min-w-0">
+              <div class="font-head text-sm font-bold truncate">${_tpEsc(ign)}</div>
+              <div class="font-mono text-[9px] text-[var(--wz-muted)] truncate">${_tpEsc(role)}</div>
+            </div>
+            <button type="button" class="btn-ghost btn-sm px-2" data-sr-up="${idx}" ${idx === 0 ? 'disabled' : ''}>↑</button>
+            <button type="button" class="btn-ghost btn-sm px-2" data-sr-down="${idx}" ${idx === editorOrder.length - 1 ? 'disabled' : ''}>↓</button>
+          </div>`;
+      })
+      .join('');
+
+    const listHtml = (savedRosters || []).length
+      ? (savedRosters || [])
+          .map(
+            (r) => `
+        <div class="flex items-center justify-between gap-2 px-3 py-2 border border-[var(--wz-border)] rounded mb-2">
+          <div>
+            <div class="font-head text-sm font-bold">${_tpEsc(r.name)}</div>
+            <div class="font-mono text-[9px] text-[var(--wz-muted)]">${(r.lineup || []).length} players</div>
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <button type="button" class="btn-ghost btn-sm" data-sr-load="${r.id}">Load</button>
+            <button type="button" class="btn-ghost btn-sm text-red-400" data-sr-del="${r.id}">Delete</button>
+          </div>
+        </div>`
+          )
+          .join('')
+      : '<p class="font-mono text-[10px] text-[var(--wz-muted)]">No saved lineups yet. Order players below, name the lineup, and save.</p>';
+
+    host.innerHTML = `
+      <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-5 py-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <span class="font-mono text-[#e8c14a] text-xs">●</span>
+          <span class="font-head text-sm font-bold tracking-widest uppercase text-[#e8c14a] ml-2">Tournament lineups</span>
+        </div>
+        <span class="font-mono text-[9px] text-[var(--wz-muted)]">Captain only · used when registering for events</span>
+      </div>
+      <div class="p-5 grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div>
+          <div class="section-title text-sm mb-2">Saved presets</div>
+          ${listHtml}
+        </div>
+        <div>
+          <div class="section-title text-sm mb-2">Editor (top = earlier slots; substitute stays flagged from roster)</div>
+          <div class="wz-card overflow-hidden mb-3">${rows}</div>
+          <label class="wz-label">New lineup name</label>
+          <input type="text" id="cap-sr-name" class="wz-input mb-3" placeholder="e.g. COD Mobile · LAN order" maxlength="120"/>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="btn-primary btn-sm" id="cap-sr-save">${editingId ? 'Save order to selected' : 'Save as new preset'}</button>
+            <button type="button" class="btn-ghost btn-sm" id="cap-sr-reset">Reset to roster order</button>
+          </div>
+          ${editingId ? `<p class="font-mono text-[9px] text-amber-400 mt-2">Editing preset <code class="text-[var(--wz-text)]">${_tpEsc(editingId)}</code> — save updates order, or change name via API later.</p>` : ''}
+        </div>
+      </div>`;
+
+    host.querySelectorAll('[data-sr-up]').forEach((btn) => {
+      btn.onclick = () => move(Number(btn.getAttribute('data-sr-up')), -1);
+    });
+    host.querySelectorAll('[data-sr-down]').forEach((btn) => {
+      btn.onclick = () => move(Number(btn.getAttribute('data-sr-down')), 1);
+    });
+    host.querySelectorAll('[data-sr-load]').forEach((btn) => {
+      const id = btn.getAttribute('data-sr-load');
+      btn.onclick = () => {
+        const r = (savedRosters || []).find((x) => String(x.id) === String(id));
+        if (r) loadRosterIntoEditor(r);
+      };
+    });
+    host.querySelectorAll('[data-sr-del]').forEach((btn) => {
+      const id = btn.getAttribute('data-sr-del');
+      btn.onclick = () => delRoster(id);
+    });
+    const saveBtn = host.querySelector('#cap-sr-save');
+    if (saveBtn) saveBtn.onclick = () => (editingId ? updateExisting() : saveNew());
+    const resetBtn = host.querySelector('#cap-sr-reset');
+    if (resetBtn)
+      resetBtn.onclick = () => {
+        editorOrder = defaultOrder.slice();
+        editingId = null;
+        paint();
+      };
+  }
+
+  paint();
+}
+
+function notFoundHTML(msg) {
+  return `
+    <div class="text-center py-20">
+      <div class="font-head text-3xl font-black tracking-widest uppercase text-[var(--wz-muted)] mb-2">Team Not Found</div>
+      <div class="font-mono text-[10px] text-red-400 mb-6">${msg}</div>
+      <a href="leaderboard.html" class="btn-ghost">Back to Leaderboard</a>
+    </div>`;
+}
+
+// Simple hash for consistent colour per UUID
+function hashStr(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i);
+  return h;
+}
+
+(async function () {
+  await wzWithLoading('wz-host-team-profile', renderProfile, { label: 'Loading team', minMs: 280 });
+})();
+</script>
+</body>
+</html>

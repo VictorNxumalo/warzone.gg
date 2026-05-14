@@ -1,0 +1,129 @@
+{
+  "_document": "Mock data + UI field map for creating matches under tournament \"FIFA Winter Cup 2026 — Mock\". Pair with fifa-admin-mock-walkthrough.json.",
+  "how_admin_match_create_works": {
+    "source": "pages/admin.html",
+    "navigation": [
+      "Sign in as admin → open Admin panel.",
+      "Sidebar: open tab **Matches**.",
+      "Click **Create Match For Tournament** (not Update)."
+    ],
+    "dropdown_logic": {
+      "game_select_id": "match-game",
+      "tournament_select_id": "match-tourney-id",
+      "filtering": "After you choose a Game, the Tournament list shows only tournaments where inferTournamentGame(t) equals that game. For FIFA, tournament name OR mode OR type must contain the substring 'fifa' (case-insensitive). Example: name 'FIFA Winter Cup 2026 — Mock' matches.",
+      "teams_source": "Team A / Team B options come from GET registrations with tournament_id = selected tournament and status = **approved** only. If empty, approve registrations under Participants tab first."
+    },
+    "fields_created_match": [
+      { "html_id": "match-game", "sent_to_api": "Used only client-side for filtering; not sent." },
+      { "html_id": "match-tourney-id", "api_field": "tournament_id", "required": true },
+      { "html_id": "match-a-id", "api_field": "team_a_id", "required": true },
+      { "html_id": "match-b-id", "api_field": "team_b_id", "optional": "Empty → null (bye / TBD)" },
+      { "html_id": "match-round", "api_field": "round", "values": ["group_stage", "quarter_final", "semi_final", "grand_final"] },
+      { "html_id": "match-scheduled-at", "api_field": "scheduled_at", "note": "Browser datetime-local; empty → null" },
+      { "html_id": "score-a", "api_field": "Not sent on create", "note": "Create flow always sends score_a/score_b as null. If user types scores, UI clears them and shows toast — enter results under Update sub-tab." },
+      { "html_id": "match-map", "api_field": "map_name" },
+      { "html_id": "match-mode", "api_field": "game_mode" }
+    ],
+    "api_payload_on_save": {
+      "function": "handleSubmitMatch → submitMatch() → POST /api/matches",
+      "fixed_shape": {
+        "tournament_id": "<uuid from match-tourney-id>",
+        "team_a_id": "<uuid>",
+        "team_b_id": "<uuid or null>",
+        "score_a": null,
+        "score_b": null,
+        "round": "<from match-round>",
+        "map_name": "<string or empty>",
+        "game_mode": "<string or empty>",
+        "status": "scheduled",
+        "scheduled_at": "<ISO string or null>"
+      }
+    }
+  },
+  "tournament": {
+    "display_name": "FIFA Winter Cup 2026 — Mock",
+    "tag_example": "FW26",
+    "ensure_game_detection": "When creating this tournament in Admin → Create, set Game Title to **FIFA** so mode is like \"FIFA · …\". Name containing \"FIFA\" also makes inferTournamentGame return FIFA.",
+    "placeholder_tournament_id": "REPLACE_WITH_UUID_FROM_TABLE_EDITOR_OR_GET_/api/tournaments"
+  },
+  "admin_ui_mock_rows": [
+    {
+      "label": "Group — Match 1",
+      "match-game": "FIFA",
+      "match-tourney-id": "REPLACE_WITH_UUID (select FIFA Winter Cup 2026 — Mock)",
+      "match-round": "group_stage",
+      "match-scheduled-at": "2026-07-01T18:00",
+      "match-a-id": "REPLACE_TEAM_ALPHA_UUID",
+      "match-b-id": "REPLACE_TEAM_BRAVO_UUID",
+      "score-a": "(leave empty)",
+      "score-b": "(leave empty)",
+      "match-map": "FUT Stadium",
+      "match-mode": "FUT 1v1 · Competitive",
+      "after_save": "Match appears as scheduled; add goals via Update Stats Match For Tournament."
+    },
+    {
+      "label": "Group — Match 2",
+      "match-game": "FIFA",
+      "match-tourney-id": "REPLACE_WITH_UUID",
+      "match-round": "group_stage",
+      "match-scheduled-at": "2026-07-02T18:00",
+      "match-a-id": "REPLACE_TEAM_ALPHA_UUID",
+      "match-b-id": "REPLACE_TEAM_CHARLIE_UUID",
+      "score-a": "(leave empty)",
+      "score-b": "(leave empty)",
+      "match-map": "El Monumental",
+      "match-mode": "FUT 1v1 · Competitive"
+    },
+    {
+      "label": "Knockout — Quarter final (schedule before results)",
+      "match-game": "FIFA",
+      "match-tourney-id": "REPLACE_WITH_UUID",
+      "match-round": "quarter_final",
+      "match-scheduled-at": "2026-07-08T20:00",
+      "match-a-id": "REPLACE_TEAM_ALPHA_UUID",
+      "match-b-id": "REPLACE_TEAM_BRAVO_UUID",
+      "match-map": "San Siro",
+      "match-mode": "FUT 1v1 · Knockout"
+    }
+  ],
+  "rest_api_mock_bodies": {
+    "_auth": "Authorization: Bearer <ADMIN_JWT>, Content-Type: application/json",
+    "create_scheduled_group_match_1": {
+      "method": "POST",
+      "url": "{{API_URL}}/api/matches",
+      "body": {
+        "tournament_id": "REPLACE_TOURNAMENT_UUID",
+        "team_a_id": "REPLACE_TEAM_ALPHA_UUID",
+        "team_b_id": "REPLACE_TEAM_BRAVO_UUID",
+        "score_a": null,
+        "score_b": null,
+        "round": "group_stage",
+        "map_name": "FUT Stadium",
+        "game_mode": "FUT 1v1 · Competitive",
+        "status": "scheduled",
+        "scheduled_at": "2026-07-01T18:00:00.000Z"
+      }
+    },
+    "create_scheduled_group_match_2": {
+      "method": "POST",
+      "url": "{{API_URL}}/api/matches",
+      "body": {
+        "tournament_id": "REPLACE_TOURNAMENT_UUID",
+        "team_a_id": "REPLACE_TEAM_ALPHA_UUID",
+        "team_b_id": "REPLACE_TEAM_CHARLIE_UUID",
+        "score_a": null,
+        "score_b": null,
+        "round": "group_stage",
+        "map_name": "El Monumental",
+        "game_mode": "FUT 1v1 · Competitive",
+        "status": "scheduled",
+        "scheduled_at": "2026-07-02T18:00:00.000Z"
+      }
+    }
+  },
+  "troubleshooting": [
+    "Tournament does not appear under Game → FIFA: ensure tournament name or mode includes 'fifa' (e.g. FIFA Winter Cup… or mode starting with FIFA · …).",
+    "Team dropdowns empty: approve at least two registrations for this tournament (Participants tab).",
+    "Cannot complete match on create: by design — use Update sub-tab to set scores and completed status."
+  ]
+}

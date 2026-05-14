@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My tournament — EVOLVE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <script src="../js/theme.js"></script>
+</head>
+<body class="wz-page">
+<script src="../js/config.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/main.js"></script>
+<script>injectNav('tournament-hub.html')</script>
+
+<main class="max-w-5xl mx-auto px-5 py-8 fade-up">
+  <div id="wz-host-hub" class="relative min-h-[50vh]">
+  <div id="hub-root">
+  <div class="text-center py-16 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider animate-pulse">LOADING…</div>
+  </div>
+  </div>
+</main>
+
+<script>
+function hubEsc(s) {
+  if (s == null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function loadHubCore() {
+  const root = document.getElementById('hub-root');
+  const id = new URLSearchParams(window.location.search).get('id');
+  if (!id) {
+    root.innerHTML = `
+      <div class="wz-card p-8 text-center max-w-lg mx-auto">
+        <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-4">No tournament selected.</p>
+        <a href="tournaments.html" class="btn-primary">All tournaments</a>
+      </div>`;
+    return;
+  }
+
+  const user = getCurrentUser();
+  if (!user) {
+    root.innerHTML = `
+      <div class="wz-card accent-left p-8 text-center max-w-lg mx-auto">
+        <h1 class="font-head text-xl font-bold mb-3">Sign in required</h1>
+        <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6">Sign in to view your squad’s tournament hub.</p>
+        <a href="register.html" class="btn-primary">Sign in</a>
+      </div>`;
+    return;
+  }
+
+  try {
+    const participations = await getMyTournamentParticipations();
+    const mine = (participations || []).find((p) => String(p.tournament_id) === String(id));
+    if (!mine) {
+      root.innerHTML = `
+        <div class="wz-card border-t-2 border-t-amber-600/60 p-8 text-center max-w-lg mx-auto">
+          <div class="font-mono text-[10px] text-amber-400 tracking-widest uppercase mb-3">● NOT YOUR TOURNAMENT</div>
+          <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6">
+            You don’t have an <strong class="text-[var(--wz-text)]">approved</strong> registration for this event with your current team. Open the public tournaments list to browse or register.
+          </p>
+          <a href="tournaments.html" class="btn-primary">All tournaments</a>
+        </div>`;
+      return;
+    }
+
+    const [tournament, teamRows, matches] = await Promise.all([
+      getTournament(id),
+      getTournamentApprovedTeams(id),
+      getMatches({ tournament_id: id })
+    ]);
+
+    const tname = tournament?.name || mine.tournament?.name || 'Tournament';
+    const myTeam = mine.team;
+    document.title = `${tname} — My tournament — EVOLVE`;
+
+    const teamsHtml = !teamRows.length
+      ? '<p class="font-mono text-[10px] text-[var(--wz-muted)]">No approved teams listed yet.</p>'
+      : `<div class="flex flex-col gap-2">${teamRows.map((row, i) => {
+          const tm = row.team;
+          const highlight = myTeam?.id && tm?.id && String(tm.id) === String(myTeam.id);
+          return `
+            <div class="flex items-center justify-between gap-3 px-3 py-2 rounded border ${highlight ? 'border-emerald-600/50 bg-emerald-900/10' : 'border-[var(--wz-border)]'}">
+              <div>
+                <span class="font-head text-sm font-bold">${hubEsc(tm?.name || '—')}</span>
+                <span class="font-mono text-[10px] text-[var(--wz-muted)] ml-2">#${hubEsc(tm?.tag || '—')}</span>
+                ${tm?.region ? `<span class="font-mono text-[9px] text-[var(--wz-muted)] ml-2">${hubEsc(tm.region)}</span>` : ''}
+              </div>
+              ${highlight ? '<span class="font-mono text-[9px] text-emerald-400 uppercase">Your squad</span>' : `<span class="font-mono text-[10px] text-[var(--wz-muted)]">${hubEsc(row.game_mode || '')}</span>`}
+            </div>`;
+        }).join('')}</div>`;
+
+    const matchList = Array.isArray(matches) ? matches : [];
+    const sorted = [...matchList].sort((a, b) => (a.scheduled_at || '').localeCompare(b.scheduled_at || ''));
+    const fixturesHtml = !sorted.length
+      ? '<p class="font-mono text-[10px] text-[var(--wz-muted)]">Fixtures will appear here when admins schedule matches.</p>'
+      : sorted.map((m) => {
+          const a = m.team_a?.name || 'TBD';
+          const b = m.team_b?.name || 'TBD';
+          const rd = (m.round || '').replace(/_/g, ' ');
+          const when = m.scheduled_at ? new Date(m.scheduled_at).toLocaleString('en-ZA') : 'Time TBA';
+          return `
+            <div class="border border-[var(--wz-border)] rounded px-3 py-2 mb-2">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <span class="font-head text-sm font-bold">${hubEsc(a)} <span class="font-mono text-[10px] text-[var(--wz-muted)]">vs</span> ${hubEsc(b)}</span>
+                ${typeof statusBadge === 'function' ? statusBadge(m.status) : `<span class="font-mono text-[10px]">${hubEsc(m.status)}</span>`}
+              </div>
+              <div class="font-mono text-[10px] text-[var(--wz-muted)] mt-1">${hubEsc(rd)} · ${hubEsc(when)}</div>
+              ${m.map_name ? `<div class="font-mono text-[10px] text-[var(--wz-muted)] mt-0.5">${hubEsc(m.map_name)}</div>` : ''}
+            </div>`;
+        }).join('');
+
+    root.innerHTML = `
+      <div class="flex items-center gap-2 font-mono text-[10px] text-[var(--wz-muted)] tracking-wider mb-5">
+        <a href="../index.html" class="hover:text-[#e8c14a]">Home</a>
+        <span>›</span>
+        <a href="tournaments.html" class="hover:text-[#e8c14a]">Tournaments</a>
+        <span>›</span>
+        <span class="text-[var(--wz-text)]">My tournament</span>
+      </div>
+
+      <div class="mb-6">
+        <div class="font-mono text-[10px] text-emerald-400 tracking-widest uppercase mb-2">● YOU ARE COMPETING</div>
+        <h1 class="font-head text-3xl font-black tracking-widest uppercase text-[var(--wz-text)] mb-2">${hubEsc(tname)}</h1>
+        <p class="font-body text-sm text-[var(--wz-text-secondary)]">
+          Your squad: <strong class="text-[var(--wz-text)]">${hubEsc(myTeam?.name || '—')}</strong>
+          <span class="font-mono text-[var(--wz-muted)]">(#${hubEsc(myTeam?.tag || '—')})</span>
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="wz-card overflow-hidden">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase text-[#e8c14a]">Teams in this tournament</div>
+          <div class="p-4">${teamsHtml}</div>
+        </div>
+        <div class="wz-card overflow-hidden">
+          <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3 font-head text-xs font-bold tracking-widest uppercase text-[#e8c14a]">Fixtures</div>
+          <div class="p-4 max-h-[480px] overflow-y-auto">${fixturesHtml}</div>
+        </div>
+      </div>`;
+  } catch (err) {
+    root.innerHTML = `
+      <div class="wz-card p-8 text-center max-w-lg mx-auto border-t-red-600">
+        <p class="font-mono text-[11px] text-red-400 mb-4">${hubEsc(err.message || 'Something went wrong')}</p>
+        <a href="tournaments.html" class="btn-ghost">Back</a>
+      </div>`;
+  }
+}
+
+async function loadHub() {
+  await wzWithLoading('wz-host-hub', loadHubCore, { label: 'Loading tournament', minMs: 260 });
+}
+
+loadHub();
+</script>
+</body>
+</html>

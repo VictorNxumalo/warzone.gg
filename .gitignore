@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+warzongg-api/node_modules/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+warzongg-api/.env
+warzongg-api/.env.*
+!warzongg-api/.env.example
+
+# Local archives and OS/editor noise
+*.zip
+Thumbs.db
+.DS_Store
