@@ -5,6 +5,10 @@ const { getCaptainTeamId } = require('./teamInvitesController');
 const ROSTER_CAP = 6;
 const MAX_PENDING_JOIN_REQUESTS_PER_PLAYER = 5;
 
+function normalizeEmail(v) {
+  return String(v || '').trim().toLowerCase();
+}
+
 function tableMissing(err) {
   const m = String(err?.message || '');
   return /team_join_requests|does not exist|schema cache/i.test(m);
@@ -32,26 +36,82 @@ async function assignFreeAgentToTeam(playerId, teamId) {
   return !!updatedRows?.length;
 }
 
+async function ensureLinkedPlayerProfile(userId) {
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('id, player_id, email, username')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (!user) return null;
+  if (user.player_id) return user.player_id;
+
+  const { data: byAuth } = await supabaseAdmin
+    .from('players')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1);
+  if (byAuth?.[0]?.id) {
+    await supabaseAdmin.from('users').update({ player_id: byAuth[0].id }).eq('id', userId);
+    return byAuth[0].id;
+  }
+
+  const emailNorm = normalizeEmail(user.email);
+  if (emailNorm) {
+    const { data: byEmailRows } = await supabaseAdmin
+      .from('players')
+      .select('id, user_id, email')
+      .ilike('email', emailNorm);
+    const claimable = (byEmailRows || []).find(
+      (r) => normalizeEmail(r.email) === emailNorm && (!r.user_id || String(r.user_id) === String(userId))
+    );
+    if (claimable?.id) {
+      if (!claimable.user_id) {
+        await supabaseAdmin.from('players').update({ user_id: userId }).eq('id', claimable.id);
+      }
+      await supabaseAdmin.from('users').update({ player_id: claimable.id }).eq('id', userId);
+      return claimable.id;
+    }
+  }
+
+  // No roster row exists yet for this account: create a free-agent profile so
+  // newly registered users can request to join recruiting teams immediately.
+  const fallbackIgn = String(user.username || emailNorm.split('@')[0] || 'new_player').trim().slice(0, 64);
+  const { data: created, error: createErr } = await supabaseAdmin
+    .from('players')
+    .insert({
+      team_id: null,
+      user_id: userId,
+      email: emailNorm || null,
+      ign: fallbackIgn || 'new_player',
+      role: 'substitute',
+      device: 'android',
+      is_substitute: true,
+    })
+    .select('id')
+    .single();
+
+  if (createErr || !created?.id) {
+    throw new Error(createErr?.message || 'Could not create player profile.');
+  }
+
+  await supabaseAdmin.from('users').update({ player_id: created.id }).eq('id', userId);
+  return created.id;
+}
+
 // POST /api/players/me/team-join-requests { team_id }
 async function createPlayerJoinRequest(req, res, next) {
   try {
     const teamId = req.body?.team_id;
     if (!teamId) return res.status(400).json({ error: 'team_id is required.' });
 
-    const { data: user } = await supabaseAdmin
-      .from('users')
-      .select('id, player_id')
-      .eq('id', req.user.id)
-      .maybeSingle();
-
-    if (!user?.player_id) {
-      return res.status(400).json({ error: 'Your account must be linked to a player profile.' });
-    }
+    const playerId = await ensureLinkedPlayerProfile(req.user.id);
+    if (!playerId) return res.status(400).json({ error: 'Your account is missing a player profile.' });
 
     const { data: player } = await supabaseAdmin
       .from('players')
       .select('id, team_id, free_agent_since')
-      .eq('id', user.player_id)
+      .eq('id', playerId)
       .maybeSingle();
 
     if (!player) return res.status(404).json({ error: 'Player record not found.' });
@@ -134,13 +194,8 @@ async function createPlayerJoinRequest(req, res, next) {
 // GET /api/players/me/team-join-requests
 async function listMyJoinRequests(req, res, next) {
   try {
-    const { data: user } = await supabaseAdmin
-      .from('users')
-      .select('player_id')
-      .eq('id', req.user.id)
-      .maybeSingle();
-
-    if (!user?.player_id) return res.status(200).json({ success: true, data: [] });
+    const playerId = await ensureLinkedPlayerProfile(req.user.id);
+    if (!playerId) return res.status(200).json({ success: true, data: [] });
 
     const { data: rows, error } = await supabaseAdmin
       .from('team_join_requests')
@@ -150,7 +205,7 @@ async function listMyJoinRequests(req, res, next) {
         team:teams ( id, name, tag, region )
       `
       )
-      .eq('requester_player_id', user.player_id)
+      .eq('requester_player_id', playerId)
       .order('created_at', { ascending: false })
       .limit(40);
 
@@ -169,14 +224,8 @@ async function listMyJoinRequests(req, res, next) {
 async function cancelMyJoinRequest(req, res, next) {
   try {
     const joinRequestId = req.params.joinRequestId;
-
-    const { data: user } = await supabaseAdmin
-      .from('users')
-      .select('player_id')
-      .eq('id', req.user.id)
-      .maybeSingle();
-
-    if (!user?.player_id) return res.status(400).json({ error: 'No player profile linked.' });
+    const playerId = await ensureLinkedPlayerProfile(req.user.id);
+    if (!playerId) return res.status(400).json({ error: 'No player profile linked.' });
 
     const { data: jr } = await supabaseAdmin
       .from('team_join_requests')
@@ -184,7 +233,7 @@ async function cancelMyJoinRequest(req, res, next) {
       .eq('id', joinRequestId)
       .maybeSingle();
 
-    if (!jr || String(jr.requester_player_id) !== String(user.player_id)) {
+    if (!jr || String(jr.requester_player_id) !== String(playerId)) {
       return res.status(404).json({ error: 'Request not found.' });
     }
     if (jr.status !== 'pending') {
