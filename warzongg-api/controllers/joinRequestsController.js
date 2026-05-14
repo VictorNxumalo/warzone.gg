@@ -9,6 +9,16 @@ function normalizeEmail(v) {
   return String(v || '').trim().toLowerCase();
 }
 
+function buildProvisionalCodmUid(userId) {
+  // Keep within existing DB check style (letters/numbers/._-, 3-32 chars)
+  const base = String(userId || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, '')
+    .slice(0, 24);
+  const uid = `new-${base || 'player'}`;
+  return uid.slice(0, 32);
+}
+
 function tableMissing(err) {
   const m = String(err?.message || '');
   return /team_join_requests|does not exist|schema cache/i.test(m);
@@ -77,6 +87,7 @@ async function ensureLinkedPlayerProfile(userId) {
   // No roster row exists yet for this account: create a free-agent profile so
   // newly registered users can request to join recruiting teams immediately.
   const fallbackIgn = String(user.username || emailNorm.split('@')[0] || 'new_player').trim().slice(0, 64);
+  const provisionalCodmUid = buildProvisionalCodmUid(userId);
   const { data: created, error: createErr } = await supabaseAdmin
     .from('players')
     .insert({
@@ -84,6 +95,7 @@ async function ensureLinkedPlayerProfile(userId) {
       user_id: userId,
       email: emailNorm || null,
       ign: fallbackIgn || 'new_player',
+      codm_uid: provisionalCodmUid,
       role: 'substitute',
       device: 'android',
       is_substitute: true,
