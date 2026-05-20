@@ -89,8 +89,6 @@ const teamCreate = [
   body('name').trim().notEmpty().isLength({ min: 1, max: 120 }).withMessage('Team name is required'),
   body('tag').trim().notEmpty().isLength({ min: 1, max: 4 }).withMessage('Tag must be 1–4 characters'),
   body('region').trim().notEmpty().isLength({ max: 64 }).withMessage('Region is required'),
-  body('tournament_id').isUUID().withMessage('Invalid tournament_id'),
-  body('game_mode').trim().notEmpty().withMessage('game_mode is required'),
   body('players').isArray({ min: 1, max: 6 }).withMessage('players must be an array with 1–6 entries'),
 ];
 

@@ -291,8 +291,8 @@ async function registerExistingTeamForTournament(req, res, next) {
 
 // ──────────────────────────────────────────────
 // POST /api/teams
-// Authenticated. Creates team + players + registration in one go.
-// Body: { name, tag, region, tournament_id, game_mode, players[], whatsapp? }
+// Authenticated. Creates team + players in one flow.
+// Body: { name, tag, region, players[], whatsapp? }
 // ──────────────────────────────────────────────
 async function create(req, res, next) {
   try {
@@ -303,14 +303,13 @@ async function create(req, res, next) {
 
     const {
       name, tag, region,
-      tournament_id, game_mode,
       players, whatsapp
     } = req.body;
 
     // 1. Validate required fields
-    if (!name || !tag || !region || !tournament_id || !game_mode || !players) {
+    if (!name || !tag || !region || !players) {
       return res.status(400).json({
-        error: 'Missing required fields: name, tag, region, tournament_id, game_mode, players.'
+        error: 'Missing required fields: name, tag, region, players.'
       });
     }
 
@@ -348,30 +347,9 @@ async function create(req, res, next) {
       }
     }
 
-    // 2. Check tournament exists and has open slots (service role — reliable with RLS)
-    const { data: tournament } = await supabaseAdmin
-      .from('tournaments')
-      .select('id, name, status, max_slots, registered_count')
-      .eq('id', tournament_id)
-      .single();
-
-    if (!tournament) {
-      return res.status(404).json({ error: 'Tournament not found.' });
-    }
-
-    if (tournament.status !== 'open') {
-      return res.status(409).json({
-        error: `This tournament is not open for registration. Current status: ${tournament.status}.`
-      });
-    }
-
-    if (tournament.registered_count >= tournament.max_slots) {
-      return res.status(409).json({ error: 'This tournament is full. No slots remaining.' });
-    }
-
     const tagU = String(tag).trim().toUpperCase();
 
-    // Idempotent: double-submit / duplicate POST after success — same captain + tag + tournament already registered
+    // Idempotent: double-submit / duplicate POST after success — same captain + tag already exists
     const { data: captainTeam } = await supabaseAdmin
       .from('teams')
       .select('id')
@@ -380,36 +358,25 @@ async function create(req, res, next) {
       .maybeSingle();
 
     if (captainTeam) {
-      const { data: existingReg } = await supabaseAdmin
-        .from('registrations')
-        .select('id, status')
-        .eq('team_id', captainTeam.id)
-        .eq('tournament_id', tournament_id)
-        .maybeSingle();
-
-      if (existingReg) {
-        const captainEmail = (req.user.email || '').trim().toLowerCase();
-        if (captainEmail) {
-          const { data: captainPlayer } = await supabaseAdmin
-            .from('players')
-            .select('id, user_id')
-            .eq('team_id', captainTeam.id)
-            .eq('email', captainEmail)
-            .maybeSingle();
-          if (captainPlayer && !captainPlayer.user_id) {
-            await supabaseAdmin.from('users').update({ player_id: captainPlayer.id }).eq('id', req.user.id);
-            await supabaseAdmin.from('players').update({ user_id: req.user.id }).eq('id', captainPlayer.id);
-          }
+      const captainEmail = (req.user.email || '').trim().toLowerCase();
+      if (captainEmail) {
+        const { data: captainPlayer } = await supabaseAdmin
+          .from('players')
+          .select('id, user_id')
+          .eq('team_id', captainTeam.id)
+          .eq('email', captainEmail)
+          .maybeSingle();
+        if (captainPlayer && !captainPlayer.user_id) {
+          await supabaseAdmin.from('users').update({ player_id: captainPlayer.id }).eq('id', req.user.id);
+          await supabaseAdmin.from('players').update({ user_id: req.user.id }).eq('id', captainPlayer.id);
         }
-        return res.status(200).json({
-          success: true,
-          message: 'Your registration was already submitted.',
-          team_id: captainTeam.id,
-          registration_id: existingReg.id,
-          status: existingReg.status,
-          alreadySubmitted: true
-        });
       }
+      return res.status(200).json({
+        success: true,
+        message: 'Your team already exists.',
+        team_id: captainTeam.id,
+        alreadySubmitted: true
+      });
     }
 
     // 3. Check team name and tag are not already taken (by another captain)
@@ -477,25 +444,7 @@ async function create(req, res, next) {
       return res.status(400).json({ error: msg });
     }
 
-    // 7. Create the registration row
-    const { data: registration, error: regError } = await supabaseAdmin
-      .from('registrations')
-      .insert({
-        tournament_id,
-        team_id: team.id,
-        game_mode,
-        device_type: players[0]?.device || 'android',
-        status: 'pending'
-      })
-      .select()
-      .single();
-
-    if (regError) {
-      await supabaseAdmin.from('teams').delete().eq('id', team.id);
-      return res.status(400).json({ error: regError.message });
-    }
-
-    // Link captain account ↔ player row when IGL email matches auth email (enables player profile after approval).
+    // 7. Link captain account ↔ player row when IGL email matches auth email.
     const captainEmail = (req.user.email || '').trim().toLowerCase();
     if (captainEmail) {
       const { data: captainPlayer } = await supabaseAdmin
@@ -521,10 +470,8 @@ async function create(req, res, next) {
 
     res.status(201).json({
       success: true,
-      message: 'Team registered successfully. Awaiting admin approval.',
-      team_id: team.id,
-      registration_id: registration.id,
-      status: 'pending'
+      message: 'Team created successfully.',
+      team_id: team.id
     });
 
   } catch (err) {

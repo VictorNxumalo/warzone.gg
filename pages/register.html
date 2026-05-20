@@ -78,11 +78,11 @@
   <div id="success-state" class="hidden wz-card accent-left p-8 text-center mb-8">
     <div class="font-mono text-[10px] text-green-400 tracking-widest mb-3">● REGISTRATION SUBMITTED</div>
     <h2 class="font-head text-3xl font-black tracking-widest uppercase text-[#e8c14a] mb-2" id="success-name"></h2>
-    <p id="success-detail" class="font-body text-[var(--wz-text-secondary)] mb-6">Your registration has been received. An admin will review and approve your team. You will be contacted via WhatsApp once confirmed.</p>
+    <p id="success-detail" class="font-body text-[var(--wz-text-secondary)] mb-6">Your team has been created successfully. You can now manage your squad and enter tournaments from My Team.</p>
     <div id="success-actions-new-team" class="flex gap-3 justify-center flex-wrap">
       <a href="team-profile.html?mine=1" class="btn-primary">View My Team →</a>
       <a href="tournaments.html" class="btn-ghost">View Tournaments</a>
-      <button type="button" onclick="resetForm()" id="btn-register-another" class="btn-ghost">Register Another Team</button>
+      <button type="button" onclick="resetForm()" id="btn-register-another" class="btn-ghost">Create Another Team</button>
     </div>
     <div id="success-actions-captain" class="hidden flex gap-3 justify-center flex-wrap">
       <a href="tournaments.html" class="btn-primary">View Tournaments</a>
@@ -225,50 +225,10 @@
     <!-- Main form col -->
     <div class="md:col-span-2 flex flex-col gap-5">
 
-      <!-- Step 1: Tournament -->
+      <!-- Step 1: Team Info -->
       <div class="wz-card overflow-hidden">
         <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-5 py-3 flex items-center gap-3">
           <span class="font-mono text-[#e8c14a] text-xs">01</span>
-          <span class="font-head text-sm font-bold tracking-widest uppercase">Select Tournament</span>
-        </div>
-        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="wz-label">Game</label>
-            <select id="reg-game" class="wz-input" onchange="filterTournamentOptions()">
-              <option value="">— Select a Game —</option>
-              <option value="COD Mobile">COD Mobile</option>
-              <option value="COD Warzone">COD Warzone</option>
-              <option value="COD Modern Warfare">COD Modern Warfare</option>
-              <option value="FIFA">FIFA</option>
-              <option value="Need for Speed">Need for Speed</option>
-              <option value="Forza">Forza</option>
-              <option value="Mortal Kombat">Mortal Kombat</option>
-            </select>
-          </div>
-          <div>
-            <label class="wz-label">Tournament</label>
-            <select id="reg-tournament" class="wz-input" onchange="updateSidebar()">
-              <option value="">— Select a Game First —</option>
-            </select>
-          </div>
-          <div>
-            <label class="wz-label">Game / Division</label>
-            <select id="reg-mode" class="wz-input">
-              <option>Open Division</option>
-              <option>1v1 Bracket</option>
-              <option>2v2 Bracket</option>
-              <option>5v5 Team League</option>
-              <option>Racing Circuit</option>
-              <option>Fighting Game Bracket</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 2: Team Info -->
-      <div class="wz-card overflow-hidden">
-        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-5 py-3 flex items-center gap-3">
-          <span class="font-mono text-[#e8c14a] text-xs">02</span>
           <span class="font-head text-sm font-bold tracking-widest uppercase">Team Info</span>
         </div>
         <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -294,11 +254,11 @@
         </div>
       </div>
 
-      <!-- Step 3: Roster -->
+      <!-- Step 2: Roster -->
       <div class="wz-card overflow-hidden">
         <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-5 py-3 flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <span class="font-mono text-[#e8c14a] text-xs">03</span>
+            <span class="font-mono text-[#e8c14a] text-xs">02</span>
             <span class="font-head text-sm font-bold tracking-widest uppercase">Team Roster</span>
           </div>
           <span class="font-mono text-[10px] text-[var(--wz-muted)]">5 Players required + 1 sub</span>
@@ -306,10 +266,10 @@
         <div class="p-5 flex flex-col gap-3" id="roster-fields"></div>
       </div>
 
-      <!-- Step 4: Contact -->
+      <!-- Step 3: Contact -->
       <div class="wz-card overflow-hidden">
         <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-5 py-3 flex items-center gap-3">
-          <span class="font-mono text-[#e8c14a] text-xs">04</span>
+          <span class="font-mono text-[#e8c14a] text-xs">03</span>
           <span class="font-head text-sm font-bold tracking-widest uppercase">Captain / Contact</span>
         </div>
         <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -337,38 +297,22 @@
       </div>
 
       <button type="button" onclick="submitRegistration()" id="submit-btn" class="btn-primary w-full py-3 text-base tracking-widest">
-        Submit Registration →
+        Create Team →
       </button>
     </div>
 
     <!-- Sidebar -->
     <div class="flex flex-col gap-4">
-      <div class="wz-card overflow-hidden">
+      <div class="wz-card overflow-hidden accent-left">
         <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3">
-          <span class="font-head text-xs font-bold tracking-widest uppercase">Selected Tournament</span>
+          <span class="font-head text-xs font-bold tracking-widest uppercase">What happens next</span>
         </div>
         <div class="p-4">
-          <div id="sidebar-tourney-info" class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider">Select a tournament above</div>
-        </div>
-      </div>
-
-      <div class="wz-card overflow-hidden">
-        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3">
-          <span class="font-head text-xs font-bold tracking-widest uppercase">Entry Fee</span>
-        </div>
-        <div class="p-4">
-          <div id="sidebar-fee" class="font-head text-3xl font-black text-[#e8c14a]">R —</div>
-          <div class="font-mono text-[10px] text-[var(--wz-muted)] mb-3">Per team · EFT or cash</div>
-          <div class="font-body text-xs text-[var(--wz-text-secondary)] leading-relaxed">Payment details sent after approval by admin via WhatsApp.</div>
-        </div>
-      </div>
-
-      <div class="wz-card overflow-hidden">
-        <div class="bg-[var(--wz-page)] border-b border-[var(--wz-border)] px-4 py-3">
-          <span class="font-head text-xs font-bold tracking-widest uppercase">Prize Breakdown</span>
-        </div>
-        <div class="p-4 flex flex-col gap-3" id="sidebar-prizes-body">
-          <div class="font-mono text-[10px] text-[var(--wz-muted)]">Select tournament to see prizes</div>
+          <div class="font-body text-xs text-[var(--wz-text-secondary)] leading-relaxed space-y-2">
+            <p>1) Create your team and roster here.</p>
+            <p>2) You become the captain and get redirected to My Team.</p>
+            <p>3) Enter open tournaments later from My Team or Tournaments.</p>
+          </div>
         </div>
       </div>
 
@@ -529,18 +473,7 @@ async function onAuthSuccess(user) {
   setRegisterBootState('form');
   if (titleEl) titleEl.textContent = 'Team Registration';
   document.getElementById('logged-in-user').textContent = user.username;
-  await loadTournaments();
   buildRosterFields();
-  const urlTourney = new URLSearchParams(window.location.search).get('tournament');
-  if (urlTourney) {
-    const tourney = _tournaments.find((t) => t.id === urlTourney);
-    if (tourney) {
-      document.getElementById('reg-game').value = inferTournamentGame(tourney);
-      filterTournamentOptions();
-    }
-    document.getElementById('reg-tournament').value = urlTourney;
-    updateSidebar();
-  }
 }
 
 function renderBlockedRegisterState(access, user) {
@@ -607,17 +540,6 @@ async function handleLogout() {
   const t = document.getElementById('reg-page-title');
   if (t) t.textContent = 'Team Registration';
   showToast('Signed out');
-}
-
-// ── Load tournaments from API (registration only allowed when status is "open" on server) ──
-async function loadTournaments() {
-  try {
-    const raw = await getTournaments();
-    _tournaments = Array.isArray(raw) ? raw : [];
-    filterTournamentOptions();
-  } catch (err) {
-    showToast('Failed to load tournaments', 'error');
-  }
 }
 
 async function loadTournamentsForCaptain() {
@@ -835,70 +757,6 @@ function resetCaptainPanelFromSuccess() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function filterTournamentOptions() {
-  const selectedGame = document.getElementById('reg-game').value;
-  const sel = document.getElementById('reg-tournament');
-  if (!selectedGame) {
-    sel.innerHTML = '<option value="">— Select a Game First —</option>';
-    updateSidebar();
-    return;
-  }
-
-  const forGame = _tournaments.filter(t => inferTournamentGame(t) === selectedGame);
-  const openForReg = forGame.filter(t => t.status === 'open' && (t.registered_count || 0) < (t.max_slots || 0));
-
-  sel.innerHTML = '<option value="">— Select a Tournament —</option>';
-
-  if (!forGame.length) {
-    sel.innerHTML = '<option value="">No tournaments listed for this game</option>';
-    updateSidebar();
-    return;
-  }
-
-  if (!openForReg.length) {
-    const statuses = [...new Set(forGame.map(t => t.status))].join(', ');
-    sel.innerHTML = `<option value="">No open slots — tournaments exist (${statuses}). Set status to Open in Admin.</option>`;
-    forGame.forEach(t => {
-      const prize = centsToRand(t.prize_total);
-      sel.innerHTML += `<option value="" disabled>${t.name} (${prize}) · ${t.status}</option>`;
-    });
-    updateSidebar();
-    return;
-  }
-
-  openForReg.forEach(t => {
-    const prize = centsToRand(t.prize_total);
-    sel.innerHTML += `<option value="${t.id}">${t.name} (${prize})</option>`;
-  });
-  updateSidebar();
-}
-
-// ── Sidebar update ────────────────────────────────────────
-function updateSidebar() {
-  const id = document.getElementById('reg-tournament').value;
-  const t  = _tournaments.find(x => x.id === id);
-  if (!t) {
-    document.getElementById('sidebar-tourney-info').innerHTML = '<span class="text-[var(--wz-muted)]">Select a tournament above</span>';
-    document.getElementById('sidebar-fee').textContent = 'R —';
-    document.getElementById('sidebar-prizes-body').innerHTML = '<div class="font-mono text-[10px] text-[var(--wz-muted)]">Select tournament to see prizes</div>';
-    return;
-  }
-  const slots = t.max_slots - t.registered_count;
-  document.getElementById('sidebar-tourney-info').innerHTML = `
-    <div class="font-head text-sm font-bold text-[var(--wz-text)] mb-1">${t.name}</div>
-    <div class="font-mono text-[10px] text-[var(--wz-muted)] flex flex-col gap-1">
-      <span>🗓 ${t.start_date}</span>
-      <span>⚔ ${t.format}</span>
-      ${slotsBar(t.registered_count, t.max_slots)}
-    </div>`;
-  document.getElementById('sidebar-fee').textContent = centsToRand(t.entry_fee);
-  document.getElementById('sidebar-prizes-body').innerHTML = `
-    <div class="flex items-center justify-between"><span class="font-mono text-[10px] text-[#e8c14a]">🥇 1st Place</span><span class="font-head text-sm font-bold">${centsToRand(t.prize_1st)}</span></div>
-    <div class="flex items-center justify-between"><span class="font-mono text-[10px] text-[var(--wz-text-secondary)]">🥈 2nd Place</span><span class="font-head text-sm font-bold">${centsToRand(t.prize_2nd)}</span></div>
-    <div class="flex items-center justify-between"><span class="font-mono text-[10px] text-[var(--wz-muted)]">🥉 3rd Place</span><span class="font-head text-sm font-bold">${centsToRand(t.prize_3rd)}</span></div>
-    <div class="flex items-center justify-between"><span class="font-mono text-[10px] text-[var(--wz-muted)]">🎯 MVP</span><span class="font-head text-sm font-bold">${centsToRand(t.prize_mvp)}</span></div>`;
-}
-
 // ── Build roster fields ───────────────────────────────────
 function buildRosterFields() {
   const container = document.getElementById('roster-fields');
@@ -939,12 +797,9 @@ async function submitRegistration() {
   const btnEarly = document.getElementById('submit-btn');
   if (btnEarly?.disabled) return;
 
-  const tournamentId = document.getElementById('reg-tournament').value;
-  const selectedGame = document.getElementById('reg-game').value;
   const name         = document.getElementById('reg-teamname').value.trim();
   const tag          = document.getElementById('reg-tag').value.trim();
   const region       = document.getElementById('reg-region').value;
-  const gameMode     = document.getElementById('reg-mode').value;
   const whatsapp     = document.getElementById('reg-whatsapp').value.trim();
   const agreed       = document.getElementById('reg-agree').checked;
 
@@ -953,13 +808,11 @@ async function submitRegistration() {
     const b = document.getElementById('submit-btn');
     if (b) {
       b.disabled = false;
-      b.textContent = 'Submit Registration →';
+      b.textContent = 'Create Team →';
     }
   }
 
   // Validation
-  if (!selectedGame)    { showToast('Select a game first', 'error'); return; }
-  if (!tournamentId)    { showToast('Select a tournament first', 'error'); return; }
   if (!name)            { showToast('Enter your team name', 'error'); return; }
   if (!tag)             { showToast('Enter your team tag', 'error'); return; }
   if (!agreed)          { showToast('Agree to the rules first', 'error'); return; }
@@ -999,12 +852,12 @@ async function submitRegistration() {
   btn.textContent = 'Submitting…';
 
   try {
-    await registerTeam({ name, tag, region, tournament_id: tournamentId, game_mode: gameMode, players, whatsapp });
+    await registerTeam({ name, tag, region, players, whatsapp });
     document.getElementById('reg-form').classList.add('hidden');
     document.getElementById('success-state').classList.remove('hidden');
     document.getElementById('success-name').textContent = name;
     document.getElementById('success-detail').textContent =
-      'Your registration has been received. An admin will review and approve your team. You will be contacted via WhatsApp once confirmed.';
+      'Your team has been created successfully. You can now manage your squad and enter tournaments from My Team.';
     document.getElementById('success-actions-new-team').classList.remove('hidden');
     document.getElementById('success-actions-captain').classList.add('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1020,7 +873,7 @@ function resetForm() {
   document.getElementById('reg-form').classList.remove('hidden');
   document.getElementById('success-state').classList.add('hidden');
   document.getElementById('success-detail').textContent =
-    'Your registration has been received. An admin will review and approve your team. You will be contacted via WhatsApp once confirmed.';
+    'Your team has been created successfully. You can now manage your squad and enter tournaments from My Team.';
   document.getElementById('success-actions-new-team').classList.remove('hidden');
   document.getElementById('success-actions-captain').classList.add('hidden');
   document.getElementById('reg-teamname').value = '';
@@ -1028,7 +881,7 @@ function resetForm() {
   const sb = document.getElementById('submit-btn');
   if (sb) {
     sb.disabled = false;
-    sb.textContent = 'Submit Registration →';
+    sb.textContent = 'Create Team →';
   }
   buildRosterFields();
 }
