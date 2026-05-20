@@ -71,6 +71,7 @@ const bannerClass = { ranked:'banner-ranked', br:'banner-br', duos:'banner-duos'
 // All tournaments loaded from API — kept in memory for filtering
 let _allTournaments = [];
 let _allMatches = [];
+let _matchesByTournament = new Map();
 let _viewerTeamId = null;
 /** True only when the signed-in user captains that team (used to show “Register team” CTA). */
 let _viewerIsCaptain = false;
@@ -199,6 +200,7 @@ async function loadTournaments() {
       ]);
       _allTournaments = tournaments;
       _allMatches = matches || [];
+      _matchesByTournament = buildMatchesByTournament(_allMatches);
       await resolveViewerTeam();
       _myParticipations = [];
       _participatingTournamentIds = new Set();
@@ -219,6 +221,17 @@ async function loadTournaments() {
         `<div class="col-span-3 text-center py-16 font-mono text-[10px] text-red-400 tracking-wider">${err.message}</div>`;
     }
   }, { label: 'Loading tournaments', minMs: 260 });
+}
+
+function buildMatchesByTournament(matches) {
+  const out = new Map();
+  (matches || []).forEach((m) => {
+    const tid = String(m?.tournament_id ?? m?.tournament?.id ?? '');
+    if (!tid) return;
+    if (!out.has(tid)) out.set(tid, []);
+    out.get(tid).push(m);
+  });
+  return out;
 }
 
 async function resolveViewerTeam() {
@@ -266,9 +279,7 @@ function applyFiltersCore() {
 
   grid.className = 'grid grid-cols-1 md:grid-cols-3 gap-5 reveal-stagger';
   grid.innerHTML = filtered.map(t => {
-    const matches = _allMatches.filter(
-      (m) => String(m.tournament_id ?? m.tournament?.id ?? '') === String(t.id)
-    );
+    const matches = _matchesByTournament.get(String(t.id)) || [];
     const gameLabel = inferTournamentGame(t);
     const isParticipant = _participatingTournamentIds.has(String(t.id));
     const browseHref = isParticipant ? `tournament-hub.html?id=${t.id}` : `tournaments.html?id=${t.id}`;

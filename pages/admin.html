@@ -200,13 +200,13 @@
         <div class="flex items-center justify-between mb-4">
           <div class="font-mono text-[11px] text-amber-400 tracking-wider" id="teams-count"></div>
           <div class="flex gap-2">
-            <select id="teams-filter" onchange="renderTeams()" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
+            <select id="teams-filter" onchange="renderTeams(true)" class="wz-input" style="width:auto;padding:5px 10px;font-size:12px">
               <option value="">All Registrations</option>
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
             </select>
-            <input type="text" id="teams-search" oninput="renderTeams()" class="wz-input" placeholder="Search…" style="width:140px;padding:5px 10px;font-size:12px"/>
+            <input type="text" id="teams-search" oninput="queueRenderTeams()" class="wz-input" placeholder="Search…" style="width:140px;padding:5px 10px;font-size:12px"/>
           </div>
         </div>
         <div class="wz-card overflow-hidden">
@@ -741,6 +741,8 @@ let _matchSubTab   = 'create';
 let _tournamentSubTab = 'list';
 let _matchUpdatesPollTimer = null;
 let _matchUpdatesSince = null;
+let _teamsRenderDebounceTimer = null;
+let _teamsRegistrationsCacheKey = null;
 /** @type {string|null} When set, tournament tables only show this game (matches inferTournamentGame). */
 let _adminGameStripFilter = null;
 /** Registration id when the detail modal is open (Approve/Reject from modal). */
@@ -2071,16 +2073,29 @@ async function renderParticipants() {
 }
 
 // ── Render teams/registrations ────────────────────────────
-async function renderTeams() {
+function queueRenderTeams() {
+  if (_teamsRenderDebounceTimer) clearTimeout(_teamsRenderDebounceTimer);
+  _teamsRenderDebounceTimer = setTimeout(() => {
+    renderTeams(false);
+  }, 180);
+}
+
+async function renderTeams(forceRefresh = false) {
   const filter = document.getElementById('teams-filter').value;
   const search = document.getElementById('teams-search').value.toLowerCase();
   const list   = document.getElementById('teams-list');
-  list.innerHTML = '<div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">Loading…</div>';
+  const cacheKey = filter || '__all__';
+  if (forceRefresh || _teamsRegistrationsCacheKey !== cacheKey || !_registrations.length) {
+    list.innerHTML = '<div class="px-4 py-6 text-center font-mono text-[10px] text-[var(--wz-muted)]">Loading…</div>';
+  }
 
   try {
-    const params = {};
-    if (filter) params.status = filter;
-    _registrations = await getRegistrations(params);
+    if (forceRefresh || _teamsRegistrationsCacheKey !== cacheKey || !_registrations.length) {
+      const params = {};
+      if (filter) params.status = filter;
+      _registrations = await getRegistrations(params);
+      _teamsRegistrationsCacheKey = cacheKey;
+    }
 
     let filtered = _registrations;
     if (search) filtered = filtered.filter(r => r.team?.name?.toLowerCase().includes(search) || r.team?.tag?.toLowerCase().includes(search));
@@ -2313,8 +2328,12 @@ async function handleApprove(id) {
   try {
     await updateRegistrationStatus(id, 'approved');
     showToast('Registration approved ✓');
-    renderTeams();
-    await initAdmin();
+    await renderTeams(true);
+    await renderOverviewPendingQueue();
+    const dash = await getAdminDashboard();
+    document.getElementById('stat-pending').textContent = dash.pending_registrations;
+    document.getElementById('stat-total-teams').textContent = dash.total_teams;
+    document.getElementById('stat-tournaments').textContent = dash.active_tournaments;
   } catch (err) { showToast(err.message, 'error'); }
 }
 
@@ -2322,8 +2341,12 @@ async function handleReject(id) {
   try {
     await updateRegistrationStatus(id, 'rejected', 'Rejected by admin.');
     showToast('Registration rejected', 'error');
-    renderTeams();
-    await initAdmin();
+    await renderTeams(true);
+    await renderOverviewPendingQueue();
+    const dash = await getAdminDashboard();
+    document.getElementById('stat-pending').textContent = dash.pending_registrations;
+    document.getElementById('stat-total-teams').textContent = dash.total_teams;
+    document.getElementById('stat-tournaments').textContent = dash.active_tournaments;
   } catch (err) { showToast(err.message, 'error'); }
 }
 

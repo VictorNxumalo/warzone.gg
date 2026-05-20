@@ -49,6 +49,8 @@ async function getDashboard(req, res, next) {
 async function getTeams(req, res, next) {
   try {
     const { search, status } = req.query;
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 500);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
     let query = supabaseAdmin
       .from('teams')
@@ -56,15 +58,31 @@ async function getTeams(req, res, next) {
         id, name, tag, region, wins, losses, points, earnings, created_at,
         captain:users ( id, username, whatsapp )
       `)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,tag.ilike.%${search}%`);
     }
 
-    const { data, error } = await query;
+    let { data, error } = await query;
 
     if (error) return res.status(400).json({ error: error.message });
+
+    if (status && ['pending', 'approved', 'rejected'].includes(String(status))) {
+      const teamIds = [...new Set((data || []).map((t) => t.id).filter(Boolean))];
+      if (!teamIds.length) {
+        return res.status(200).json({ success: true, count: 0, data: [] });
+      }
+      const { data: regs, error: regErr } = await supabaseAdmin
+        .from('registrations')
+        .select('team_id')
+        .in('team_id', teamIds)
+        .eq('status', String(status));
+      if (regErr) return res.status(400).json({ error: regErr.message });
+      const allowed = new Set((regs || []).map((r) => r.team_id).filter(Boolean));
+      data = (data || []).filter((t) => allowed.has(t.id));
+    }
 
     res.status(200).json({ success: true, count: data.length, data });
 
