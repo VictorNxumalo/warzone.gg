@@ -7,6 +7,15 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="../css/style.css"/>
   <script src="../js/theme.js"></script>
+  <style>
+    @keyframes wzRegPaneFadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .wz-reg-pane-fade-in {
+      animation: wzRegPaneFadeIn 220ms ease-out;
+    }
+  </style>
 </head>
 <body class="wz-page">
 <script src="../js/config.js"></script>
@@ -22,7 +31,16 @@
   </div>
 
   <!-- ── AUTH GATE ─────────────────────────────────────── -->
-  <div id="auth-gate" class="max-w-md mx-auto">
+  <div id="reg-loading-state" class="max-w-md mx-auto">
+    <div class="wz-card border-t-2 border-t-[#e8c14a] p-8 text-center">
+      <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-4">● PREPARING YOUR REGISTRATION</div>
+      <h2 class="font-head text-2xl font-black tracking-widest uppercase mb-2">Checking account status</h2>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6">Please wait while we confirm your session and team eligibility.</p>
+      <div class="mx-auto h-8 w-8 border-2 border-[#e8c14a] border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  </div>
+
+  <div id="auth-gate" class="hidden max-w-md mx-auto">
     <div class="wz-card border-t-2 border-t-[#e8c14a] p-8">
       <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-4">● ACCOUNT REQUIRED</div>
       <h2 class="font-head text-2xl font-black tracking-widest uppercase mb-2">Sign In to Register</h2>
@@ -48,6 +66,10 @@
         <div><label class="wz-label">Password</label><input type="password" id="signup-password" class="wz-input" placeholder="Min. 6 characters"/></div>
         <div><label class="wz-label">WhatsApp (Optional)</label><input type="tel" id="signup-whatsapp" class="wz-input" placeholder="+27 ..."/></div>
         <button onclick="handleSignup()" class="btn-primary w-full py-2.5">Create Account →</button>
+      </div>
+      <div class="mt-6 pt-4 border-t border-[var(--wz-border)] text-center">
+        <p class="font-body text-xs text-[var(--wz-text-secondary)] mb-3">Don’t want to register a full team?</p>
+        <a href="find-squad.html" class="btn-ghost w-full inline-flex justify-center">Find a Team Instead</a>
       </div>
     </div>
   </div>
@@ -184,6 +206,16 @@
 
   <!-- ── REGISTRATION FORM ──────────────────────────────── -->
   <div id="reg-form" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div id="new-team-intent-note" class="md:col-span-3 wz-card accent-left p-4">
+      <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-2">● NO TEAM FOUND</div>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] leading-relaxed">
+        You are not currently in a team. This page is for creating and registering a new team (captain flow), so we request roster and contact details below.
+      </p>
+      <div class="mt-3">
+        <a href="find-squad.html" class="btn-ghost">Find a Team Instead</a>
+      </div>
+    </div>
+
     <!-- Welcome bar -->
     <div class="md:col-span-3 flex items-center justify-between px-4 py-2 bg-[var(--wz-surface)] border border-[var(--wz-border)] rounded">
       <span class="font-mono text-[11px] text-green-400">● Signed in as <span id="logged-in-user" class="text-[var(--wz-text)]"></span></span>
@@ -361,6 +393,37 @@
 let _tournaments = [];
 let _registrationSubmitting = false;
 let _captainEntrySubmitting = false;
+let _registerBootResolved = false;
+
+function animateRegisterPane(el) {
+  if (!el) return;
+  el.classList.remove('wz-reg-pane-fade-in');
+  // force reflow so animation can replay between state switches
+  void el.offsetWidth;
+  el.classList.add('wz-reg-pane-fade-in');
+}
+
+function setRegisterBootState(mode) {
+  const loading = document.getElementById('reg-loading-state');
+  const gate = document.getElementById('auth-gate');
+  const form = document.getElementById('reg-form');
+  const captain = document.getElementById('reg-captain-panel');
+  const success = document.getElementById('success-state');
+
+  if (loading) loading.classList.toggle('hidden', mode !== 'loading');
+  if (gate) gate.classList.toggle('hidden', mode !== 'auth');
+  if (form) form.classList.toggle('hidden', mode !== 'form');
+  if (captain) captain.classList.toggle('hidden', mode !== 'captain');
+  if (success) success.classList.add('hidden');
+
+  const activePane =
+    mode === 'loading' ? loading :
+    mode === 'auth' ? gate :
+    mode === 'form' ? form :
+    mode === 'captain' ? captain :
+    null;
+  animateRegisterPane(activePane);
+}
 
 function _wzEsc(s) {
   return String(s ?? '')
@@ -422,6 +485,8 @@ async function handleSignup() {
 
 // ── After successful auth ─────────────────────────────────
 async function onAuthSuccess(user) {
+  _registerBootResolved = true;
+  setRegisterBootState('loading');
   const access = await getRegistrationAccessState();
   const titleEl = document.getElementById('reg-page-title');
 
@@ -432,18 +497,15 @@ async function onAuthSuccess(user) {
       setTimeout(() => { window.location.replace('tournaments.html'); }, 450);
       return;
     }
+    setRegisterBootState('auth');
     renderBlockedRegisterState(access, user);
     if (titleEl) titleEl.textContent = 'Team Registration';
     return;
   }
 
-  document.getElementById('auth-gate').classList.add('hidden');
-
   if (access.registerMode === 'captain_existing' && access.team) {
     if (titleEl) titleEl.textContent = 'Tournament entry';
-    document.getElementById('reg-form').classList.add('hidden');
-    document.getElementById('success-state').classList.add('hidden');
-    document.getElementById('reg-captain-panel').classList.remove('hidden');
+    setRegisterBootState('captain');
     document.getElementById('cap-logged-in-user').textContent = user.username;
     fillCaptainTeamCard(access.team);
     await loadTournamentsForCaptain();
@@ -464,9 +526,8 @@ async function onAuthSuccess(user) {
     return;
   }
 
-  document.getElementById('reg-captain-panel').classList.add('hidden');
+  setRegisterBootState('form');
   if (titleEl) titleEl.textContent = 'Team Registration';
-  document.getElementById('reg-form').classList.remove('hidden');
   document.getElementById('logged-in-user').textContent = user.username;
   await loadTournaments();
   buildRosterFields();
@@ -484,9 +545,7 @@ async function onAuthSuccess(user) {
 
 function renderBlockedRegisterState(access, user) {
   const gate = document.getElementById('auth-gate');
-  document.getElementById('reg-form').classList.add('hidden');
-  document.getElementById('success-state').classList.add('hidden');
-  gate.classList.remove('hidden');
+  setRegisterBootState('auth');
   const reason = typeof access === 'string' ? access : access?.reason;
   const variant = typeof access === 'object' ? access?.variant : undefined;
   const safeReason = String(reason || '')
@@ -544,12 +603,9 @@ function renderBlockedRegisterState(access, user) {
 async function handleLogout() {
   await authLogout();
   clearCurrentUser();
-  document.getElementById('reg-form').classList.add('hidden');
-  document.getElementById('reg-captain-panel')?.classList.add('hidden');
-  document.getElementById('success-state')?.classList.add('hidden');
+  setRegisterBootState('auth');
   const t = document.getElementById('reg-page-title');
   if (t) t.textContent = 'Team Registration';
-  document.getElementById('auth-gate').classList.remove('hidden');
   showToast('Signed out');
 }
 
@@ -978,9 +1034,16 @@ function resetForm() {
 }
 
 // ── Auto-skip auth gate if already signed in ──────────────
-(function checkExistingSession() {
+(async function checkExistingSession() {
+  setRegisterBootState('loading');
   const user = getCurrentUser();
-  if (user) onAuthSuccess(user);
+  if (user) {
+    await onAuthSuccess(user);
+    return;
+  }
+  if (!_registerBootResolved) {
+    setRegisterBootState('auth');
+  }
 })();
 </script>
 </body>
