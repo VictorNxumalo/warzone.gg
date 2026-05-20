@@ -462,24 +462,27 @@ async function getRegistrationAccessState() {
     };
   }
 
-  // Captain check: user already captains a team (API returns 200 with team: null when none).
+  // Team check: users can belong to only one team at a time.
   try {
     const teamRes = await fetch(`${API_URL}/api/teams/mine`, { headers: _authHeaders() });
     if (teamRes.ok) {
       const payload = await teamRes.json();
       const d = payload?.data;
-      const mineIsCaptain = d?.is_captain === true || String(d?.team?.captain_id) === String(user.id);
-      if (d?.team && mineIsCaptain) {
+      if (d?.team?.id) {
         return {
-          allowed: true,
-          registerMode: 'captain_existing',
-          team: d.team
+          allowed: false,
+          variant: 'has_team',
+          shortReason: 'You are already in a team. Browse tournaments to enter events.',
+          reason: 'You already belong to a team. Team creation is limited to one team per user account.',
+          redirectTo: 'tournaments',
         };
       }
       if (d?.registration_pending || d?.registration?.status === 'pending') {
         return {
           allowed: false,
-          reason: 'You already have a registration awaiting admin approval.'
+          shortReason: 'You already have a pending registration. Browse tournaments while you wait.',
+          reason: 'You already have a registration awaiting admin approval.',
+          redirectTo: 'tournaments',
         };
       }
     }
@@ -509,21 +512,28 @@ async function getRegistrationAccessState() {
           allowed: false,
           variant: 'team_member',
           shortReason:
-            'Only your team captain can register your squad for tournaments. Ask your captain about upcoming events.',
+            'You are already in a team. Ask your captain to enter tournaments for your squad.',
           reason:
-            'Tournament entries are submitted by your team captain, not individual players. This registration page is for brand-new team applications. If your squad should join an open event, ask your captain to register from the Tournaments page—or speak with them about your team’s plans.'
+            'Tournament entries are submitted by your team captain, not individual players. This registration page is for creating brand-new teams only.',
+          redirectTo: 'tournaments',
         };
       }
       if (d?.player && d?.team?.id) {
         return {
           allowed: false,
-          reason: 'You cannot register a new team while you are already part of a team.'
+          variant: 'has_team',
+          shortReason: 'You are already in a team. Browse tournaments to enter events.',
+          reason: 'You cannot register a new team while you are already part of a team.',
+          redirectTo: 'tournaments',
         };
       }
       if (d?.team) {
         return {
           allowed: false,
-          reason: 'You cannot register a new team while you are already part of a team.'
+          variant: 'has_team',
+          shortReason: 'You are already in a team. Browse tournaments to enter events.',
+          reason: 'You cannot register a new team while you are already part of a team.',
+          redirectTo: 'tournaments',
         };
       }
     }

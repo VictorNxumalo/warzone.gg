@@ -435,7 +435,7 @@ async function onAuthSuccess(user) {
   const titleEl = document.getElementById('reg-page-title');
 
   if (!access.allowed) {
-    if (access.variant === 'team_member') {
+    if (access.redirectTo === 'tournaments') {
       if (titleEl) titleEl.textContent = 'Team Registration';
       showToast(access.shortReason || access.reason, 'info');
       setTimeout(() => { window.location.replace('tournaments.html'); }, 450);
