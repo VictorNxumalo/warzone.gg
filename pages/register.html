@@ -435,10 +435,10 @@ async function onAuthSuccess(user) {
   const titleEl = document.getElementById('reg-page-title');
 
   if (!access.allowed) {
-    if (access.redirectTo === 'tournaments') {
+    if (access.redirectTo === 'tournaments_open' || access.redirectTo === 'tournaments') {
       if (titleEl) titleEl.textContent = 'Team Registration';
       showToast(access.shortReason || access.reason, 'info');
-      setTimeout(() => { window.location.replace('tournaments.html'); }, 450);
+      setTimeout(() => { window.location.replace('tournaments.html?status=open'); }, 450);
       return;
     }
     setRegisterBootState('auth');

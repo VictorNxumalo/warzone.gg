@@ -474,7 +474,7 @@ async function getRegistrationAccessState() {
           variant: 'has_team',
           shortReason: 'You are already in a team. Browse tournaments to enter events.',
           reason: 'You already belong to a team. Team creation is limited to one team per user account.',
-          redirectTo: 'tournaments',
+          redirectTo: 'tournaments_open',
         };
       }
       if (d?.registration_pending || d?.registration?.status === 'pending') {
@@ -482,7 +482,7 @@ async function getRegistrationAccessState() {
           allowed: false,
           shortReason: 'You already have a pending registration. Browse tournaments while you wait.',
           reason: 'You already have a registration awaiting admin approval.',
-          redirectTo: 'tournaments',
+          redirectTo: 'tournaments_open',
         };
       }
     }
@@ -515,7 +515,7 @@ async function getRegistrationAccessState() {
             'You are already in a team. Ask your captain to enter tournaments for your squad.',
           reason:
             'Tournament entries are submitted by your team captain, not individual players. This registration page is for creating brand-new teams only.',
-          redirectTo: 'tournaments',
+          redirectTo: 'tournaments_open',
         };
       }
       if (d?.player && d?.team?.id) {
@@ -524,7 +524,7 @@ async function getRegistrationAccessState() {
           variant: 'has_team',
           shortReason: 'You are already in a team. Browse tournaments to enter events.',
           reason: 'You cannot register a new team while you are already part of a team.',
-          redirectTo: 'tournaments',
+          redirectTo: 'tournaments_open',
         };
       }
       if (d?.team) {
@@ -533,7 +533,7 @@ async function getRegistrationAccessState() {
           variant: 'has_team',
           shortReason: 'You are already in a team. Browse tournaments to enter events.',
           reason: 'You cannot register a new team while you are already part of a team.',
-          redirectTo: 'tournaments',
+          redirectTo: 'tournaments_open',
         };
       }
     }
