@@ -1,5 +1,10 @@
 // EVOLVE — Shared Utilities
 
+// Mark page for entrance motion before main content paints.
+if (document.body && !document.body.classList.contains('wz-page-enter-pending')) {
+  document.body.classList.add('wz-page-enter-pending');
+}
+
 // ── Active Nav Highlight ──────────────────────────────────────────
 function setActiveNav() {
   const page = window.location.pathname.split('/').pop() || 'index.html';
@@ -416,10 +421,55 @@ async function wzWithLoading(target, fn, opts = {}) {
   }
 }
 
+// ── Global page entrance reveal ───────────────────────────────────
+function wzApplyPageEntranceReveal() {
+  const body = document.body;
+  if (!body) return;
+  if (body.dataset.wzPageRevealApplied === '1') return;
+  body.dataset.wzPageRevealApplied = '1';
+
+  const prefersReducedMotion =
+    !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  if (prefersReducedMotion) {
+    body.classList.remove('wz-page-enter-pending');
+    body.classList.add('wz-page-enter-active');
+    return;
+  }
+
+  const targets = [];
+  const main = document.querySelector('main');
+  if (main) {
+    targets.push(
+      ...Array.from(main.children).filter((el) => {
+        if (!el || !el.classList) return false;
+        if (el.classList.contains('wz-load-overlay')) return false;
+        return true;
+      })
+    );
+  }
+  const footer = document.querySelector('footer');
+  if (footer) targets.push(footer);
+  if (!targets.length && main) targets.push(main);
+
+  targets.forEach((el, idx) => {
+    el.classList.add('wz-page-reveal-item');
+    el.style.setProperty('--wz-reveal-delay', `${Math.min(idx * 55, 420)}ms`);
+  });
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      body.classList.add('wz-page-enter-active');
+      body.classList.remove('wz-page-enter-pending');
+      targets.forEach((el) => el.classList.add('wz-page-reveal-item--in'));
+    });
+  });
+}
+
 // ── Page-ready init ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   setActiveNav();
   wzAttachGlobalRouteLoaderNav();
+  wzApplyPageEntranceReveal();
   // Keyboard: Escape closes modals
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {

@@ -142,6 +142,27 @@ html[data-theme="light"] {
   z-index: 1;
 }
 
+/* ── Global page entrance reveal (shared by js/main.js) ── */
+.wz-page .wz-page-reveal-item {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--wz-reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.wz-page.wz-page-enter-pending .wz-page-reveal-item {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.wz-page.wz-page-enter-active .wz-page-reveal-item--in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* ── Theme-dynamic typography (light ↔ dark safe) ───────────────────────── */
 .wz-text-dynamic {
   color: var(--wz-text);
@@ -1962,6 +1983,11 @@ html[data-theme="light"] .scanlines::after {
   /* Page / marketing motion */
   .fade-up {
     animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .wz-page .wz-page-reveal-item {
+    transition: none !important;
     opacity: 1 !important;
     transform: none !important;
   }
