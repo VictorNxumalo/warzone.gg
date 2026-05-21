@@ -356,7 +356,7 @@ function wzSetLoading(target, active, opts = {}) {
   if (!el) return;
   const label = opts.label != null ? String(opts.label) : 'Loading';
   const prefix = wzAssetPrefix();
-  const logoSrc = prefix + 'assets/Evovle%20Logo.png';
+  const logoSrc = prefix + 'assets/EVOLVE%20Logo.png';
   el.classList.add('wz-loading-host');
   let ov = el.querySelector(':scope > .wz-load-overlay');
   if (active) {
