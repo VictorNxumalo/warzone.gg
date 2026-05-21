@@ -33,7 +33,7 @@
   <main class="max-w-6xl mx-auto px-5 py-8 fade-up">
 
     <!-- HERO -->
-    <section class="wz-card accent-left p-8 mb-8 relative overflow-hidden scanlines hero-arc-banner">
+    <section class="wz-card accent-left p-8 mb-8 relative overflow-hidden scanlines hero-arc-banner hero-banner-upgrade">
       <div class="absolute inset-0 hero-arc-bg pointer-events-none"></div>
       <div class="hero-ambient-glow hero-ambient-glow-a" aria-hidden="true"></div>
       <div class="hero-ambient-glow hero-ambient-glow-b" aria-hidden="true"></div>
@@ -51,14 +51,32 @@
       <div class="hero-arc-dot hero-arc-dot-b" aria-hidden="true"></div>
       <div class="hero-split relative z-10">
         <div class="hero-content hero-copy-col">
+          <div class="hero-copy-shell">
           <div class="hero-kicker font-mono text-[11px] tracking-widest uppercase mb-3 flex items-center gap-2">
             <span>●</span> LIVE SEASON · Q2 2026
           </div>
           <h1 class="hero-title font-head text-6xl md:text-7xl font-black tracking-widest uppercase leading-none mb-3">
             EVO<span class="text-[#e8c14a]">VLE</span>
           </h1>
-          <p class="hero-subtitle font-head text-xl tracking-[0.18em] uppercase mb-6">Multi-Game Tournament Platform · South Africa</p>
-          <div class="flex flex-wrap gap-3 mb-8">
+          <p class="hero-subtitle font-head text-xl tracking-[0.18em] uppercase mb-4">Multi-Game Tournament Platform · South Africa</p>
+          <div class="hero-rotator-shell mb-4">
+            <span class="hero-rotator-prefix">Focus:</span>
+            <span id="hero-rotating-tagline" class="hero-rotator-text">High-stakes tournaments for serious teams.</span>
+          </div>
+          <div id="hero-live-spotlight" class="hero-live-spotlight hidden mb-5">
+            <span class="hero-live-dot">●</span>
+            <span id="hero-live-spotlight-text">Live now</span>
+          </div>
+          <p class="font-body text-sm md:text-base text-[var(--wz-text-secondary)] leading-relaxed max-w-2xl mb-6">
+            Build your squad, enter official tournaments, and prove your level through real competition.
+            From upcoming challengers to established captains, EVOLVE gives every team a stage.
+          </p>
+          <div class="hero-value-row mb-6">
+            <div class="hero-value-pill">Multi-title competition</div>
+            <div class="hero-value-pill">Live brackets & fixtures</div>
+            <div class="hero-value-pill">Built for South African esports</div>
+          </div>
+          <div class="flex flex-wrap gap-3 mb-8 hero-cta-row">
             <a href="pages/register.html" class="btn-primary">Register Your Team</a>
             <a href="pages/tournaments.html" class="btn-ghost">View Tournaments</a>
             <a href="pages/bracket.html" class="btn-ghost">Live Bracket →</a>
@@ -68,6 +86,7 @@
             <div><div class="font-head text-3xl font-black hero-stat-value" id="stat-tournaments">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider uppercase">Tournaments</div></div>
             <div><div class="font-head text-3xl font-black hero-stat-value" id="stat-prize">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider uppercase">Prize Pool</div></div>
             <div><div class="font-head text-3xl font-black hero-stat-value--active" id="stat-active">—</div><div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wider uppercase">Active Events</div></div>
+          </div>
           </div>
         </div>
         <div class="hero-logo-col" aria-hidden="true">
@@ -194,6 +213,13 @@
 
   <script>
   const bannerClass = { ranked:'banner-ranked', br:'banner-br', duos:'banner-duos', solo:'banner-solo' };
+  const HERO_ROTATING_LINES = [
+    'High-stakes tournaments for serious teams.',
+    'Create your squad. Enter events. Prove your level.',
+    'Live brackets, real pressure, real results.',
+    'Built for South African esports competitors.'
+  ];
+  let _heroRotateTimer = null;
   let _featuredGameFilter = 'all';
   let _homeTournaments = [];
   /** Tournament IDs (approved) for the signed-in user — shared with featured grid + activity. */
@@ -236,6 +262,36 @@
     return map[game] || map.Other;
   }
 
+  function initHeroRotatingTagline() {
+    const el = document.getElementById('hero-rotating-tagline');
+    if (!el || !HERO_ROTATING_LINES.length) return;
+    let idx = 0;
+    el.textContent = HERO_ROTATING_LINES[0];
+    if (_heroRotateTimer) clearInterval(_heroRotateTimer);
+    _heroRotateTimer = setInterval(() => {
+      idx = (idx + 1) % HERO_ROTATING_LINES.length;
+      el.classList.remove('hero-rotator-text--in');
+      requestAnimationFrame(() => {
+        el.textContent = HERO_ROTATING_LINES[idx];
+        requestAnimationFrame(() => el.classList.add('hero-rotator-text--in'));
+      });
+    }, 2800);
+    el.classList.add('hero-rotator-text--in');
+  }
+
+  function setHeroLiveSpotlight(liveTournament) {
+    const host = document.getElementById('hero-live-spotlight');
+    const text = document.getElementById('hero-live-spotlight-text');
+    if (!host || !text) return;
+    if (liveTournament?.name) {
+      text.textContent = `${liveTournament.name} is live now`;
+      host.classList.remove('hidden');
+      return;
+    }
+    host.classList.add('hidden');
+    text.textContent = 'Live now';
+  }
+
   async function loadHomeParticipations() {
     _homeParticipatingIds = new Set();
     const banner = document.getElementById('home-participant-banner');
@@ -270,6 +326,9 @@
       if (liveTourney) {
         document.getElementById('live-banner').classList.remove('hidden');
         document.getElementById('live-banner-text').textContent = `${liveTourney.name.toUpperCase()} IS LIVE NOW`;
+        setHeroLiveSpotlight(liveTourney);
+      } else {
+        setHeroLiveSpotlight(null);
       }
 
       if (!tournaments.length) {
@@ -551,6 +610,7 @@
 
 // ── Init all sections in parallel ────────────────────────
 applyNavAuthState();
+initHeroRotatingTagline();
 
 (async function initHome() {
   await loadHomeParticipations();
