@@ -342,7 +342,7 @@ function applyFiltersCore() {
       if (t.status === 'open' && !user) {
         ctaHref = `register.html?tournament=${encodeURIComponent(String(t.id))}`;
       }
-      if (statusLabel === 'View') {
+      if (t.status === 'upcoming') {
         footerCta = `<button type="button" data-action="wz-open-tournament-details" data-tournament-id="${t.id}" class="${defaultCtaClass}">${statusLabel}</button>`;
       } else {
         footerCta = `<a href="${ctaHref}" class="${defaultCtaClass} no-underline">${statusLabel}</a>`;
@@ -453,10 +453,7 @@ function showCompletedResult(teamA, teamB, scoreA, scoreB) {
 }
 
 function closeTournamentDetailsModal() {
-  const modal = document.getElementById('tournament-detail-modal');
-  if (!modal) return;
-  modal.classList.add('hidden');
-  modal.classList.remove('flex');
+  closeModal('tournament-detail-modal');
 }
 
 function openTournamentDetailsModal(tournamentId) {
@@ -526,8 +523,7 @@ function openTournamentDetailsModal(tournamentId) {
     <a href="schedule.html?tournament=${encodeURIComponent(String(t.id))}" class="btn-ghost">View schedule</a>
   `;
 
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
+  openModal('tournament-detail-modal');
 }
 
 // ── Captain: register existing team for open tournament (delegated — survives grid re-render) ──
@@ -634,7 +630,9 @@ function openTournamentDetailsModal(tournamentId) {
 (function bindTournamentDetailModalClose() {
   const modal = document.getElementById('tournament-detail-modal');
   if (!modal) return;
-  modal.addEventListener('click', () => closeTournamentDetailsModal());
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeTournamentDetailsModal();
+  });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeTournamentDetailsModal();
   });
