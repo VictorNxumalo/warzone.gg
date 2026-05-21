@@ -65,6 +65,23 @@
   </div>
 </main>
 
+<div id="tournament-detail-modal" class="modal-overlay hidden fixed inset-0 z-50 items-center justify-center px-4">
+  <div class="wz-card border-t-2 border-t-[#e8c14a] w-full max-w-2xl max-h-[88vh] overflow-hidden" onclick="event.stopPropagation()">
+    <div class="px-5 py-4 border-b border-[var(--wz-border)] flex items-start justify-between gap-4">
+      <div>
+        <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-1">Tournament Details</div>
+        <h2 id="tdm-title" class="font-head text-xl font-black tracking-widest uppercase text-[var(--wz-text)]">—</h2>
+        <p id="tdm-subtitle" class="font-mono text-[10px] text-[var(--wz-muted)] mt-1">—</p>
+      </div>
+      <button type="button" onclick="closeTournamentDetailsModal()" class="btn-ghost btn-sm" aria-label="Close dialog">Close</button>
+    </div>
+    <div id="tdm-body" class="px-5 py-4 overflow-y-auto max-h-[65vh]">
+      <div class="font-mono text-[10px] text-[var(--wz-muted)]">Loading…</div>
+    </div>
+    <div id="tdm-actions" class="px-5 py-4 border-t border-[var(--wz-border)] flex flex-wrap gap-2 justify-end"></div>
+  </div>
+</div>
+
 <script>
 const bannerClass = { ranked:'banner-ranked', br:'banner-br', duos:'banner-duos', solo:'banner-solo' };
 
@@ -150,6 +167,14 @@ function gameToneClass(game) {
     'Other': 'wz-tournament-card--other'
   };
   return map[game] || map.Other;
+}
+
+function escapeTournamentHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function renderGameFilters() {
@@ -317,7 +342,11 @@ function applyFiltersCore() {
       if (t.status === 'open' && !user) {
         ctaHref = `register.html?tournament=${encodeURIComponent(String(t.id))}`;
       }
-      footerCta = `<a href="${ctaHref}" class="${defaultCtaClass} no-underline">${statusLabel}</a>`;
+      if (statusLabel === 'View') {
+        footerCta = `<button type="button" data-action="wz-open-tournament-details" data-tournament-id="${t.id}" class="${defaultCtaClass}">${statusLabel}</button>`;
+      } else {
+        footerCta = `<a href="${ctaHref}" class="${defaultCtaClass} no-underline">${statusLabel}</a>`;
+      }
     }
     return `
     <div class="wz-card wz-tournament-card ${gameToneClass(gameLabel)} wz-card-hover overflow-hidden ${isParticipant ? 'ring-1 ring-emerald-500/35' : ''}" data-tournament-id="${t.id}">
@@ -423,6 +452,84 @@ function showCompletedResult(teamA, teamB, scoreA, scoreB) {
   setTimeout(close, 4000);
 }
 
+function closeTournamentDetailsModal() {
+  const modal = document.getElementById('tournament-detail-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+function openTournamentDetailsModal(tournamentId) {
+  const t = _allTournaments.find((x) => String(x.id) === String(tournamentId));
+  if (!t) {
+    showToast('Tournament details unavailable right now.', 'error');
+    return;
+  }
+  const matches = (_matchesByTournament.get(String(t.id)) || []).slice(0, 5);
+  const gameLabel = inferTournamentGame(t);
+  const modal = document.getElementById('tournament-detail-modal');
+  const title = document.getElementById('tdm-title');
+  const subtitle = document.getElementById('tdm-subtitle');
+  const body = document.getElementById('tdm-body');
+  const actions = document.getElementById('tdm-actions');
+  if (!modal || !title || !subtitle || !body || !actions) return;
+
+  title.textContent = t.name || 'Tournament';
+  subtitle.textContent = `${gameLabel} · ${(t.status || 'upcoming').toUpperCase()}`;
+
+  body.innerHTML = `
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+      <div class="wz-card p-3">
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase">Start date</div>
+        <div class="font-head text-base font-bold">${escapeTournamentHtml(t.start_date || 'TBA')}</div>
+      </div>
+      <div class="wz-card p-3">
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase">Registration deadline</div>
+        <div class="font-head text-base font-bold">${escapeTournamentHtml(t.reg_deadline || 'TBA')}</div>
+      </div>
+      <div class="wz-card p-3">
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase">Format</div>
+        <div class="font-head text-base font-bold">${escapeTournamentHtml(t.format || '—')}</div>
+      </div>
+      <div class="wz-card p-3">
+        <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase">Slots</div>
+        <div class="font-head text-base font-bold">${escapeTournamentHtml(String(t.registered_count || 0))}/${escapeTournamentHtml(String(t.max_slots || 0))}</div>
+      </div>
+    </div>
+    <div class="wz-card p-3 mb-4">
+      <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase mb-2">Prize breakdown</div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
+        <div>1st: <span class="text-[#e8c14a]">${escapeTournamentHtml(centsToRand(t.prize_1st))}</span></div>
+        <div>2nd: <span class="text-[#e8c14a]">${escapeTournamentHtml(centsToRand(t.prize_2nd))}</span></div>
+        <div>3rd: <span class="text-[#e8c14a]">${escapeTournamentHtml(centsToRand(t.prize_3rd))}</span></div>
+        <div>MVP: <span class="text-[#e8c14a]">${escapeTournamentHtml(centsToRand(t.prize_mvp))}</span></div>
+      </div>
+      <div class="font-mono text-[10px] text-[var(--wz-muted)] mt-2">Total prize pool: ${escapeTournamentHtml(centsToRand(t.prize_total))}</div>
+    </div>
+    <div class="wz-card p-3">
+      <div class="font-mono text-[10px] text-[var(--wz-muted)] uppercase mb-2">Recent fixture preview</div>
+      ${
+        matches.length
+          ? matches.map((m) => `
+            <div class="font-mono text-[10px] text-[var(--wz-text-secondary)] border-b border-[var(--wz-border)] last:border-0 py-1">
+              ${(m.team_a?.name || 'TBD')} vs ${(m.team_b?.name || 'TBD')} · ${(m.status || 'scheduled').toUpperCase()}
+            </div>
+          `).join('')
+          : '<div class="font-mono text-[10px] text-[var(--wz-muted)]">No fixtures published yet.</div>'
+      }
+    </div>
+  `;
+
+  actions.innerHTML = `
+    <a href="tournament-hub.html?id=${encodeURIComponent(String(t.id))}" class="btn-primary">Open tournament hub</a>
+    <a href="bracket.html?tournament=${encodeURIComponent(String(t.id))}" class="btn-ghost">View bracket</a>
+    <a href="schedule.html?tournament=${encodeURIComponent(String(t.id))}" class="btn-ghost">View schedule</a>
+  `;
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
 // ── Captain: register existing team for open tournament (delegated — survives grid re-render) ──
 (function bindTournamentRegisterClick() {
   const host = document.getElementById('wz-host-tournaments');
@@ -439,6 +546,14 @@ function showCompletedResult(teamA, teamB, scoreA, scoreB) {
     }
   });
   host.addEventListener('click', async (ev) => {
+    const detailsBtn = ev.target.closest('[data-action="wz-open-tournament-details"]');
+    if (detailsBtn) {
+      ev.preventDefault();
+      const tid = detailsBtn.getAttribute('data-tournament-id');
+      if (tid) openTournamentDetailsModal(tid);
+      return;
+    }
+
     const btn = ev.target.closest('[data-action="wz-register-tournament"]');
     if (!btn) return;
     ev.preventDefault();
@@ -513,6 +628,15 @@ function showCompletedResult(teamA, teamB, scoreA, scoreB) {
     } catch (e) {
       showToast(e.message || 'Registration failed', 'error');
     }
+  });
+})();
+
+(function bindTournamentDetailModalClose() {
+  const modal = document.getElementById('tournament-detail-modal');
+  if (!modal) return;
+  modal.addEventListener('click', () => closeTournamentDetailsModal());
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeTournamentDetailsModal();
   });
 })();
 
