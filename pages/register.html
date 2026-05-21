@@ -74,6 +74,21 @@
     </div>
   </div>
 
+  <!-- ── ACTIVATED PLAYER PATH CHOICE ─────────────────────── -->
+  <div id="reg-path-choice" class="hidden max-w-2xl mx-auto">
+    <div class="wz-card accent-left p-7">
+      <div class="font-mono text-[10px] text-[#e8c14a] tracking-widest uppercase mb-3">● PLAYER ACCOUNT READY</div>
+      <h2 class="font-head text-2xl font-black tracking-widest uppercase mb-2">Choose your next step</h2>
+      <p class="font-body text-sm text-[var(--wz-text-secondary)] mb-6 leading-relaxed">
+        Your account is active, but you are not linked to a team yet. You can either create your own team as captain, or join an existing team and compete under their captain.
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <button type="button" onclick="continueToCreateTeamFlow()" class="btn-primary w-full justify-center">Create Team (Captain)</button>
+        <a href="find-squad.html" class="btn-ghost w-full inline-flex justify-center">Find a Team (Player)</a>
+      </div>
+    </div>
+  </div>
+
   <!-- ── SUCCESS STATE ──────────────────────────────────── -->
   <div id="success-state" class="hidden wz-card accent-left p-8 text-center mb-8">
     <div class="font-mono text-[10px] text-green-400 tracking-widest mb-3">● REGISTRATION SUBMITTED</div>
@@ -350,12 +365,14 @@ function animateRegisterPane(el) {
 function setRegisterBootState(mode) {
   const loading = document.getElementById('reg-loading-state');
   const gate = document.getElementById('auth-gate');
+  const choice = document.getElementById('reg-path-choice');
   const form = document.getElementById('reg-form');
   const captain = document.getElementById('reg-captain-panel');
   const success = document.getElementById('success-state');
 
   if (loading) loading.classList.toggle('hidden', mode !== 'loading');
   if (gate) gate.classList.toggle('hidden', mode !== 'auth');
+  if (choice) choice.classList.toggle('hidden', mode !== 'choice');
   if (form) form.classList.toggle('hidden', mode !== 'form');
   if (captain) captain.classList.toggle('hidden', mode !== 'captain');
   if (success) success.classList.add('hidden');
@@ -363,10 +380,27 @@ function setRegisterBootState(mode) {
   const activePane =
     mode === 'loading' ? loading :
     mode === 'auth' ? gate :
+    mode === 'choice' ? choice :
     mode === 'form' ? form :
     mode === 'captain' ? captain :
     null;
   animateRegisterPane(activePane);
+}
+
+function continueToCreateTeamFlow() {
+  const user = getCurrentUser();
+  if (user) prepareNewTeamForm(user);
+  setRegisterBootState('form');
+  const titleEl = document.getElementById('reg-page-title');
+  if (titleEl) titleEl.textContent = 'Team Registration';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function prepareNewTeamForm(user) {
+  if (!user) return;
+  const loggedIn = document.getElementById('logged-in-user');
+  if (loggedIn) loggedIn.textContent = user.username;
+  buildRosterFields();
 }
 
 function _wzEsc(s) {
@@ -470,10 +504,16 @@ async function onAuthSuccess(user) {
     return;
   }
 
+  if (access.registerMode === 'new_team' && access.profileType === 'activated_player_no_team') {
+    prepareNewTeamForm(user);
+    if (titleEl) titleEl.textContent = 'Choose Path';
+    setRegisterBootState('choice');
+    return;
+  }
+
+  prepareNewTeamForm(user);
   setRegisterBootState('form');
   if (titleEl) titleEl.textContent = 'Team Registration';
-  document.getElementById('logged-in-user').textContent = user.username;
-  buildRosterFields();
 }
 
 function renderBlockedRegisterState(access, user) {

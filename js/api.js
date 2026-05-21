@@ -488,7 +488,8 @@ async function getRegistrationAccessState() {
     }
   } catch (_) {}
 
-  // Linked player / roster: block new team registration (captains covered above; this catches roster members).
+  // Linked player / roster: block new team registration if already attached to a team.
+  // If activated but not attached, allow with an explicit UX hint to choose path.
   try {
     const profileRes = await fetch(`${API_URL}/api/players/me`, { headers: _authHeaders() });
     if (profileRes.ok) {
@@ -534,6 +535,13 @@ async function getRegistrationAccessState() {
           shortReason: 'You are already in a team. Browse tournaments to enter events.',
           reason: 'You cannot register a new team while you are already part of a team.',
           redirectTo: 'tournaments_open',
+        };
+      }
+      if (d?.player && !d?.team?.id) {
+        return {
+          allowed: true,
+          registerMode: 'new_team',
+          profileType: 'activated_player_no_team',
         };
       }
     }
