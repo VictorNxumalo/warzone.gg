@@ -146,6 +146,11 @@ function injectNav(activePageFile) {
           </summary>
           <div class="wz-utility-menu">
             <div id="nav-admin-indicator" class="hidden wz-utility-admin">Admin session active</div>
+            <div class="font-mono text-[10px] text-[var(--wz-muted)] tracking-wide px-1">
+              Contact: <a href="mailto:evolveesports666@gmail.com" class="wz-link-accent normal-case tracking-normal">evolveesports666@gmail.com</a>
+            </div>
+            <a href="https://www.facebook.com/share/18moeVqQgW/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" class="wz-utility-link">Facebook · Evolve Esports</a>
+            <a href="https://www.instagram.com/evolveesports_?igsh=bGh2azFscmI2dm15&utm_source=qr" target="_blank" rel="noopener noreferrer" class="wz-utility-link">Instagram · @evolveesports_</a>
             <a href="${p}pages/activate.html" id="nav-activate-link" class="wz-utility-link">Are you a player? Activate your account</a>
             <button type="button" onclick="openModal('login-modal')" id="nav-login-btn" class="wz-utility-link wz-utility-link--button">Login</button>
             <a href="${p}pages/register.html" id="nav-signup-btn" class="wz-utility-link">Sign Up</a>
@@ -202,10 +207,16 @@ function injectNav(activePageFile) {
           </div>
         </div>
         <div id="mobile-auth-guest" class="wz-mobile-section wz-mobile-section--footer border-t border-[var(--wz-border)] pt-4 mt-2">
+          <a href="mailto:evolveesports666@gmail.com" class="wz-mobile-link">Email: evolveesports666@gmail.com</a>
+          <a href="https://www.facebook.com/share/18moeVqQgW/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" class="wz-mobile-link">Facebook: Evolve Esports</a>
+          <a href="https://www.instagram.com/evolveesports_?igsh=bGh2azFscmI2dm15&utm_source=qr" target="_blank" rel="noopener noreferrer" class="wz-mobile-link">Instagram: @evolveesports_</a>
           <a href="${p}pages/activate.html" class="wz-mobile-link">Activate player account</a>
           <button type="button" onclick="openModal('login-modal')" class="wz-mobile-link wz-mobile-link--button">Login</button>
         </div>
         <div id="mobile-auth-user" class="hidden wz-mobile-section wz-mobile-section--footer border-t border-[var(--wz-border)] pt-4 mt-2">
+          <a href="mailto:evolveesports666@gmail.com" class="wz-mobile-link">Email: evolveesports666@gmail.com</a>
+          <a href="https://www.facebook.com/share/18moeVqQgW/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" class="wz-mobile-link">Facebook: Evolve Esports</a>
+          <a href="https://www.instagram.com/evolveesports_?igsh=bGh2azFscmI2dm15&utm_source=qr" target="_blank" rel="noopener noreferrer" class="wz-mobile-link">Instagram: @evolveesports_</a>
           <div id="mobile-username" class="font-mono text-xs text-[var(--accent)] py-2 tracking-wider"></div>
           <button type="button" onclick="_handleNavLogout()" class="wz-mobile-link wz-mobile-link--button">Logout</button>
         </div>
