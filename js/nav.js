@@ -87,9 +87,9 @@ function injectNav(activePageFile) {
     <div class="max-w-6xl mx-auto px-4 lg:px-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 min-h-14 py-2 lg:py-2">
       <a href="${p}index.html" class="font-head text-lg sm:text-xl font-black tracking-widest text-[#e8c14a] uppercase flex items-center gap-2 shrink-0">
         <img
-          src="${p}assets/Evolve%20WebApp%20Logo.png"
-          data-wz-logo-default="${p}assets/Evolve%20WebApp%20Logo.png"
-          data-wz-logo-light="${p}assets/Evolve%20WebApp%20Logo.png"
+          src="${p}assets/Evolve WebApp Logo.png"
+          data-wz-logo-default="${p}assets/Evolve WebApp Logo.png"
+          data-wz-logo-light="${p}assets/Evolve WebApp Logo.png"
           alt="Evolve logo"
           class="wz-brand-logo-nav"
         />
@@ -271,7 +271,7 @@ function injectGlobalRouteLoader() {
     '<div class="wz-route-loader-ring" aria-hidden="true"></div>' +
     '<img src="' +
     p +
-    'assets/Evolve%20WebApp%20Logo.png" alt="" class="wz-route-loader-logo"/>' +
+    'assets/Evolve WebApp Logo.png" alt="" class="wz-route-loader-logo"/>' +
     '</div>';
   document.body.appendChild(el);
 }

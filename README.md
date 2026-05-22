@@ -81,6 +81,7 @@ Minimum must-pass checks:
 
 - **`docs/project/`** — Word/PDF write-ups (architecture notes, progress reports, folder-structure reference).
 - **`docs/design/`** — Diagrams (e.g. backend implementation flow SVG).
+- **`docs/frontend/`** — Frontend structure and naming conventions for safe file cleanup.
 - **`docs/user-flows/`** — Standalone HTML prototypes for member/platform flows (not linked from the main site).
 - **`docs/notes/`** — Generated or extracted text (e.g. plain text pulled from a Word doc via `scripts/extract-docx.ps1`).
 - **`docs/legal/`** — Privacy policy, terms of service, data inventory and compliance register.
